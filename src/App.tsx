@@ -63,14 +63,17 @@ export default function App() {
     setSession((s) => ({ ...s, phases: { ...s.phases, [id]: { ...s.phases[id], ...update } } }));
   }, []);
 
-  const runPhase = useCallback(async (phaseId: number) => {
+  const runPhase = useCallback(async (phaseId: number, startDelay = 0) => {
     const phase = PHASES.find((p) => p.id === phaseId);
     if (!phase || !session.problem.trim()) return;
+    if (startDelay > 0) await new Promise((r) => setTimeout(r, startDelay));
     updatePhase(phaseId, { status: "running", results: [], error: undefined });
     const queries = phase.buildQueries(session.problem, session.knownPlayers);
     const allResults: ExaResult[] = [];
     try {
-      for (const q of queries) {
+      for (let i = 0; i < queries.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 200));
+        const q = queries[i];
         const res = await fetch("/api/exa-search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -90,7 +93,7 @@ export default function App() {
 
   const runAll = useCallback(() => {
     if (!session.problem.trim()) return;
-    Promise.all(PHASES.map((p) => runPhase(p.id)));
+    PHASES.forEach((p, i) => runPhase(p.id, i * 400));
   }, [runPhase, session.problem]);
 
   const reset = useCallback(() => {
