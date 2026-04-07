@@ -1,0 +1,50 @@
+@import "@heroui/react/styles";
+
+:root {
+  --cream:       #FDFBF7;
+  --cream-dark:  #F0EBE1;
+  --ink:         #1A1A18;
+  --ink-light:   #4A4A45;
+  --ink-muted:   #8A8A82;
+  --teal:        #5B8A8A;
+  --terracotta:  #C4725A;
+  --warm-gray:   #D4CFC5;
+  --font-display: 'Satoshi', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+* { -webkit-font-smoothing: antialiased; }
+::selection { background: var(--teal); color: var(--cream); }
+
+body {
+  font-family: var(--font-display);
+  background: #FDFBF7;
+  min-height: 100vh;
+  color: var(--ink);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(26, 26, 24, 0.07), 0 1px 3px rgba(26, 26, 24, 0.05);
+}
+
+.card-head {
+  background: rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(26, 26, 24, 0.06);
+  padding: 20px 24px;
+}
+
+.card-body { padding: 24px; }
+
+.divider { height: 1px; background: rgba(26, 26, 24, 0.07); margin: 16px 0; }
+
+.status-running { border-left: 2px solid rgba(91, 138, 138, 0.5); }
+.status-done    { border-left: 2px solid var(--teal); }
+.status-error   { border-left: 2px solid var(--terracotta); }
+
+.mono { font-family: var(--font-mono); }
