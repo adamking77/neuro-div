@@ -38,24 +38,24 @@ body {
   50%       { opacity: 0.2; }
 }
 
-/* Native form inputs — underline only */
+/* Native form inputs */
 textarea, input[type="text"] {
   font-family: var(--font-display);
   font-size: 15px;
   color: var(--ink);
   background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--rule);
+  border: 1px solid var(--rule);
   outline: none;
   width: 100%;
   resize: none;
-  padding: 8px 0 10px;
+  padding: 12px 14px;
   line-height: 1.6;
   display: block;
+  transition: border-color 0.15s;
 }
 
 textarea::placeholder, input[type="text"]::placeholder { color: var(--ink-muted); }
-textarea:focus, input[type="text"]:focus { border-bottom-color: rgba(26, 26, 24, 0.3); }
+textarea:focus, input[type="text"]:focus { border-color: rgba(26, 26, 24, 0.3); }
 
 /* Text button — bare, no chrome */
 .btn-text {

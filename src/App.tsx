@@ -145,28 +145,27 @@ export default function App() {
       <hr className="rule" style={{ marginBottom: 36 }} />
 
       {/* Input form */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 192px", gap: "0 48px", marginBottom: 36, alignItems: "end" }}>
-        <div>
-          <label style={{
-            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 10,
-            fontFamily: "var(--font-mono)",
-          }}>
-            Problem Statement
-          </label>
-          <textarea
-            value={session.problem}
-            onChange={(e) => setSession((s) => ({ ...s, problem: e.target.value }))}
-            placeholder="Describe the customer problem in plain language…"
-            rows={4}
-          />
-        </div>
+      <div style={{ marginBottom: 36 }}>
+        <label style={{
+          display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+          textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
+          fontFamily: "var(--font-mono)",
+        }}>
+          Problem Statement
+        </label>
+        <textarea
+          value={session.problem}
+          onChange={(e) => setSession((s) => ({ ...s, problem: e.target.value }))}
+          placeholder="Describe the customer problem in plain language…"
+          rows={4}
+          style={{ marginBottom: 8 }}
+        />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div>
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginTop: 4 }}>
+          <div style={{ flex: 1 }}>
             <label style={{
               display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-              textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 10,
+              textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
               fontFamily: "var(--font-mono)",
             }}>
               Known Players{" "}
@@ -187,12 +186,13 @@ export default function App() {
             disabled={!canRun}
             style={{
               fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600,
-              letterSpacing: "0.01em", padding: "12px 0",
+              letterSpacing: "0.01em", padding: "0 32px",
               border: "none", cursor: canRun ? "pointer" : "not-allowed",
-              background: canRun ? "var(--ink)" : "rgba(26,26,24,0.08)",
+              background: canRun ? "var(--ink)" : "rgba(26,26,24,0.06)",
               color: canRun ? "var(--cream)" : "var(--ink-muted)",
               transition: "background 0.15s, color 0.15s",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              display: "flex", alignItems: "center", gap: 8,
+              flexShrink: 0, alignSelf: "flex-end",
             }}
           >
             {isRunning
