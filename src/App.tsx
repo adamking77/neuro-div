@@ -151,7 +151,7 @@ export default function App() {
 
       {/* Header */}
       <div style={{ marginBottom: 36 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           {/* Logo — three overlapping outline circles */}
           <div style={{ width: 28, height: 14, position: "relative", flexShrink: 0 }}>
             {[0, 8, 16].map((offset, i) => (
@@ -163,13 +163,14 @@ export default function App() {
               }} />
             ))}
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", letterSpacing: "-0.01em" }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
             Category Scout
           </span>
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 480, margin: 0 }}>
-          Six research phases — who has the pain, who's solving it,
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 520, margin: 0 }}>
+          Six research phases in parallel — who has the pain, who's solving it,
           how the market is structured, and how people talk about it.
+          Powered by Exa's semantic search.
         </p>
       </div>
 
