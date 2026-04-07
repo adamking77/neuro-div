@@ -140,7 +140,7 @@ export default function App() {
   const canRun = !!session.problem.trim() && !isRunning;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "52px 40px 100px" }}>
+    <div className="main-wrap" style={{ maxWidth: 860, margin: "0 auto", padding: "52px 40px 100px" }}>
 
       {/* Header */}
       <div style={{ marginBottom: 36 }}>
@@ -170,7 +170,7 @@ export default function App() {
       <hr className="rule" style={{ marginBottom: 36 }} />
 
       {/* Input form */}
-      <div style={{ marginBottom: 36 }}>
+      <div className="input-grid" style={{ marginBottom: 36 }}>
         <label style={{
           display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
           textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,

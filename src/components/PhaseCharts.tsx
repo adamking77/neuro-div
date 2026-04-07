@@ -33,7 +33,7 @@ export function PublicationTimeline({ results }: TimelineProps) {
   return (
     <div
       className="mt-4 px-4 py-3 rounded-xl"
-      style={{ background: "oklch(0% 0 0 / 0.03)", border: "1px solid oklch(0% 0 0 / 0.06)" }}
+      style={{ background: "oklch(0% 0 0 / 0.03)", border: "1px solid oklch(0% 0 0 / 0.06)", overflow: "hidden" }}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "oklch(52% 0.008 286)" }}>
@@ -113,7 +113,7 @@ export function ScoreDistribution({ results }: ScoreProps) {
   return (
     <div
       className="mt-3 px-4 py-3 rounded-xl"
-      style={{ background: "oklch(0% 0 0 / 0.03)", border: "1px solid oklch(0% 0 0 / 0.06)" }}
+      style={{ background: "oklch(0% 0 0 / 0.03)", border: "1px solid oklch(0% 0 0 / 0.06)", overflow: "hidden" }}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "oklch(52% 0.008 286)" }}>

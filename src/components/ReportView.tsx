@@ -57,14 +57,14 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
     <div style={{ display: "grid", gridTemplateColumns: "36px 1fr", gap: "0 32px" }}>
 
       {/* Index number */}
-      <div style={{ paddingTop: 3 }}>
+      <div style={{ paddingTop: 3, flexShrink: 0 }}>
         <span className="mono" style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--ink-muted)" }}>
           {String(phaseId).padStart(2, "0")}
         </span>
       </div>
 
       {/* Content */}
-      <div>
+      <div style={{ minWidth: 0, overflow: "hidden" }}>
         {/* Phase header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>

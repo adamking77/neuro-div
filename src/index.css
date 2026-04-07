@@ -60,6 +60,15 @@ textarea:focus, input[type="text"]:focus { border-color: rgba(26, 26, 24, 0.3); 
 /* Prevent HeroUI from dimming plain buttons */
 button:disabled { opacity: 1 !important; }
 
+/* Responsive layout */
+@media (max-width: 640px) {
+  .input-grid { grid-template-columns: 1fr !important; }
+  .main-wrap  { padding: 32px 20px 60px !important; }
+}
+
+/* Prevent pre from overflowing */
+pre { overflow-x: auto; max-width: 100%; }
+
 /* Text button — bare, no chrome */
 .btn-text {
   background: none;
