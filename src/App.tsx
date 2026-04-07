@@ -1,17 +1,15 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Spinner } from "@heroui/react";
-import { ArrowCounterClockwise, Notepad, DownloadSimple, Copy, Check } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, DownloadSimple, Copy, Check, CaretDown } from "@phosphor-icons/react";
 import type { ExaResult, PhaseResult, SessionState } from "./types";
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
-import { BriefBuilder } from "./components/BriefBuilder";
 import "./index.css";
 
 const emptyPhases = (): Record<number, PhaseResult> =>
   Object.fromEntries(PHASES.map((p) => [p.id, { status: "idle", results: [] }]));
 
-export type MainView = "report" | "brief";
 
 function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
   canRun: boolean; isRunning: boolean; hasAnyResults: boolean; onClick: () => void;
@@ -24,7 +22,7 @@ function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
       onMouseLeave={() => setHovered(false)}
       style={{
         fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
-        letterSpacing: "0.01em", padding: "13px 36px",
+        letterSpacing: "0.01em", padding: "10px 52px",
         border: "none", borderRadius: 999,
         cursor: "pointer",
         background: hovered ? "#3D6B6B" : "#5B8A8A",
@@ -58,8 +56,8 @@ export default function App() {
   const [session, setSession] = useState<SessionState>({
     problem: "", knownPlayers: "", phases: emptyPhases(),
   });
-  const [view, setView] = useState<MainView>("report");
   const [promptCopied, setPromptCopied] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
 
   const updatePhase = useCallback((id: number, update: Partial<PhaseResult>) => {
     setSession((s) => ({ ...s, phases: { ...s.phases, [id]: { ...s.phases[id], ...update } } }));
@@ -92,13 +90,11 @@ export default function App() {
 
   const runAll = useCallback(() => {
     if (!session.problem.trim()) return;
-    setView("report");
     Promise.all(PHASES.map((p) => runPhase(p.id)));
   }, [runPhase, session.problem]);
 
   const reset = useCallback(() => {
     setSession({ problem: "", knownPlayers: "", phases: emptyPhases() });
-    setView("report");
   }, []);
 
   const downloadResearch = useCallback(() => {
@@ -141,7 +137,6 @@ export default function App() {
 
   const isRunning = Object.values(session.phases).some((p) => p.status === "running");
   const hasAnyResults = Object.values(session.phases).some((p) => p.results.length > 0);
-  const completedCount = Object.values(session.phases).filter((p) => p.status === "done").length;
   const canRun = !!session.problem.trim() && !isRunning;
 
   return (
@@ -225,35 +220,14 @@ export default function App() {
             padding: "14px 0",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-            <button
-              className="btn-text"
-              onClick={() => setView(view === "brief" ? "report" : "brief")}
-              style={{
-                fontSize: 13, color: view === "brief" ? "var(--ink)" : "var(--ink-muted)",
-                fontWeight: view === "brief" ? 600 : 400,
-                borderBottom: view === "brief" ? "1px solid var(--ink)" : "1px solid transparent",
-                paddingBottom: 1,
-              }}
-            >
-              <Notepad size={13} />
-              Brief
-              {completedCount > 0 && (
-                <span className="mono" style={{ fontSize: 10, marginLeft: 2, opacity: 0.6 }}>
-                  {completedCount}/6
-                </span>
-              )}
-            </button>
-
-            <button
-              className="btn-text"
-              onClick={downloadResearch}
-              style={{ fontSize: 13, color: "var(--ink-muted)" }}
-            >
-              <DownloadSimple size={13} />
-              Export
-            </button>
-          </div>
+          <button
+            className="btn-text"
+            onClick={downloadResearch}
+            style={{ fontSize: 13, color: "var(--ink-muted)" }}
+          >
+            <DownloadSimple size={13} />
+            Export
+          </button>
 
           <button
             className="btn-text"
@@ -274,54 +248,70 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2, delay: 0.05 }}
-            style={{
-              display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-              gap: 32, padding: "18px 0",
-            }}
+            style={{ padding: "20px 0" }}
           >
-            <div>
-              <p style={{
-                fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
-                color: "var(--ink-muted)", margin: "0 0 6px", fontFamily: "var(--font-mono)",
-              }}>
-                Take this to Claude
-              </p>
-              <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
-                Export the research, upload to{" "}
-                <a href="https://claude.ai" target="_blank" rel="noreferrer"
-                  style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
-                , and use this prompt to generate a category design brief.
-              </p>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
+              <div>
+                <p style={{
+                  fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
+                  color: "var(--ink-muted)", margin: "0 0 5px", fontFamily: "var(--font-mono)",
+                }}>
+                  Take this to Claude
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
+                  Export the research, upload to{" "}
+                  <a href="https://claude.ai" target="_blank" rel="noreferrer"
+                    style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
+                  , and use this prompt to generate a category design brief.
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
+                <button className="btn-text" onClick={copyPrompt}
+                  style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}>
+                  {promptCopied ? <Check size={12} /> : <Copy size={12} />}
+                  {promptCopied ? "Copied" : "Copy prompt"}
+                </button>
+                <button className="btn-text" onClick={() => setPromptOpen((x) => !x)}
+                  style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                  <motion.span
+                    animate={{ rotate: promptOpen ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    style={{ display: "inline-flex" }}
+                  >
+                    <CaretDown size={12} />
+                  </motion.span>
+                  {promptOpen ? "Hide" : "View prompt"}
+                </button>
+              </div>
             </div>
-            <button
-              className="btn-text"
-              onClick={copyPrompt}
-              style={{
-                fontSize: 12, flexShrink: 0, paddingTop: 2,
-                color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)",
-                transition: "color 0.15s",
-              }}
-            >
-              {promptCopied ? <Check size={12} /> : <Copy size={12} />}
-              {promptCopied ? "Copied" : "Copy prompt"}
-            </button>
+
+            <AnimatePresence>
+              {promptOpen && (
+                <motion.pre
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                  style={{
+                    fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7,
+                    color: "var(--ink-light)", margin: "14px 0 0",
+                    padding: "14px 16px",
+                    border: "1px solid var(--rule)",
+                    whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    overflow: "hidden",
+                  }}
+                >
+                  {CLAUDE_PROMPT}
+                </motion.pre>
+              )}
+            </AnimatePresence>
           </motion.div>
           <hr className="rule" style={{ marginBottom: 40 }} />
         </>
       )}
 
       {/* Output */}
-      <AnimatePresence mode="wait">
-        {view === "brief" ? (
-          <motion.div key="brief" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            <BriefBuilder phases={session.phases} />
-          </motion.div>
-        ) : (
-          <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            <ReportView session={session} onRunPhase={runPhase} isRunning={isRunning} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ReportView session={session} onRunPhase={runPhase} isRunning={isRunning} />
     </div>
   );
 }
