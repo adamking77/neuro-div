@@ -26,11 +26,9 @@ function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
         fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
         letterSpacing: "0.01em", padding: "13px 36px",
         border: "none", borderRadius: 999,
-        cursor: canRun ? "pointer" : "default",
-        background: canRun
-          ? hovered ? "#1244A0" : "#1755B8"
-          : "rgba(26,26,24,0.06)",
-        color: canRun ? "#fff" : "var(--ink-muted)",
+        cursor: "pointer",
+        background: hovered ? "#3D6B6B" : "#5B8A8A",
+        color: "#fff",
         transition: "background 0.15s",
         display: "inline-flex", alignItems: "center", gap: 8,
         userSelect: "none", opacity: 1,
