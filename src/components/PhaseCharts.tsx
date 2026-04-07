@@ -30,89 +30,112 @@ export function PublicationTimeline({ results }: TimelineProps) {
   const trendColor = recencyPct > 60 ? "var(--teal)" : recencyPct > 35 ? "var(--ink-muted)" : "var(--terracotta)";
 
   const maxCount = Math.max(...data.map((d) => d.count), 1);
-  const svgH = 40;
-  const barW = Math.min(20, Math.floor(320 / data.length) - 2);
+
+  // Build SVG path using a viewBox so it scales to 100% width
+  const VW = 400;
+  const VH = 64;
+  const PAD = { top: 6, bottom: 4, left: 0, right: 0 };
+  const plotH = VH - PAD.top - PAD.bottom;
+
+  const pts = data.map((d, i) => {
+    const x = data.length === 1 ? VW / 2 : (i / (data.length - 1)) * VW;
+    const y = PAD.top + plotH - (d.count / maxCount) * plotH;
+    return { x, y, ...d };
+  });
+
+  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const areaPath = `${linePath} L${pts[pts.length - 1].x},${VH} L${pts[0].x},${VH} Z`;
+
+  // Find where "recent" starts on the x axis
+  const recentCutoff = recentYear - 2;
+  const recentStartIdx = pts.findIndex((p) => p.year >= recentCutoff);
+  const recentX = recentStartIdx >= 0 ? pts[recentStartIdx].x : VW;
 
   return (
     <div style={{
       marginTop: 16, padding: "16px 16px 14px",
       border: "1px solid var(--rule)",
     }}>
-      {/* Question header */}
-      <p style={{
-        fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase",
-        color: "var(--ink-muted)", margin: "0 0 10px", fontFamily: "var(--font-mono)",
-      }}>
-        Is this topic gaining traction?
-      </p>
-
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
-        {/* Sparkline */}
-        <div style={{ flexShrink: 0 }}>
-          <svg
-            width={data.length * (barW + 2)}
-            height={svgH}
-            style={{ display: "block", overflow: "visible" }}
-          >
-            {data.map((d, i) => {
-              const h = Math.max(2, Math.round((d.count / maxCount) * (svgH - 4)));
-              const isRecent = d.year >= recentYear - 2;
-              return (
-                <rect
-                  key={d.year}
-                  x={i * (barW + 2)}
-                  y={svgH - h}
-                  width={barW}
-                  height={h}
-                  rx={1}
-                  fill={isRecent ? "var(--teal)" : "rgba(26,26,24,0.12)"}
-                />
-              );
-            })}
-          </svg>
-          {/* Year labels: first and last */}
-          <div style={{
-            display: "flex", justifyContent: "space-between",
-            marginTop: 4, width: data.length * (barW + 2),
-          }}>
-            <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>
-              {data[0].year}
-            </span>
-            <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>
-              {data[data.length - 1].year}
-            </span>
-          </div>
-        </div>
-
-        {/* Interpretation */}
+      {/* Header row: question + verdict side by side */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div>
           <p style={{
-            fontSize: 18, fontWeight: 700, color: trendColor, margin: "0 0 3px",
+            fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase",
+            color: "var(--ink-muted)", margin: "0 0 3px", fontFamily: "var(--font-mono)",
+          }}>
+            Is this topic gaining traction?
+          </p>
+          <p style={{ fontSize: 12, color: "var(--ink-light)", margin: 0, lineHeight: 1.5 }}>
+            {recencyPct}% of sources published in the last 2 years
+          </p>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <p style={{
+            fontSize: 18, fontWeight: 700, color: trendColor, margin: "0 0 2px",
             fontFamily: "var(--font-mono)", letterSpacing: "-0.02em", lineHeight: 1,
           }}>
             {recencyPct}%
           </p>
-          <p style={{ fontSize: 12, color: "var(--ink-light)", margin: "0 0 5px", lineHeight: 1.5 }}>
-            of sources published in the last 2 years
-          </p>
           <p style={{ fontSize: 11, color: trendColor, margin: 0, fontFamily: "var(--font-mono)" }}>
-            {trend === "accelerating" && "Coverage is accelerating — active topic"}
-            {trend === "steady" && "Coverage is steady — established topic"}
-            {trend === "slowing" && "Coverage is slowing — maturing or fading topic"}
+            {trend === "accelerating" && "accelerating"}
+            {trend === "steady" && "steady"}
+            {trend === "slowing" && "slowing"}
           </p>
         </div>
       </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 1, background: "var(--teal)" }} />
-          <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>last 2 years</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 1, background: "rgba(26,26,24,0.12)" }} />
-          <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>older</span>
-        </div>
+      {/* Full-width area chart */}
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        preserveAspectRatio="none"
+        style={{ width: "100%", height: 72, display: "block", overflow: "visible" }}
+      >
+        <defs>
+          <linearGradient id="timeline-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--teal)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--teal)" stopOpacity="0.02" />
+          </linearGradient>
+          {/* Clip for recent portion */}
+          <clipPath id="clip-recent">
+            <rect x={recentX} y={0} width={VW - recentX} height={VH} />
+          </clipPath>
+          <clipPath id="clip-older">
+            <rect x={0} y={0} width={recentX} height={VH} />
+          </clipPath>
+        </defs>
+
+        {/* Older area — muted */}
+        <path d={areaPath} fill="rgba(26,26,24,0.05)" clipPath="url(#clip-older)" />
+        <path d={linePath} fill="none" stroke="rgba(26,26,24,0.2)" strokeWidth="1.5" clipPath="url(#clip-older)" />
+
+        {/* Recent area — teal */}
+        <path d={areaPath} fill="url(#timeline-area)" clipPath="url(#clip-recent)" />
+        <path d={linePath} fill="none" stroke="var(--teal)" strokeWidth="1.5" clipPath="url(#clip-recent)" />
+
+        {/* Junction dot at recency cutoff */}
+        {recentStartIdx > 0 && (
+          <circle cx={pts[recentStartIdx].x} cy={pts[recentStartIdx].y} r={2.5} fill="var(--teal)" />
+        )}
+
+        {/* Dots on all points */}
+        {pts.map((p) => (
+          <circle
+            key={p.year}
+            cx={p.x} cy={p.y} r={2}
+            fill={p.year >= recentCutoff ? "var(--teal)" : "rgba(26,26,24,0.25)"}
+          />
+        ))}
+      </svg>
+
+      {/* X-axis year labels */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>{data[0].year}</span>
+        {data.length > 4 && (
+          <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)", opacity: 0.6 }}>
+            {recentCutoff}
+          </span>
+        )}
+        <span style={{ fontSize: 10, color: "var(--ink-muted)", fontFamily: "var(--font-mono)" }}>{data[data.length - 1].year}</span>
       </div>
     </div>
   );
