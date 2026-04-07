@@ -13,6 +13,37 @@ const emptyPhases = (): Record<number, PhaseResult> =>
 
 export type MainView = "report" | "brief";
 
+function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
+  canRun: boolean; isRunning: boolean; hasAnyResults: boolean; onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const base = "#1755B8";
+  return (
+    <button
+      onClick={onClick}
+      disabled={!canRun}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
+        letterSpacing: "0.01em", padding: "13px 36px",
+        border: "none", borderRadius: 999,
+        cursor: canRun ? "pointer" : "not-allowed",
+        background: canRun ? (hovered ? "rgba(23, 85, 184, 0.72)" : base) : "rgba(26,26,24,0.06)",
+        color: canRun ? "#fff" : "var(--ink-muted)",
+        transition: "background 0.18s",
+        display: "inline-flex", alignItems: "center", gap: 8,
+        userSelect: "none",
+      }}
+    >
+      {isRunning
+        ? <><Spinner size="sm" color="current" /><span>Running…</span></>
+        : hasAnyResults ? "Re-run All" : "Run"
+      }
+    </button>
+  );
+}
+
 const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 phases of market research. Please analyze it and produce a category design brief with these sections:
 
 1. The Problem — in customer language, not solution language
@@ -179,26 +210,7 @@ export default function App() {
           style={{ marginBottom: 16 }}
         />
 
-        <button
-          onClick={runAll}
-          disabled={!canRun}
-          style={{
-            width: "100%",
-            fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
-            letterSpacing: "0.01em", padding: "13px 0",
-            border: "none", borderRadius: 999,
-            cursor: canRun ? "pointer" : "not-allowed",
-            background: canRun ? "#2C5C93" : "rgba(26,26,24,0.06)",
-            color: canRun ? "#fff" : "var(--ink-muted)",
-            transition: "background 0.15s, color 0.15s",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          {isRunning
-            ? <><Spinner size="sm" color="current" /><span>Running…</span></>
-            : hasAnyResults ? "Re-run All" : "Run"
-          }
-        </button>
+        <RunButton canRun={canRun} isRunning={isRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
       </div>
 
       <hr className="rule" />
