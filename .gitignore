@@ -26,3 +26,6 @@ dist-ssr
 # Environment
 .env
 .vercel
+
+# Tauri (legacy desktop build — not used)
+src-tauri/target
