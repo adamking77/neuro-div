@@ -161,46 +161,44 @@ export default function App() {
           style={{ marginBottom: 8 }}
         />
 
-        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginTop: 4 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{
-              display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-              textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
-              fontFamily: "var(--font-mono)",
-            }}>
-              Known Players{" "}
-              <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
-                — optional
-              </span>
-            </label>
-            <input
-              type="text"
-              value={session.knownPlayers}
-              onChange={(e) => setSession((s) => ({ ...s, knownPlayers: e.target.value }))}
-              placeholder="Accenture, McKinsey…"
-            />
-          </div>
+        <label style={{
+          display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+          textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
+          fontFamily: "var(--font-mono)", marginTop: 8,
+        }}>
+          Known Players{" "}
+          <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
+            — optional
+          </span>
+        </label>
+        <input
+          type="text"
+          value={session.knownPlayers}
+          onChange={(e) => setSession((s) => ({ ...s, knownPlayers: e.target.value }))}
+          placeholder="Accenture, McKinsey…"
+          style={{ marginBottom: 16 }}
+        />
 
-          <button
-            onClick={runAll}
-            disabled={!canRun}
-            style={{
-              fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600,
-              letterSpacing: "0.01em", padding: "0 32px",
-              border: "none", cursor: canRun ? "pointer" : "not-allowed",
-              background: canRun ? "var(--ink)" : "rgba(26,26,24,0.06)",
-              color: canRun ? "var(--cream)" : "var(--ink-muted)",
-              transition: "background 0.15s, color 0.15s",
-              display: "flex", alignItems: "center", gap: 8,
-              flexShrink: 0, alignSelf: "flex-end",
-            }}
-          >
-            {isRunning
-              ? <><Spinner size="sm" color="current" /><span>Running…</span></>
-              : hasAnyResults ? "Re-run All" : "Run"
-            }
-          </button>
-        </div>
+        <button
+          onClick={runAll}
+          disabled={!canRun}
+          style={{
+            width: "100%",
+            fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
+            letterSpacing: "0.01em", padding: "13px 0",
+            border: "none", borderRadius: 999,
+            cursor: canRun ? "pointer" : "not-allowed",
+            background: canRun ? "#2C5C93" : "rgba(26,26,24,0.06)",
+            color: canRun ? "#fff" : "var(--ink-muted)",
+            transition: "background 0.15s, color 0.15s",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          {isRunning
+            ? <><Spinner size="sm" color="current" /><span>Running…</span></>
+            : hasAnyResults ? "Re-run All" : "Run"
+          }
+        </button>
       </div>
 
       <hr className="rule" />
