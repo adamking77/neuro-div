@@ -40,7 +40,9 @@ function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
   );
 }
 
-const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 phases of market research. Please analyze it and produce a category design brief with these sections:
+const CLAUDE_PROMPT = `I'm attaching a Category Scout research file. It contains results from 6 research phases, each with source titles, URLs, publication dates, relevance scores, and direct highlight excerpts pulled from each source.
+
+Produce a category design brief with these sections:
 
 1. The Problem — in customer language, not solution language
 2. The Enemy — the worldview or incumbent approach being displaced
@@ -50,7 +52,12 @@ const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 p
 6. The Vocabulary Set — candidate words for naming the category
 7. The POV Thesis — one paragraph: broken world → enemy → new way
 
-Be specific and direct. Draw only from the research provided.`;
+Rules:
+- Every claim must be grounded in a specific highlight or source from the file
+- Cite sources inline using the format: ([domain.com](URL))
+- Quote highlight excerpts directly when they are strong evidence
+- Do not introduce information from outside the file
+- Be specific and direct — no generic category design filler`;
 
 export default function App() {
   const [session, setSession] = useState<SessionState>({
