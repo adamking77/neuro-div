@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, TextField, Label, Input, TextArea, Chip, Spinner } from "@heroui/react";
-import { ArrowCounterClockwise, Notepad } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Notepad, DownloadSimple } from "@phosphor-icons/react";
 import type { ExaResult, PhaseResult, SessionState } from "./types";
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
@@ -59,6 +59,41 @@ export default function App() {
     setView("report");
   }, []);
 
+  const downloadResearch = useCallback(() => {
+    const date = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const lines: string[] = [
+      `# Category Scout Research`,
+      `**Problem:** ${session.problem}`,
+      session.knownPlayers ? `**Known Players:** ${session.knownPlayers}` : "",
+      `**Date:** ${date}`,
+      "",
+    ];
+
+    for (const phase of PHASES) {
+      const result = session.phases[phase.id];
+      if (result.status !== "done" || result.results.length === 0) continue;
+      lines.push(`---`, ``, `## Phase ${String(phase.id).padStart(2, "0")} — ${phase.name}`, `*${phase.description}*`, ``);
+      for (const r of result.results) {
+        const domain = (() => { try { return new URL(r.url).hostname.replace(/^www\./, ""); } catch { return r.url; } })();
+        const date = r.publishedDate ? new Date(r.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
+        const score = r.score != null ? `${(r.score * 100).toFixed(0)}% relevance` : null;
+        const meta = [domain, date, score].filter(Boolean).join(" · ");
+        lines.push(`### [${r.title || r.url}](${r.url})`);
+        lines.push(`*${meta}*`, ``);
+        if (r.highlights?.length) {
+          for (const h of r.highlights.slice(0, 2)) lines.push(`> ${h}`, ``);
+        }
+      }
+    }
+
+    const blob = new Blob([lines.filter((l) => l !== undefined).join("\n")], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `category-scout-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [session]);
+
   const isRunning = Object.values(session.phases).some((p) => p.status === "running");
   const hasAnyResults = Object.values(session.phases).some((p) => p.results.length > 0);
   const completedCount = Object.values(session.phases).filter((p) => p.status === "done").length;
@@ -90,7 +125,7 @@ export default function App() {
             <p style={{ fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.55, maxWidth: 500, margin: 0 }}>
               Six research phases in parallel — who has the pain, who's solving it,
               how the market is structured, and how people talk about it.
-              Powered by Exa's semantic search via a local Rust backend.
+              Powered by Exa's semantic search.
             </p>
           </div>
 
@@ -114,6 +149,20 @@ export default function App() {
                     {completedCount}/6
                   </Chip>
                 )}
+              </button>
+              <button
+                onClick={downloadResearch}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  fontFamily: "var(--font-display)", cursor: "pointer",
+                  background: "rgba(26, 26, 24, 0.05)",
+                  border: "1px solid rgba(26, 26, 24, 0.1)",
+                  color: "var(--ink-light)",
+                }}
+              >
+                <DownloadSimple size={14} />
+                Export
               </button>
               <Button onPress={reset} variant="ghost" size="sm"
                 style={{ color: "var(--ink-muted)", fontFamily: "var(--font-display)" }}>
