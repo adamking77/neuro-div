@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button, TextField, Label, Input, TextArea, Chip, Spinner } from "@heroui/react";
+import { Spinner } from "@heroui/react";
 import { ArrowCounterClockwise, Notepad, DownloadSimple, Copy, Check } from "@phosphor-icons/react";
 import type { ExaResult, PhaseResult, SessionState } from "./types";
 import { PHASES } from "./phases";
@@ -13,11 +13,24 @@ const emptyPhases = (): Record<number, PhaseResult> =>
 
 export type MainView = "report" | "brief";
 
+const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 phases of market research. Please analyze it and produce a category design brief with these sections:
+
+1. The Problem — in customer language, not solution language
+2. The Enemy — the worldview or incumbent approach being displaced
+3. The Landscape — who's adjacent, what's named, where the edges are
+4. The White Space — the unclaimed combination of problem + solution
+5. The Evidence Stack — proof the problem is real and growing
+6. The Vocabulary Set — candidate words for naming the category
+7. The POV Thesis — one paragraph: broken world → enemy → new way
+
+Be specific and direct. Draw only from the research provided.`;
+
 export default function App() {
   const [session, setSession] = useState<SessionState>({
     problem: "", knownPlayers: "", phases: emptyPhases(),
   });
   const [view, setView] = useState<MainView>("report");
+  const [promptCopied, setPromptCopied] = useState(false);
 
   const updatePhase = useCallback((id: number, update: Partial<PhaseResult>) => {
     setSession((s) => ({ ...s, phases: { ...s.phases, [id]: { ...s.phases[id], ...update } } }));
@@ -68,44 +81,28 @@ export default function App() {
       `**Date:** ${date}`,
       "",
     ];
-
     for (const phase of PHASES) {
       const result = session.phases[phase.id];
       if (result.status !== "done" || result.results.length === 0) continue;
       lines.push(`---`, ``, `## Phase ${String(phase.id).padStart(2, "0")} — ${phase.name}`, `*${phase.description}*`, ``);
       for (const r of result.results) {
         const domain = (() => { try { return new URL(r.url).hostname.replace(/^www\./, ""); } catch { return r.url; } })();
-        const date = r.publishedDate ? new Date(r.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
+        const d = r.publishedDate ? new Date(r.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
         const score = r.score != null ? `${(r.score * 100).toFixed(0)}% relevance` : null;
-        const meta = [domain, date, score].filter(Boolean).join(" · ");
         lines.push(`### [${r.title || r.url}](${r.url})`);
-        lines.push(`*${meta}*`, ``);
+        lines.push(`*${[domain, d, score].filter(Boolean).join(" · ")}*`, ``);
         if (r.highlights?.length) {
           for (const h of r.highlights.slice(0, 2)) lines.push(`> ${h}`, ``);
         }
       }
     }
-
-    const blob = new Blob([lines.filter((l) => l !== undefined).join("\n")], { type: "text/markdown" });
+    const blob = new Blob([lines.filter(Boolean).join("\n")], { type: "text/markdown" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `category-scout-${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
   }, [session]);
-
-  const [promptCopied, setPromptCopied] = useState(false);
-  const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 phases of market research. Please analyze it and produce a category design brief with these sections:
-
-1. The Problem — in customer language, not solution language
-2. The Enemy — the worldview or incumbent approach being displaced
-3. The Landscape — who's adjacent, what's named, where the edges are
-4. The White Space — the unclaimed combination of problem + solution
-5. The Evidence Stack — proof the problem is real and growing
-6. The Vocabulary Set — candidate words for naming the category
-7. The POV Thesis — one paragraph: broken world → enemy → new way
-
-Be specific and direct. Draw only from the research provided.`;
 
   const copyPrompt = useCallback(() => {
     navigator.clipboard.writeText(CLAUDE_PROMPT);
@@ -119,194 +116,203 @@ Be specific and direct. Draw only from the research provided.`;
   const canRun = !!session.problem.trim() && !isRunning;
 
   return (
-    <>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "48px 32px 80px" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "52px 40px 100px" }}>
 
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 28, height: 22, position: "relative", flexShrink: 0 }}>
-                {[0, 8, 16].map((offset, i) => (
-                  <div key={i} style={{
-                    position: "absolute", top: 0, left: offset,
-                    width: 14, height: 14,
-                    borderRadius: "50%",
-                    border: "1.5px solid var(--teal)",
-                    opacity: 1 - i * 0.2,
-                  }} />
-                ))}
-              </div>
-              <span style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", letterSpacing: "-0.01em" }}>
-                Category Scout
-              </span>
-            </div>
-            <p style={{ fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.55, maxWidth: 500, margin: 0 }}>
-              Six research phases in parallel — who has the pain, who's solving it,
-              how the market is structured, and how people talk about it.
-              Powered by Exa's semantic search.
-            </p>
+      {/* Header */}
+      <div style={{ marginBottom: 36 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          {/* Logo — three overlapping outline circles */}
+          <div style={{ width: 28, height: 14, position: "relative", flexShrink: 0 }}>
+            {[0, 8, 16].map((offset, i) => (
+              <div key={i} style={{
+                position: "absolute", top: 0, left: offset,
+                width: 14, height: 14, borderRadius: "50%",
+                border: "1.5px solid var(--teal)",
+                opacity: 1 - i * 0.2,
+              }} />
+            ))}
           </div>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", letterSpacing: "-0.01em" }}>
+            Category Scout
+          </span>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 480, margin: 0 }}>
+          Six research phases — who has the pain, who's solving it,
+          how the market is structured, and how people talk about it.
+        </p>
+      </div>
 
-          {hasAnyResults && (
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button
-                onClick={() => setView(view === "brief" ? "report" : "brief")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  fontFamily: "var(--font-display)", cursor: "pointer",
-                  background: view === "brief" ? "rgba(91, 138, 138, 0.1)" : "rgba(26, 26, 24, 0.05)",
-                  border: `1px solid ${view === "brief" ? "rgba(91, 138, 138, 0.3)" : "rgba(26, 26, 24, 0.1)"}`,
-                  color: view === "brief" ? "var(--teal-deep)" : "var(--ink-light)",
-                }}
-              >
-                <Notepad size={14} />
-                Brief
-                {completedCount > 0 && (
-                  <Chip size="sm" color="success" variant="soft" className="text-[10px] h-4 px-1.5">
-                    {completedCount}/6
-                  </Chip>
-                )}
-              </button>
-              <button
-                onClick={downloadResearch}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  fontFamily: "var(--font-display)", cursor: "pointer",
-                  background: "rgba(26, 26, 24, 0.05)",
-                  border: "1px solid rgba(26, 26, 24, 0.1)",
-                  color: "var(--ink-light)",
-                }}
-              >
-                <DownloadSimple size={14} />
-                Export
-              </button>
-              <Button onPress={reset} variant="ghost" size="sm"
-                style={{ color: "var(--ink-muted)", fontFamily: "var(--font-display)" }}>
-                <ArrowCounterClockwise size={13} />
-                Reset
-              </Button>
-            </div>
-          )}
+      <hr className="rule" style={{ marginBottom: 36 }} />
+
+      {/* Input form */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 192px", gap: "0 48px", marginBottom: 36, alignItems: "end" }}>
+        <div>
+          <label style={{
+            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 10,
+            fontFamily: "var(--font-mono)",
+          }}>
+            Problem Statement
+          </label>
+          <textarea
+            value={session.problem}
+            onChange={(e) => setSession((s) => ({ ...s, problem: e.target.value }))}
+            placeholder="Describe the customer problem in plain language…"
+            rows={4}
+          />
         </div>
 
-        {/* Input card */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 28 }}
-          className="card"
-          style={{ marginBottom: 20 }}
-        >
-          <div className="card-body" style={{ display: "flex", gap: 20, alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}>
-              <TextField value={session.problem} onChange={(v) => setSession((s) => ({ ...s, problem: v }))} className="w-full">
-                <Label style={{
-                  display: "block", fontSize: 11, fontWeight: 500,
-                  letterSpacing: "0.1em", textTransform: "uppercase",
-                  color: "var(--ink-muted)", marginBottom: 8, fontFamily: "var(--font-display)",
-                }}>
-                  Problem statement
-                </Label>
-                <TextArea
-                  placeholder="Describe the customer problem in plain language…"
-                  rows={4}
-                  className="resize-none"
-                  style={{ fontSize: 15, fontFamily: "var(--font-display)", color: "var(--ink)" }}
-                />
-              </TextField>
-            </div>
-
-            <div style={{ width: 210, display: "flex", flexDirection: "column", gap: 16 }}>
-              <TextField value={session.knownPlayers} onChange={(v) => setSession((s) => ({ ...s, knownPlayers: v }))} className="w-full">
-                <Label style={{
-                  display: "block", fontSize: 11, fontWeight: 500,
-                  letterSpacing: "0.1em", textTransform: "uppercase",
-                  color: "var(--ink-muted)", marginBottom: 8, fontFamily: "var(--font-display)",
-                }}>
-                  Known players <span style={{ opacity: 0.5, textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>— optional</span>
-                </Label>
-                <Input placeholder="Accenture, McKinsey…"
-                  style={{ fontSize: 15, fontFamily: "var(--font-display)", color: "var(--ink)" }} />
-              </TextField>
-
-              <Button
-                onPress={runAll}
-                isDisabled={!canRun}
-                size="lg"
-                className="w-full"
-                style={canRun ? {
-                  background: "rgba(91, 138, 138, 0.1)",
-                  border: "1px solid rgba(91, 138, 138, 0.35)",
-                  color: "var(--teal-deep)",
-                  fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15,
-                } : { fontFamily: "var(--font-display)", fontSize: 15 }}
-              >
-                {isRunning
-                  ? <><Spinner size="sm" color="current" /><span style={{ marginLeft: 8 }}>Running…</span></>
-                  : hasAnyResults ? "Re-run All" : "Run"
-                }
-              </Button>
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div>
+            <label style={{
+              display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 10,
+              fontFamily: "var(--font-mono)",
+            }}>
+              Known Players{" "}
+              <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
+                — optional
+              </span>
+            </label>
+            <input
+              type="text"
+              value={session.knownPlayers}
+              onChange={(e) => setSession((s) => ({ ...s, knownPlayers: e.target.value }))}
+              placeholder="Accenture, McKinsey…"
+            />
           </div>
-        </motion.div>
 
-        {/* Claude instructions */}
-        {hasAnyResults && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.1 }}
+          <button
+            onClick={runAll}
+            disabled={!canRun}
             style={{
-              marginBottom: 20, padding: "16px 20px", borderRadius: 10,
-              background: "rgba(91, 138, 138, 0.05)",
-              border: "1px solid rgba(91, 138, 138, 0.18)",
-              display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20,
+              fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600,
+              letterSpacing: "0.01em", padding: "12px 0",
+              border: "none", cursor: canRun ? "pointer" : "not-allowed",
+              background: canRun ? "var(--ink)" : "rgba(26,26,24,0.08)",
+              color: canRun ? "var(--cream)" : "var(--ink-muted)",
+              transition: "background 0.15s, color 0.15s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {isRunning
+              ? <><Spinner size="sm" color="current" /><span>Running…</span></>
+              : hasAnyResults ? "Re-run All" : "Run"
+            }
+          </button>
+        </div>
+      </div>
+
+      <hr className="rule" />
+
+      {/* Action bar */}
+      {hasAnyResults && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 0",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+            <button
+              className="btn-text"
+              onClick={() => setView(view === "brief" ? "report" : "brief")}
+              style={{
+                fontSize: 13, color: view === "brief" ? "var(--ink)" : "var(--ink-muted)",
+                fontWeight: view === "brief" ? 600 : 400,
+                borderBottom: view === "brief" ? "1px solid var(--ink)" : "1px solid transparent",
+                paddingBottom: 1,
+              }}
+            >
+              <Notepad size={13} />
+              Brief
+              {completedCount > 0 && (
+                <span className="mono" style={{ fontSize: 10, marginLeft: 2, opacity: 0.6 }}>
+                  {completedCount}/6
+                </span>
+              )}
+            </button>
+
+            <button
+              className="btn-text"
+              onClick={downloadResearch}
+              style={{ fontSize: 13, color: "var(--ink-muted)" }}
+            >
+              <DownloadSimple size={13} />
+              Export
+            </button>
+          </div>
+
+          <button
+            className="btn-text"
+            onClick={reset}
+            style={{ fontSize: 13, color: "var(--ink-muted)" }}
+          >
+            <ArrowCounterClockwise size={12} />
+            Reset
+          </button>
+        </motion.div>
+      )}
+
+      {/* Claude instructions */}
+      {hasAnyResults && (
+        <>
+          <hr className="rule" />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: 0.05 }}
+            style={{
+              display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+              gap: 32, padding: "18px 0",
             }}
           >
             <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", margin: "0 0 4px", letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+              <p style={{
+                fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
+                color: "var(--ink-muted)", margin: "0 0 6px", fontFamily: "var(--font-mono)",
+              }}>
                 Take this to Claude
               </p>
-              <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0, lineHeight: 1.55, fontFamily: "var(--font-display)" }}>
-                Export the research file, upload it to{" "}
-                <a href="https://claude.ai" target="_blank" rel="noreferrer" style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
-                , and use the prompt below to generate a full category design brief.
+              <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
+                Export the research, upload to{" "}
+                <a href="https://claude.ai" target="_blank" rel="noreferrer"
+                  style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
+                , and use this prompt to generate a category design brief.
               </p>
             </div>
             <button
+              className="btn-text"
               onClick={copyPrompt}
               style={{
-                display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
-                padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                fontFamily: "var(--font-display)", cursor: "pointer",
-                background: promptCopied ? "rgba(91, 138, 138, 0.1)" : "rgba(26, 26, 24, 0.05)",
-                border: `1px solid ${promptCopied ? "rgba(91, 138, 138, 0.3)" : "rgba(26, 26, 24, 0.1)"}`,
-                color: promptCopied ? "var(--teal-deep)" : "var(--ink-light)",
-                transition: "all 0.2s",
+                fontSize: 12, flexShrink: 0, paddingTop: 2,
+                color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)",
+                transition: "color 0.15s",
               }}
             >
-              {promptCopied ? <Check size={13} /> : <Copy size={13} />}
+              {promptCopied ? <Check size={12} /> : <Copy size={12} />}
               {promptCopied ? "Copied" : "Copy prompt"}
             </button>
           </motion.div>
-        )}
+          <hr className="rule" style={{ marginBottom: 40 }} />
+        </>
+      )}
 
-        {/* Output */}
-        <AnimatePresence mode="wait">
-          {view === "brief" ? (
-            <motion.div key="brief" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-              <BriefBuilder phases={session.phases} />
-            </motion.div>
-          ) : (
-            <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-              <ReportView session={session} onRunPhase={runPhase} isRunning={isRunning} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+      {/* Output */}
+      <AnimatePresence mode="wait">
+        {view === "brief" ? (
+          <motion.div key="brief" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <BriefBuilder phases={session.phases} />
+          </motion.div>
+        ) : (
+          <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <ReportView session={session} onRunPhase={runPhase} isRunning={isRunning} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

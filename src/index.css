@@ -1,50 +1,71 @@
 @import "@heroui/react/styles";
 
 :root {
-  --cream:       #FDFBF7;
-  --cream-dark:  #F0EBE1;
-  --ink:         #1A1A18;
-  --ink-light:   #4A4A45;
-  --ink-muted:   #8A8A82;
-  --teal:        #5B8A8A;
-  --terracotta:  #C4725A;
-  --warm-gray:   #D4CFC5;
+  --cream:        #FDFBF7;
+  --ink:          #1A1A18;
+  --ink-light:    #4A4A45;
+  --ink-muted:    #8A8A82;
+  --teal:         #5B8A8A;
+  --teal-deep:    #3D6B6B;
+  --terracotta:   #C4725A;
+  --rule:         rgba(26, 26, 24, 0.1);
   --font-display: 'Satoshi', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
 }
 
-* { -webkit-font-smoothing: antialiased; }
+*, *::before, *::after { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
 ::selection { background: var(--teal); color: var(--cream); }
 
 body {
   font-family: var(--font-display);
-  background: #FDFBF7;
+  background: var(--cream);
   min-height: 100vh;
   color: var(--ink);
+  margin: 0;
 }
 
-.card {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(26, 26, 24, 0.07), 0 1px 3px rgba(26, 26, 24, 0.05);
-}
-
-.card-head {
-  background: rgba(255, 255, 255, 0.4);
-  border-bottom: 1px solid rgba(26, 26, 24, 0.06);
-  padding: 20px 24px;
-}
-
-.card-body { padding: 24px; }
-
-.divider { height: 1px; background: rgba(26, 26, 24, 0.07); margin: 16px 0; }
-
-.status-running { border-left: 2px solid rgba(91, 138, 138, 0.5); }
-.status-done    { border-left: 2px solid var(--teal); }
-.status-error   { border-left: 2px solid var(--terracotta); }
-
+.rule { height: 1px; background: var(--rule); border: none; margin: 0; }
 .mono { font-family: var(--font-mono); }
+
+/* Status dots */
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot-running  { background: var(--teal); animation: blink 1.4s ease-in-out infinite; }
+.dot-done     { background: var(--ink-muted); opacity: 0.4; }
+.dot-error    { background: var(--terracotta); }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* Native form inputs — underline only */
+textarea, input[type="text"] {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  outline: none;
+  width: 100%;
+  resize: none;
+  padding: 8px 0 10px;
+  line-height: 1.6;
+  display: block;
+}
+
+textarea::placeholder, input[type="text"]::placeholder { color: var(--ink-muted); }
+textarea:focus, input[type="text"]:focus { border-bottom-color: rgba(26, 26, 24, 0.3); }
+
+/* Text button — bare, no chrome */
+.btn-text {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-display);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
