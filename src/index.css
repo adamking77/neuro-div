@@ -57,6 +57,9 @@ textarea, input[type="text"] {
 textarea::placeholder, input[type="text"]::placeholder { color: var(--ink-muted); }
 textarea:focus, input[type="text"]:focus { border-color: rgba(26, 26, 24, 0.3); }
 
+/* Prevent HeroUI from dimming plain buttons */
+button:disabled { opacity: 1 !important; }
+
 /* Text button — bare, no chrome */
 .btn-text {
   background: none;

@@ -17,23 +17,23 @@ function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
   canRun: boolean; isRunning: boolean; hasAnyResults: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const base = "#1755B8";
   return (
     <button
-      onClick={onClick}
-      disabled={!canRun}
+      onClick={canRun ? onClick : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
         letterSpacing: "0.01em", padding: "13px 36px",
         border: "none", borderRadius: 999,
-        cursor: canRun ? "pointer" : "not-allowed",
-        background: canRun ? (hovered ? "rgba(23, 85, 184, 0.72)" : base) : "rgba(26,26,24,0.06)",
+        cursor: canRun ? "pointer" : "default",
+        background: canRun
+          ? hovered ? "#1244A0" : "#1755B8"
+          : "rgba(26,26,24,0.06)",
         color: canRun ? "#fff" : "var(--ink-muted)",
-        transition: "background 0.18s",
+        transition: "background 0.15s",
         display: "inline-flex", alignItems: "center", gap: 8,
-        userSelect: "none",
+        userSelect: "none", opacity: 1,
       }}
     >
       {isRunning
