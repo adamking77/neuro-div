@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, TextField, Label, Input, TextArea, Chip, Spinner } from "@heroui/react";
-import { ArrowCounterClockwise, Notepad, DownloadSimple } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Notepad, DownloadSimple, Copy, Check } from "@phosphor-icons/react";
 import type { ExaResult, PhaseResult, SessionState } from "./types";
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
@@ -93,6 +93,25 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(a.href);
   }, [session]);
+
+  const [promptCopied, setPromptCopied] = useState(false);
+  const CLAUDE_PROMPT = `I'm attaching a Category Scout research file covering 6 phases of market research. Please analyze it and produce a category design brief with these sections:
+
+1. The Problem — in customer language, not solution language
+2. The Enemy — the worldview or incumbent approach being displaced
+3. The Landscape — who's adjacent, what's named, where the edges are
+4. The White Space — the unclaimed combination of problem + solution
+5. The Evidence Stack — proof the problem is real and growing
+6. The Vocabulary Set — candidate words for naming the category
+7. The POV Thesis — one paragraph: broken world → enemy → new way
+
+Be specific and direct. Draw only from the research provided.`;
+
+  const copyPrompt = useCallback(() => {
+    navigator.clipboard.writeText(CLAUDE_PROMPT);
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2000);
+  }, []);
 
   const isRunning = Object.values(session.phases).some((p) => p.status === "running");
   const hasAnyResults = Object.values(session.phases).some((p) => p.results.length > 0);
@@ -233,6 +252,47 @@ export default function App() {
             </div>
           </div>
         </motion.div>
+
+        {/* Claude instructions */}
+        {hasAnyResults && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.1 }}
+            style={{
+              marginBottom: 20, padding: "16px 20px", borderRadius: 10,
+              background: "rgba(91, 138, 138, 0.05)",
+              border: "1px solid rgba(91, 138, 138, 0.18)",
+              display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20,
+            }}
+          >
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", margin: "0 0 4px", letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: "var(--font-display)" }}>
+                Take this to Claude
+              </p>
+              <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0, lineHeight: 1.55, fontFamily: "var(--font-display)" }}>
+                Export the research file, upload it to{" "}
+                <a href="https://claude.ai" target="_blank" rel="noreferrer" style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
+                , and use the prompt below to generate a full category design brief.
+              </p>
+            </div>
+            <button
+              onClick={copyPrompt}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+                padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                fontFamily: "var(--font-display)", cursor: "pointer",
+                background: promptCopied ? "rgba(91, 138, 138, 0.1)" : "rgba(26, 26, 24, 0.05)",
+                border: `1px solid ${promptCopied ? "rgba(91, 138, 138, 0.3)" : "rgba(26, 26, 24, 0.1)"}`,
+                color: promptCopied ? "var(--teal-deep)" : "var(--ink-light)",
+                transition: "all 0.2s",
+              }}
+            >
+              {promptCopied ? <Check size={13} /> : <Copy size={13} />}
+              {promptCopied ? "Copied" : "Copy prompt"}
+            </button>
+          </motion.div>
+        )}
 
         {/* Output */}
         <AnimatePresence mode="wait">
