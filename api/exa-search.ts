@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     query,
     numResults: 10,
     type: "neural",
-    highlights: { numSentences: 3, highlightsPerUrl: 2 },
+    contents: { highlights: { numSentences: 3, highlightsPerUrl: 2 } },
   };
 
   if (category) body.category = category;
