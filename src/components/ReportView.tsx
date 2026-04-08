@@ -32,7 +32,7 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
         </p>
         <p
           style={{
-            fontSize: 11,
+            fontSize: 14,
             color: "var(--ink-muted)",
             margin: 0,
             letterSpacing: "0.03em",
@@ -40,7 +40,7 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
             fontFamily: "var(--font-display)",
           }}
         >
-          © 2026 a Gokart Studio production
+          © 2026 a GoKart Studio production
         </p>
       </div>
     </div>
