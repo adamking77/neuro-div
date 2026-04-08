@@ -31,13 +31,13 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
           Enter a problem above and hit Run.
         </p>
         <p
-          className="mono"
           style={{
             fontSize: 11,
             color: "var(--ink-muted)",
             margin: 0,
             letterSpacing: "0.03em",
             textAlign: "right",
+            fontFamily: "var(--font-display)",
           }}
         >
           © 2026 a Gokart Studio production
