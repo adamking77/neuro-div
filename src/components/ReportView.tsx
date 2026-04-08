@@ -4,6 +4,7 @@ import { Skeleton } from "@heroui/react";
 import type { SessionState, PhaseResult } from "../types";
 import { PHASES } from "../phases";
 import { PublicationTimeline, ScoreDistribution } from "./PhaseCharts";
+import { HighlightText } from "./HighlightText";
 
 interface Props {
   session: SessionState;
@@ -207,13 +208,17 @@ function ResultItem({ result }: { result: any }) {
       {result.highlights?.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {result.highlights.slice(0, 2).map((h: string, idx: number) => (
-            <p key={idx} style={{
-              fontSize: 13, lineHeight: 1.6, color: "var(--ink-light)",
-              paddingLeft: 12, margin: 0,
-              borderLeft: "1.5px solid rgba(26, 26, 24, 0.15)",
-            }}>
-              {h}
-            </p>
+            <HighlightText
+              key={idx}
+              text={h}
+              style={{
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: "var(--ink-light)",
+                paddingLeft: 12,
+                borderLeft: "1.5px solid rgba(26, 26, 24, 0.15)",
+              }}
+            />
           ))}
         </div>
       )}

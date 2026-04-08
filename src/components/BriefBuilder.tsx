@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button, Card, TextField, TextArea, Separator, Chip } from "@heroui/react";
 import { Check, Copy, CaretDown } from "@phosphor-icons/react";
 import type { PhaseResult } from "../types";
+import { HighlightText } from "./HighlightText";
 
 interface Props {
   phases: Record<number, PhaseResult>;
@@ -282,12 +283,11 @@ function SourceAccordion({
                   {domain}
                 </a>
                 {r.highlights?.[0] && (
-                  <p
+                  <HighlightText
                     className="text-[11px] leading-relaxed mt-0.5 line-clamp-2"
                     style={{ color: "oklch(38% 0.005 286)" }}
-                  >
-                    {r.highlights[0]}
-                  </p>
+                    text={r.highlights[0]}
+                  />
                 )}
               </div>
             );

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button } from "@heroui/react";
 import { ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import type { ExaResult } from "../types";
+import { HighlightText } from "./HighlightText";
 
 interface Props {
   result: ExaResult;
@@ -123,6 +124,7 @@ export function ResultCard({ result }: Props) {
             style={{
               color: "oklch(45% 0.005 286)",
               borderColor: "oklch(73.2% 0.19 150.81 / 0.25)",
+              whiteSpace: "pre-line",
             }}
           >
             {result.highlights![0]}
@@ -145,16 +147,15 @@ export function ResultCard({ result }: Props) {
               style={{ borderTop: "1px solid var(--separator)" }}
             >
               {result.highlights!.map((h, i) => (
-                <p
+                <HighlightText
                   key={i}
+                  text={h}
                   className="text-[12px] leading-relaxed border-l-2 pl-3"
                   style={{
                     color: "oklch(50% 0.005 286)",
                     borderColor: "oklch(73.2% 0.19 150.81 / 0.2)",
                   }}
-                >
-                  {h}
-                </p>
+                />
               ))}
             </div>
           </motion.div>
