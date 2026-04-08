@@ -205,10 +205,10 @@ function ResultItem({ result }: { result: any }) {
       </div>
 
       {result.highlights?.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {result.highlights.slice(0, 2).map((h: string, idx: number) => (
             <p key={idx} style={{
-              fontSize: 13, lineHeight: 1.65, color: "var(--ink-light)",
+              fontSize: 13, lineHeight: 1.6, color: "var(--ink-light)",
               paddingLeft: 12, margin: 0,
               borderLeft: "1.5px solid rgba(26, 26, 24, 0.15)",
             }}>
