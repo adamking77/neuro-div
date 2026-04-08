@@ -18,9 +18,31 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
 
   if (!hasAny) return (
     <div style={{ padding: "64px 0" }}>
-      <p style={{ fontSize: 14, color: "var(--ink-muted)", fontFamily: "var(--font-display)", margin: 0 }}>
-        Enter a problem above and hit Run.
-      </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <p style={{ fontSize: 14, color: "var(--ink-muted)", fontFamily: "var(--font-display)", margin: 0 }}>
+          Enter a problem above and hit Run.
+        </p>
+        <p
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: "var(--ink-muted)",
+            margin: 0,
+            letterSpacing: "0.03em",
+            textAlign: "right",
+          }}
+        >
+          © 2026 a Gokart Studio production
+        </p>
+      </div>
     </div>
   );
 
