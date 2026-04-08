@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { ArrowClockwise, WarningCircle, ArrowUpRight } from "@phosphor-icons/react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowClockwise, WarningCircle, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import { Skeleton } from "@heroui/react";
 import type { SessionState, PhaseResult } from "../types";
 import { PHASES } from "../phases";
@@ -164,6 +165,7 @@ function ResultList({ results }: { results: any[] }) {
 }
 
 function ResultItem({ result }: { result: any }) {
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
   const domain = (() => {
     try { return new URL(result.url).hostname.replace(/^www\./, ""); }
     catch { return result.url.slice(0, 40); }
@@ -172,6 +174,8 @@ function ResultItem({ result }: { result: any }) {
   const dateStr = result.publishedDate
     ? new Date(result.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
+
+  const highlights = result.highlights?.slice(0, 2) ?? [];
 
   return (
     <div>
@@ -205,21 +209,64 @@ function ResultItem({ result }: { result: any }) {
         </>}
       </div>
 
-      {result.highlights?.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {result.highlights.slice(0, 2).map((h: string, idx: number) => (
-            <HighlightText
-              key={idx}
-              text={h}
-              style={{
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: "var(--ink-light)",
-                paddingLeft: 12,
-                borderLeft: "1.5px solid rgba(26, 26, 24, 0.15)",
-              }}
-            />
-          ))}
+      {highlights.length > 0 && (
+        <div>
+          <button
+            onClick={() => setHighlightsOpen((open) => !open)}
+            className="flex items-center gap-1.5 transition-colors duration-150"
+            style={{ color: "oklch(38% 0.005 286)", marginTop: 2 }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLElement).style.color = "oklch(55% 0.01 286)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLElement).style.color = "oklch(38% 0.005 286)")
+            }
+          >
+            <motion.span
+              animate={{ rotate: highlightsOpen ? 90 : 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="inline-block"
+            >
+              <CaretDown size={10} weight="bold" />
+            </motion.span>
+            <span style={{ fontSize: 11 }}>
+              {highlightsOpen
+                ? "Hide source excerpts"
+                : `${highlights.length} source excerpt${highlights.length > 1 ? "s" : ""}`}
+            </span>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {highlightsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 240, damping: 28 }}
+                style={{
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  marginTop: 12,
+                }}
+              >
+                {highlights.map((h: string, idx: number) => (
+                  <HighlightText
+                    key={idx}
+                    text={h}
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      color: "var(--ink-light)",
+                      paddingLeft: 12,
+                      borderLeft: "1.5px solid rgba(26, 26, 24, 0.15)",
+                    }}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>
