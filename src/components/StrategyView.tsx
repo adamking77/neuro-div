@@ -23,7 +23,11 @@ interface Props {
   onExport: () => void;
 }
 
-const REQUIRED_PHASE_IDS = [1, 3, 5];
+const REQUIRED_PHASES: Array<{ id: number; label: string }> = [
+  { id: 1, label: "Problem Cartography" },
+  { id: 3, label: "Solution Landscape" },
+  { id: 5, label: "Evidence Mining" },
+];
 
 const SKELETON_ROWS = [
   [75, 90, 65, 80],
@@ -218,10 +222,10 @@ function ConfigDrawer({
       {/* Summary bar */}
       <div
         style={{
-          padding: "13px 0",
+          padding: "18px 0",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 16,
           flexWrap: "wrap",
         }}
       >
@@ -358,30 +362,48 @@ function ReadinessIndicators({
   completedResearch: number;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-      {REQUIRED_PHASE_IDS.map((id) => {
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+      {REQUIRED_PHASES.map(({ id, label }) => {
         const done = !readiness.missingRequired.includes(id);
         return (
-          <div key={id} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <span
-              className="mono"
-              style={{ fontSize: 10, color: "var(--ink-muted)", opacity: done ? 1 : 0.4 }}
-            >
-              {String(id).padStart(2, "0")}
-            </span>
+          <div
+            key={id}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "3px 9px",
+              borderRadius: 999,
+              border: `1px solid ${done ? "var(--teal)" : "var(--rule)"}`,
+              background: done ? "rgba(91, 138, 138, 0.08)" : "transparent",
+            }}
+          >
             {done ? (
-              <Check size={9} weight="bold" style={{ color: "var(--teal)" }} />
+              <Check size={9} weight="bold" style={{ color: "var(--teal)", flexShrink: 0 }} />
             ) : (
               <span
                 style={{
                   display: "inline-block",
-                  width: 9,
-                  height: 1,
-                  background: "var(--rule)",
-                  marginBottom: 1,
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  border: "1px solid var(--ink-muted)",
+                  opacity: 0.3,
+                  flexShrink: 0,
                 }}
               />
             )}
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: "var(--font-display)",
+                color: done ? "var(--teal-deep)" : "var(--ink-muted)",
+                opacity: done ? 1 : 0.5,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+            </span>
           </div>
         );
       })}
@@ -389,13 +411,13 @@ function ReadinessIndicators({
         style={{
           display: "inline-block",
           width: 1,
-          height: 10,
+          height: 12,
           background: "var(--rule)",
           margin: "0 2px",
         }}
       />
       <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>
-        {completedResearch}/6
+        {completedResearch}/6 phases
       </span>
     </div>
   );
@@ -542,8 +564,8 @@ function InputForm({
   onInputChange: <K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => void;
 }) {
   return (
-    <div style={{ paddingBottom: 20 }}>
-      <div style={{ marginBottom: 20 }}>
+    <div style={{ paddingBottom: 28 }}>
+      <div style={{ marginBottom: 28 }}>
         <GroupLabel label="Audience" />
         <FieldLabel label="Who you're building for" required />
         <textarea
@@ -556,7 +578,7 @@ function InputForm({
 
       <GroupLabel label="How you operate" />
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <SegmentedControl
           label="Team Size"
           value={inputs.teamSize}
@@ -567,7 +589,7 @@ function InputForm({
           onChange={(v) => onInputChange("teamSize", v as StrategyInputs["teamSize"])}
         />
         <SegmentedControl
-          label="Budget Band"
+          label="Marketing Budget"
           value={inputs.budgetBand}
           options={[
             { value: "none", label: "None" },
@@ -605,7 +627,7 @@ function InputForm({
         />
       </div>
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <div>
           <FieldLabel label="Weekly Capacity" />
           <input
@@ -631,7 +653,7 @@ function InputForm({
         </div>
       </div>
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div>
           <FieldLabel label="Existing Credibility" />
           <textarea
@@ -839,7 +861,7 @@ function StrategyContent({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
         {STRATEGY_SECTIONS.map((section, index) => (
           <SectionCard
             key={section.key}
@@ -883,7 +905,7 @@ function SectionCard({
         border: "1px solid var(--rule)",
         borderLeft: isAnchor ? "2px solid var(--teal)" : "1px solid var(--rule)",
         background: isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
-        padding: 18,
+        padding: 22,
         display: "flex",
         flexDirection: "column",
       }}
@@ -894,7 +916,7 @@ function SectionCard({
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 12,
-          marginBottom: 10,
+          marginBottom: 14,
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -962,7 +984,7 @@ function SectionCard({
 
 function StrategyLoadingState() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
       {SKELETON_ROWS.map((widths, i) => (
         <div
           key={i}
@@ -1140,7 +1162,7 @@ function GroupLabel({ label }: { label: string }) {
         textTransform: "uppercase",
         color: "var(--ink-muted)",
         fontFamily: "var(--font-mono)",
-        margin: "0 0 12px",
+        margin: "0 0 18px",
         opacity: 0.65,
       }}
     >
