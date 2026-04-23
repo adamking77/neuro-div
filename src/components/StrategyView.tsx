@@ -266,8 +266,8 @@ function ConfigDrawer({
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <MiniPill label={inputs.teamSize === "solo" ? "Solo" : "Small team"} />
             <MiniPill label={OUTREACH_LABELS[inputs.outreachTolerance] ?? inputs.outreachTolerance} />
-            {inputs.contentMode !== "none" && (
-              <MiniPill label={CONTENT_LABELS[inputs.contentMode] ?? inputs.contentMode} />
+            {inputs.contentMode.length > 0 && !inputs.contentMode.includes("none") && (
+              <MiniPill label={inputs.contentMode.map((m) => CONTENT_LABELS[m] ?? m).join(", ")} />
             )}
           </div>
         )}
@@ -639,8 +639,8 @@ function InputForm({
         </div>
         <div>
           <FieldLabel label="Content Mode" />
-          <PillSelector
-            value={inputs.contentMode}
+          <MultiPillSelector
+            values={inputs.contentMode}
             options={[
               { value: "writing", label: "Writing" },
               { value: "short-video", label: "Video" },
@@ -648,7 +648,7 @@ function InputForm({
               { value: "design", label: "Design" },
               { value: "none", label: "None" },
             ]}
-            onChange={(v) => onInputChange("contentMode", v as StrategyInputs["contentMode"])}
+            onChange={(next) => onInputChange("contentMode", next as StrategyInputs["contentMode"])}
           />
         </div>
       </div>
@@ -729,23 +729,32 @@ function SegmentedControl({
   );
 }
 
-function PillSelector({
-  value,
+function MultiPillSelector({
+  values,
   options,
   onChange,
 }: {
-  value: string;
+  values: string[];
   options: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
+  onChange: (values: string[]) => void;
 }) {
+  function toggle(value: string) {
+    if (value === "none") {
+      onChange(values.includes("none") ? [] : ["none"]);
+      return;
+    }
+    const without = values.filter((v) => v !== "none" && v !== value);
+    onChange(values.includes(value) ? without : [...without, value]);
+  }
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingTop: 2 }}>
       {options.map((option) => {
-        const active = option.value === value;
+        const active = values.includes(option.value);
         return (
           <button
             key={option.value}
-            onClick={() => onChange(option.value)}
+            onClick={() => toggle(option.value)}
             style={{
               border: `1px solid ${active ? "var(--teal)" : "var(--rule)"}`,
               background: active ? "var(--teal)" : "transparent",

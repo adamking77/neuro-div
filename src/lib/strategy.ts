@@ -55,7 +55,7 @@ export function createEmptyStrategyInputs(): StrategyInputs {
     socialPostingTolerance: "avoid",
     channelAvoidances: "",
     outreachTolerance: "inbound-only",
-    contentMode: "writing",
+    contentMode: ["writing"],
     existingCredibility: "",
   };
 }

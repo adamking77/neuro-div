@@ -121,7 +121,7 @@ describe("strategy API helpers", () => {
         socialPostingTolerance: "avoid",
         channelAvoidances: "LinkedIn and live events",
         outreachTolerance: "inbound-only",
-        contentMode: "writing",
+        contentMode: ["writing"],
         existingCredibility: "",
       },
       phaseResearch: [

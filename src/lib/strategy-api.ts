@@ -305,6 +305,11 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     none: "no content creation preferred",
   };
 
+  const contentModes = payload.founderConstraints.contentMode;
+  const contentModeText = contentModes.length === 0 || contentModes.includes("none")
+    ? "no content creation preferred"
+    : contentModes.map((m) => contentLabel[m] ?? m).join(", ");
+
   const founderConstraints = [
     `Audience lens: ${payload.audienceLens}.`,
     `Team size: ${payload.founderConstraints.teamSize}.`,
@@ -314,7 +319,7 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
       : "",
     `Social posting tolerance: ${payload.founderConstraints.socialPostingTolerance}.`,
     `Outreach tolerance: ${outreachLabel[payload.founderConstraints.outreachTolerance] ?? payload.founderConstraints.outreachTolerance}.`,
-    `Content creation mode: ${contentLabel[payload.founderConstraints.contentMode] ?? payload.founderConstraints.contentMode}.`,
+    `Content creation mode: ${contentModeText}.`,
     payload.founderConstraints.existingCredibility
       ? `Existing credibility assets: ${payload.founderConstraints.existingCredibility}.`
       : "",
@@ -425,9 +430,9 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     ["inbound-only", "warm-intro-ok", "async-email-ok"],
     "outreachTolerance is invalid",
   );
-  const contentMode = expectEnum(
+  const contentMode = expectEnumArray(
     body.contentMode,
-    ["writing", "short-video", "audio", "design", "none"],
+    ["writing", "short-video", "audio", "design", "none"] as const,
     "contentMode is invalid",
   );
   const existingCredibility = expectOptionalString(body.existingCredibility);
@@ -693,6 +698,14 @@ function expectEnum<T extends string>(input: unknown, values: readonly T[], mess
   }
 
   return input as T;
+}
+
+function expectEnumArray<T extends string>(input: unknown, values: readonly T[], message: string): T[] {
+  if (!Array.isArray(input)) {
+    throw new StrategyRequestError(400, message);
+  }
+
+  return input.map((item) => expectEnum(item, values, message));
 }
 
 function trimText(text: string, maxLength: number): string {

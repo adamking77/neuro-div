@@ -33,7 +33,7 @@ export interface FounderConstraints {
   socialPostingTolerance: SocialPostingTolerance;
   channelAvoidances: string;
   outreachTolerance: OutreachTolerance;
-  contentMode: ContentMode;
+  contentMode: ContentMode[];
   existingCredibility: string;
 }
 
