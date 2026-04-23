@@ -286,7 +286,13 @@ export default function App() {
           }),
         });
 
-        const payload = await response.json() as StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
+        const rawText = await response.text();
+        let payload: StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
+        try {
+          payload = JSON.parse(rawText) as StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
+        } catch {
+          throw new Error(`Server error (${response.status}): ${rawText.slice(0, 200)}`);
+        }
 
         if (response.status === 202 && "status" in payload && payload.status === "researching") {
           researchId = payload.researchId;
