@@ -16,10 +16,99 @@ export interface PhaseResult {
   error?: string;
 }
 
+export type TeamSize = "solo" | "small-team";
+
+export type BudgetBand = "none" | "low" | "moderate";
+
+export type SocialPostingTolerance = "avoid" | "limited" | "comfortable";
+
+export type OutreachTolerance = "inbound-only" | "warm-intro-ok" | "async-email-ok";
+
+export type ContentMode = "writing" | "short-video" | "audio" | "design" | "none";
+
+export interface FounderConstraints {
+  teamSize: TeamSize;
+  budgetBand: BudgetBand;
+  weeklyCapacity: string;
+  socialPostingTolerance: SocialPostingTolerance;
+  channelAvoidances: string;
+  outreachTolerance: OutreachTolerance;
+  contentMode: ContentMode;
+  existingCredibility: string;
+}
+
+export interface StrategyInputs extends FounderConstraints {
+  audienceLens: string;
+}
+
+export type StrategySectionKey =
+  | "positioning"
+  | "channelPlan"
+  | "messageAngles"
+  | "assetIdeas"
+  | "experiments"
+  | "thirtyDaySequence";
+
+export interface StrategySections {
+  positioning: string;
+  channelPlan: string;
+  messageAngles: string;
+  assetIdeas: string;
+  experiments: string;
+  thirtyDaySequence: string;
+}
+
+export interface StrategyCitation {
+  section: StrategySectionKey;
+  title: string;
+  url: string;
+  note?: string;
+}
+
+export interface StrategyDraft {
+  sections: StrategySections;
+  warnings: string[];
+  citations: StrategyCitation[];
+  generatedAt: string;
+}
+
+export type StrategyStatus = "idle" | "researching" | "drafting" | "done" | "error";
+
+export interface CondensedResearchResult {
+  title: string;
+  url: string;
+  score?: number;
+  publishedDate?: string;
+  highlights: string[];
+}
+
+export interface CondensedPhaseResearch {
+  phaseId: number;
+  phaseName: string;
+  description: string;
+  results: CondensedResearchResult[];
+}
+
+export interface StrategyDraftRequestPayload {
+  problem: string;
+  knownPlayers: string;
+  audienceLens: string;
+  founderConstraints: FounderConstraints;
+  phaseResearch: CondensedPhaseResearch[];
+}
+
+export interface StrategyDraftResponse extends StrategyDraft {}
+
 export interface SessionState {
   problem: string;
   knownPlayers: string;
   phases: Record<number, PhaseResult>;
+  strategyInputs: StrategyInputs;
+  strategyDraft: StrategyDraft | null;
+  strategyStatus: StrategyStatus;
+  strategyError?: string;
+  strategyDirty: boolean;
+  strategySourceFingerprint: string | null;
 }
 
 export interface PhaseConfig {

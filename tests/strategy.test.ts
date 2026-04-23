@@ -1,0 +1,264 @@
+import { describe, expect, it } from "vitest";
+import { PHASES } from "../src/phases";
+import {
+  buildExaResearchRequest,
+  buildStrategyDraftPrompt,
+  getAnthropicConfig,
+  getExaConfig,
+  mergeStrategyCitations,
+  parseStrategyDraftText,
+  parseExaTaskResponse,
+  validateStrategyDraftRequest,
+} from "../src/lib/strategy-api";
+import {
+  condensePhaseResearch,
+  createEmptyStrategyInputs,
+  getStrategyFingerprint,
+  getStrategyReadiness,
+} from "../src/lib/strategy";
+import type { PhaseResult } from "../src/types";
+
+function createPhases(overrides: Partial<Record<number, PhaseResult>> = {}) {
+  return Object.fromEntries(
+    PHASES.map((phase) => [
+      phase.id,
+      overrides[phase.id] ?? { status: "idle", results: [] },
+    ]),
+  ) as Record<number, PhaseResult>;
+}
+
+describe("strategy readiness", () => {
+  it("requires four completed phases and phases 1, 3, and 5 with results", () => {
+    const phases = createPhases({
+      1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
+      2: { status: "done", results: [{ id: "2", url: "https://b.com", highlights: ["b"] }] },
+      3: { status: "done", results: [{ id: "3", url: "https://c.com", highlights: ["c"] }] },
+      4: { status: "done", results: [{ id: "4", url: "https://d.com", highlights: ["d"] }] },
+    });
+
+    expect(getStrategyReadiness(phases)).toEqual({
+      ready: false,
+      doneCount: 4,
+      missingRequired: [5],
+    });
+  });
+});
+
+describe("condensePhaseResearch", () => {
+  it("limits each phase to five results and two highlights", () => {
+    const phases = createPhases({
+      1: {
+        status: "done",
+        results: Array.from({ length: 6 }, (_, index) => ({
+          id: `${index}`,
+          url: `https://example.com/${index}`,
+          title: `Result ${index}`,
+          score: 0.9 - index * 0.01,
+          publishedDate: "2026-04-01",
+          highlights: ["one", "two", "three"],
+        })),
+      },
+    });
+
+    const condensed = condensePhaseResearch(phases);
+
+    expect(condensed).toHaveLength(1);
+    expect(condensed[0].results).toHaveLength(5);
+    expect(condensed[0].results[0].highlights).toEqual(["one", "two"]);
+  });
+});
+
+describe("strategy fingerprinting", () => {
+  it("changes when strategy inputs change", () => {
+    const phases = createPhases({
+      1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
+      3: { status: "done", results: [{ id: "3", url: "https://c.com", highlights: ["c"] }] },
+      5: { status: "done", results: [{ id: "5", url: "https://e.com", highlights: ["e"] }] },
+      6: { status: "done", results: [{ id: "6", url: "https://f.com", highlights: ["f"] }] },
+    });
+    const inputs = createEmptyStrategyInputs();
+
+    const first = getStrategyFingerprint({
+      problem: "teams struggle to adopt AI tooling",
+      knownPlayers: "",
+      phases,
+      strategyInputs: inputs,
+    });
+
+    const second = getStrategyFingerprint({
+      problem: "teams struggle to adopt AI tooling",
+      knownPlayers: "",
+      phases,
+      strategyInputs: { ...inputs, audienceLens: "founders avoiding social posting" },
+    });
+
+    expect(first).not.toEqual(second);
+  });
+});
+
+describe("strategy API helpers", () => {
+  it("rejects missing Anthropic credentials", () => {
+    expect(() => getAnthropicConfig({})).toThrow("ANTHROPIC_API_KEY not configured");
+  });
+
+  it("rejects missing Exa credentials", () => {
+    expect(() => getExaConfig({})).toThrow("EXA_API_KEY not configured");
+  });
+
+  it("validates the draft request payload", () => {
+    expect(() => validateStrategyDraftRequest({})).toThrow("problem is required");
+  });
+
+  it("builds Exa research and Anthropic prompts with low-contact guidance", () => {
+    const payload = {
+      problem: "manual reporting wastes time",
+      knownPlayers: "",
+      audienceLens: "operators who avoid networking",
+      founderConstraints: {
+        teamSize: "solo",
+        budgetBand: "low",
+        weeklyCapacity: "4 hours",
+        socialPostingTolerance: "avoid",
+        channelAvoidances: "LinkedIn and live events",
+        outreachTolerance: "inbound-only",
+        contentMode: "writing",
+        existingCredibility: "",
+      },
+      phaseResearch: [
+        {
+          phaseId: 1,
+          phaseName: "Problem Cartography",
+          description: "desc",
+          results: [
+            {
+              title: "Source",
+              url: "https://example.com",
+              highlights: ["Teams hate manual reporting."],
+            },
+          ],
+        },
+      ],
+    };
+
+    const exaRequest = buildExaResearchRequest(payload, "exa-research-pro");
+    const prompt = buildStrategyDraftPrompt(payload, {
+      dossier: {
+        audienceSignals: ["Audience avoids networking-heavy channels."],
+        positioningEdges: ["Async credibility beats personal brand volume."],
+        lowContactChannels: [
+          {
+            channel: "Search-driven templates",
+            fit: "Matches intent without social maintenance.",
+            evidence: "Buyers search for fixes asynchronously.",
+            caution: "Needs clear conversion path.",
+          },
+        ],
+        messagePatterns: ["Stress relief and predictability outperform hype."],
+        assetDirections: ["Create diagnostic checklists and teardown assets."],
+        experimentLevers: [
+          {
+            experiment: "Launch a searchable teardown page",
+            rationale: "Captures existing intent",
+            successMetric: "Qualified replies",
+          },
+        ],
+        risks: ["Avoid channels that require constant posting to stay visible."],
+      },
+      citations: {
+        lowContactChannels: [
+          {
+            title: "Source",
+            url: "https://example.com",
+            snippet: "Teams hate manual reporting.",
+          },
+        ],
+      },
+    });
+
+    expect(exaRequest.instructions).toContain("low-contact");
+    expect(exaRequest.model).toBe("exa-research-pro");
+    expect(prompt.system).toContain("PDA");
+    expect(prompt.system).toContain("create-once");
+    expect(prompt.user).toContain("operators who avoid networking");
+  });
+
+  it("parses a completed Exa task and maps fallback citations", () => {
+    const task = parseExaTaskResponse({
+      researchId: "r_123",
+      status: "completed",
+      data: {
+        audienceSignals: ["Signal"],
+        positioningEdges: ["Edge"],
+        lowContactChannels: [
+          {
+            channel: "SEO",
+            fit: "Async",
+            evidence: "Intent exists",
+            caution: "Takes time",
+          },
+        ],
+        messagePatterns: ["Pattern"],
+        assetDirections: ["Asset"],
+        experimentLevers: [
+          {
+            experiment: "Experiment",
+            rationale: "Because",
+            successMetric: "Metric",
+          },
+        ],
+        risks: ["Risk"],
+      },
+      citations: {
+        lowContactChannels: [
+          {
+            title: "Channel Source",
+            url: "https://channel.example.com",
+            snippet: "Channel evidence",
+          },
+        ],
+      },
+    });
+
+    expect(task.status).toBe("completed");
+
+    if (task.status !== "completed") {
+      throw new Error("Expected completed task");
+    }
+
+    const merged = mergeStrategyCitations([], task.citations);
+    expect(merged).toEqual([
+      {
+        section: "channelPlan",
+        title: "Channel Source",
+        url: "https://channel.example.com",
+        note: "Channel evidence",
+      },
+    ]);
+  });
+
+  it("parses valid model JSON and rejects malformed output", () => {
+    const parsed = parseStrategyDraftText(`{
+      "sections": {
+        "positioning": "Positioning",
+        "channelPlan": "Channels",
+        "messageAngles": "Angles",
+        "assetIdeas": "Assets",
+        "experiments": "Experiments",
+        "thirtyDaySequence": "Sequence"
+      },
+      "warnings": ["Keep posting load low"],
+      "citations": [
+        {
+          "section": "positioning",
+          "title": "Source One",
+          "url": "https://example.com",
+          "note": "Research support"
+        }
+      ]
+    }`);
+
+    expect(parsed.sections.positioning).toBe("Positioning");
+    expect(parsed.citations).toHaveLength(1);
+    expect(() => parseStrategyDraftText("not json")).toThrow("Model output did not contain JSON");
+  });
+});

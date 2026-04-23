@@ -2,7 +2,7 @@
 
 Six research phases in parallel — who has the pain, who's solving it, how the market is structured, and how people talk about it.
 
-Built for category design research. Runs semantic search across six distinct lenses simultaneously, then gives you a structured export to take into Claude for brief generation.
+Built for category design research. Runs semantic search across six distinct lenses simultaneously, then turns that evidence into a grounded strategy workflow using Exa research plus Anthropic synthesis.
 
 ## How it works
 
@@ -10,24 +10,25 @@ Built for category design research. Runs semantic search across six distinct len
 2. Optionally add known players in the space
 3. Hit **Run** — six phases search in parallel via Exa's neural search
 4. Review results by phase, each with relevance scores, publication timelines, and source highlights
-5. **Export** the research as a structured markdown file
-6. Upload to [claude.ai](https://claude.ai) with the included prompt to generate a full category design brief
+5. Switch to **Strategy** to generate a low-contact distribution draft grounded in Exa Research and Anthropic
+6. **Export** either the research file or the generated strategy as markdown
 
 ## Research phases
 
 | # | Phase | What it finds |
 |---|-------|---------------|
-| 01 | Pain Mapping | Who has the problem and how they describe it |
-| 02 | Competitor Landscape | Who's solving it and how they position |
-| 03 | Market Structure | How the category is currently named and bounded |
-| 04 | Use Cases | How people actually deploy solutions |
-| 05 | Evidence & Data | Proof the problem is real and growing |
-| 06 | Vocabulary | Language patterns and naming candidates |
+| 01 | Problem Cartography | How the problem is described in the wild, before anyone has branded it |
+| 02 | Enemy Identification | The incumbent approach being displaced — the old story your category replaces |
+| 03 | Solution Landscape | Everyone solving adjacent problems; what's named, overcrowded, or sparse |
+| 04 | Category Audit | Existing categories — newly named (opportunity), mid-formation, or mature (avoid) |
+| 05 | Evidence Mining | Proof the problem is real, growing, and expensive |
+| 06 | Language Mining | Vocabulary people reach for before they know a solution exists |
 
 ## Stack
 
 - **Frontend** — React 19, TypeScript, Vite, Tailwind CSS v4, HeroUI v3, Framer Motion
-- **Search** — [Exa](https://exa.ai) neural search via Vercel serverless functions
+- **Search & research** — [Exa](https://exa.ai) neural search plus Exa Research via Vercel serverless functions
+- **Strategy synthesis** — [Anthropic Claude Sonnet 4](https://docs.anthropic.com/en/docs/models-overview)
 - **Deployment** — Vercel
 
 ## Setup
@@ -36,6 +37,9 @@ Built for category design research. Runs semantic search across six distinct len
 
 ```
 EXA_API_KEY=your_key_here
+EXA_RESEARCH_MODEL=exa-research-pro
+ANTHROPIC_API_KEY=your_key_here
+ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
 
 Add to Vercel project settings under Environment Variables.

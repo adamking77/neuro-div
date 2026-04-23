@@ -1,43 +1,36 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Spinner } from "@heroui/react";
 import { ArrowCounterClockwise, DownloadSimple, Copy, Check, CaretDown } from "@phosphor-icons/react";
-import type { ExaResult, PhaseResult, SessionState } from "./types";
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
+import { StrategyView } from "./components/StrategyView";
+import {
+  buildStrategyMarkdown,
+  condensePhaseResearch,
+  createEmptyStrategyInputs,
+  getStrategyFingerprint,
+  syncStrategyDirtyState,
+} from "./lib/strategy";
+import type {
+  ExaResult,
+  PhaseResult,
+  SessionState,
+  StrategyDraft,
+  StrategyInputs,
+  StrategySectionKey,
+} from "./types";
 import "./index.css";
 
-const emptyPhases = (): Record<number, PhaseResult> =>
-  Object.fromEntries(PHASES.map((p) => [p.id, { status: "idle", results: [] }]));
+type ActiveView = "research" | "strategy";
 
+interface StrategyDraftPendingResponse {
+  status: "researching";
+  researchId: string;
+}
 
-function RunButton({ canRun, isRunning, hasAnyResults, onClick }: {
-  canRun: boolean; isRunning: boolean; hasAnyResults: boolean; onClick: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={canRun ? onClick : undefined}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
-        letterSpacing: "0.01em", padding: "10px 52px",
-        border: "none", borderRadius: 999,
-        cursor: "pointer",
-        background: hovered ? "#3D6B6B" : "#5B8A8A",
-        color: "#fff",
-        transition: "background 0.15s",
-        display: "inline-flex", alignItems: "center", gap: 8,
-        userSelect: "none", opacity: 1,
-      }}
-    >
-      {isRunning
-        ? <><Spinner size="sm" color="current" /><span>Running…</span></>
-        : hasAnyResults ? "Re-run All" : "Run"
-      }
-    </button>
-  );
+interface StrategyDraftErrorResponse {
+  error?: string;
 }
 
 const CLAUDE_PROMPT = `I'm attaching a Category Scout research file. It contains results from 6 research phases, each with source titles, URLs, publication dates, relevance scores, and direct highlight excerpts pulled from each source.
@@ -59,85 +52,187 @@ Rules:
 - Do not introduce information from outside the file
 - Be specific and direct — no generic category design filler`;
 
+const emptyPhases = (): Record<number, PhaseResult> =>
+  Object.fromEntries(PHASES.map((phase) => [phase.id, { status: "idle", results: [] }]));
+
+const createEmptySession = (): SessionState => ({
+  problem: "",
+  knownPlayers: "",
+  phases: emptyPhases(),
+  strategyInputs: createEmptyStrategyInputs(),
+  strategyDraft: null,
+  strategyStatus: "idle",
+  strategyError: undefined,
+  strategyDirty: false,
+  strategySourceFingerprint: null,
+});
+
 export default function App() {
-  const [session, setSession] = useState<SessionState>({
-    problem: "", knownPlayers: "", phases: emptyPhases(),
-  });
+  const [session, setSession] = useState<SessionState>(createEmptySession);
+  const [activeView, setActiveView] = useState<ActiveView>("research");
   const [promptCopied, setPromptCopied] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
 
-  const updatePhase = useCallback((id: number, update: Partial<PhaseResult>) => {
-    setSession((s) => ({ ...s, phases: { ...s.phases, [id]: { ...s.phases[id], ...update } } }));
+  const mutateSession = useCallback((updater: (current: SessionState) => SessionState) => {
+    setSession((current) => syncStrategyDirtyState(updater(current)));
   }, []);
 
+  const updatePhase = useCallback((id: number, update: Partial<PhaseResult>) => {
+    mutateSession((current) => ({
+      ...current,
+      phases: {
+        ...current.phases,
+        [id]: {
+          ...current.phases[id],
+          ...update,
+        },
+      },
+    }));
+  }, [mutateSession]);
+
+  const updateStrategyInput = useCallback(<K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => {
+    mutateSession((current) => ({
+      ...current,
+      strategyInputs: {
+        ...current.strategyInputs,
+        [key]: value,
+      },
+    }));
+  }, [mutateSession]);
+
+  const updateStrategySection = useCallback((key: StrategySectionKey, value: string) => {
+    mutateSession((current) => {
+      if (!current.strategyDraft) {
+        return current;
+      }
+
+      return {
+        ...current,
+        strategyDraft: {
+          ...current.strategyDraft,
+          sections: {
+            ...current.strategyDraft.sections,
+            [key]: value,
+          },
+        },
+      };
+    });
+  }, [mutateSession]);
+
   const runPhase = useCallback(async (phaseId: number, startDelay = 0) => {
-    const phase = PHASES.find((p) => p.id === phaseId);
+    const phase = PHASES.find((item) => item.id === phaseId);
     if (!phase || !session.problem.trim()) return;
-    if (startDelay > 0) await new Promise((r) => setTimeout(r, startDelay));
+
+    if (startDelay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, startDelay));
+    }
+
     updatePhase(phaseId, { status: "running", results: [], error: undefined });
     const queries = phase.buildQueries(session.problem, session.knownPlayers);
     const allResults: ExaResult[] = [];
+
     try {
-      for (let i = 0; i < queries.length; i++) {
-        if (i > 0) await new Promise((r) => setTimeout(r, 200));
-        const q = queries[i];
-        const res = await fetch("/api/exa-search", {
+      for (let index = 0; index < queries.length; index += 1) {
+        if (index > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+
+        const query = queries[index];
+        const response = await fetch("/api/exa-search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q.query, phase: phaseId, category: q.category ?? null }),
+          body: JSON.stringify({ query: query.query, phase: phaseId, category: query.category ?? null }),
         });
-        if (!res.ok) throw new Error(await res.text());
-        const results: ExaResult[] = await res.json();
-        for (const r of results) {
-          if (!allResults.find((x) => x.url === r.url)) allResults.push(r);
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const results: ExaResult[] = await response.json();
+
+        for (const result of results) {
+          if (!allResults.find((existing) => existing.url === result.url)) {
+            allResults.push(result);
+          }
         }
       }
+
       updatePhase(phaseId, { status: "done", results: allResults });
-    } catch (err) {
-      updatePhase(phaseId, { status: "error", error: String(err) });
+    } catch (error) {
+      updatePhase(phaseId, { status: "error", error: String(error) });
     }
   }, [session.problem, session.knownPlayers, updatePhase]);
 
   const runAll = useCallback(() => {
     if (!session.problem.trim()) return;
-    PHASES.forEach((p, i) => runPhase(p.id, i * 400));
+
+    PHASES.forEach((phase, index) => {
+      void runPhase(phase.id, index * 400);
+    });
   }, [runPhase, session.problem]);
 
   const reset = useCallback(() => {
-    setSession({ problem: "", knownPlayers: "", phases: emptyPhases() });
+    setActiveView("research");
+    setSession(createEmptySession());
+  }, []);
+
+  const downloadBlob = useCallback((contents: string, prefix: string) => {
+    const blob = new Blob([contents], { type: "text/markdown" });
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = `${prefix}-${Date.now()}.md`;
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
   }, []);
 
   const downloadResearch = useCallback(() => {
     const date = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const lines: string[] = [
-      `# Category Scout Research`,
+      "# Category Scout Research",
       `**Problem:** ${session.problem}`,
       session.knownPlayers ? `**Known Players:** ${session.knownPlayers}` : "",
       `**Date:** ${date}`,
       "",
     ];
+
     for (const phase of PHASES) {
       const result = session.phases[phase.id];
       if (result.status !== "done" || result.results.length === 0) continue;
-      lines.push(`---`, ``, `## Phase ${String(phase.id).padStart(2, "0")} — ${phase.name}`, `*${phase.description}*`, ``);
-      for (const r of result.results) {
-        const domain = (() => { try { return new URL(r.url).hostname.replace(/^www\./, ""); } catch { return r.url; } })();
-        const d = r.publishedDate ? new Date(r.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
-        const score = r.score != null ? `${(r.score * 100).toFixed(0)}% relevance` : null;
-        lines.push(`### [${r.title || r.url}](${r.url})`);
-        lines.push(`*${[domain, d, score].filter(Boolean).join(" · ")}*`, ``);
-        if (r.highlights?.length) {
-          for (const h of r.highlights.slice(0, 2)) lines.push(`> ${h}`, ``);
+
+      lines.push("---", "", `## Phase ${String(phase.id).padStart(2, "0")} — ${phase.name}`, `*${phase.description}*`, "");
+
+      for (const item of result.results) {
+        const domain = (() => {
+          try {
+            return new URL(item.url).hostname.replace(/^www\./, "");
+          } catch {
+            return item.url;
+          }
+        })();
+        const publishedDate = item.publishedDate
+          ? new Date(item.publishedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+          : null;
+        const score = item.score != null ? `${(item.score * 100).toFixed(0)}% relevance` : null;
+
+        lines.push(`### [${item.title || item.url}](${item.url})`);
+        lines.push(`*${[domain, publishedDate, score].filter(Boolean).join(" · ")}*`, "");
+
+        if (item.highlights?.length) {
+          for (const highlight of item.highlights.slice(0, 2)) {
+            lines.push(`> ${highlight}`, "");
+          }
         }
       }
     }
-    const blob = new Blob([lines.filter(Boolean).join("\n")], { type: "text/markdown" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `category-scout-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, [session]);
+
+    downloadBlob(lines.filter(Boolean).join("\n"), "category-scout");
+  }, [downloadBlob, session]);
+
+  const downloadStrategy = useCallback(() => {
+    const markdown = buildStrategyMarkdown(session);
+    if (!markdown) return;
+    downloadBlob(markdown, "category-scout-strategy");
+  }, [downloadBlob, session]);
 
   const copyPrompt = useCallback(() => {
     navigator.clipboard.writeText(CLAUDE_PROMPT);
@@ -145,42 +240,146 @@ export default function App() {
     setTimeout(() => setPromptCopied(false), 2000);
   }, []);
 
-  const isRunning = Object.values(session.phases).some((p) => p.status === "running");
-  const hasAnyResults = Object.values(session.phases).some((p) => p.results.length > 0);
-  const canRun = !!session.problem.trim() && !isRunning;
+  const generateStrategy = useCallback(async () => {
+    if (!session.problem.trim()) return;
+    if (!session.strategyInputs.audienceLens.trim()) return;
+
+    if (session.strategyDraft) {
+      const shouldReplace = window.confirm("Regenerating will replace the current strategy draft. Continue?");
+      if (!shouldReplace) return;
+    }
+
+    mutateSession((current) => ({
+      ...current,
+      strategyStatus: "researching",
+      strategyError: undefined,
+    }));
+
+    try {
+      const draftRequest = {
+        problem: session.problem,
+        knownPlayers: session.knownPlayers,
+        audienceLens: session.strategyInputs.audienceLens,
+        founderConstraints: {
+          teamSize: session.strategyInputs.teamSize,
+          budgetBand: session.strategyInputs.budgetBand,
+          weeklyCapacity: session.strategyInputs.weeklyCapacity,
+          socialPostingTolerance: session.strategyInputs.socialPostingTolerance,
+          channelAvoidances: session.strategyInputs.channelAvoidances,
+          outreachTolerance: session.strategyInputs.outreachTolerance,
+          contentMode: session.strategyInputs.contentMode,
+          existingCredibility: session.strategyInputs.existingCredibility,
+        },
+        phaseResearch: condensePhaseResearch(session.phases),
+      };
+
+      let researchId: string | undefined;
+      let finalDraft: StrategyDraft | null = null;
+
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await fetch("/api/strategy-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...draftRequest,
+            ...(researchId ? { researchId } : {}),
+          }),
+        });
+
+        const payload = await response.json() as StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
+
+        if (response.status === 202 && "status" in payload && payload.status === "researching") {
+          researchId = payload.researchId;
+          mutateSession((current) => ({
+            ...current,
+            strategyStatus: "researching",
+            strategyError: undefined,
+          }));
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Strategy draft failed");
+        }
+
+        // Exa is complete — show the Claude drafting phase briefly before applying the result
+        mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
+        finalDraft = payload as StrategyDraft;
+        break;
+      }
+
+      if (!finalDraft) {
+        throw new Error("Exa research did not finish in time. Try again.");
+      }
+
+      const fingerprint = getStrategyFingerprint({
+        problem: session.problem,
+        knownPlayers: session.knownPlayers,
+        phases: session.phases,
+        strategyInputs: session.strategyInputs,
+      });
+
+      mutateSession((current) => ({
+        ...current,
+        strategyDraft: finalDraft,
+        strategyStatus: "done",
+        strategyError: undefined,
+        strategyDirty: false,
+        strategySourceFingerprint: fingerprint,
+      }));
+
+      setActiveView("strategy");
+    } catch (error) {
+      mutateSession((current) => ({
+        ...current,
+        strategyStatus: "error",
+        strategyError: error instanceof Error ? error.message : "Strategy draft failed",
+      }));
+    }
+  }, [mutateSession, session]);
+
+  const phaseRunning = Object.values(session.phases).some((phase) => phase.status === "running");
+  const hasAnyResults = Object.values(session.phases).some((phase) => phase.results.length > 0);
+  const canRun = !!session.problem.trim() && !phaseRunning;
 
   return (
-    <div className="main-wrap" style={{ maxWidth: 860, margin: "0 auto", padding: "52px 40px 100px" }}>
-
-      {/* Header */}
+    <div className="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-          {/* Logo — three overlapping outline circles */}
           <div style={{ width: 28, height: 14, position: "relative", flexShrink: 0 }}>
-            {[0, 8, 16].map((offset, i) => (
-              <div key={i} style={{
-                position: "absolute", top: 0, left: offset,
-                width: 14, height: 14, borderRadius: "50%",
-                border: "1.5px solid var(--teal)",
-                opacity: 1 - i * 0.2,
-              }} />
+            {[0, 8, 16].map((offset, index) => (
+              <div
+                key={index}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: offset,
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  border: "1.5px solid var(--teal)",
+                  opacity: 1 - index * 0.2,
+                }}
+              />
             ))}
           </div>
           <span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
             Category Scout
           </span>
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 520, margin: 0 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 560, margin: 0 }}>
           Six research phases in parallel — who has the pain, who's solving it,
           how the market is structured, and how people talk about it.
-          Powered by Exa's semantic search.
+          Now with a strategy layer for turning evidence into a low-contact distribution plan.
         </p>
       </div>
 
       <hr className="rule" style={{ marginBottom: 36 }} />
 
-      {/* Input form */}
-      <div className="input-grid" style={{ marginBottom: 36 }}>
+      <div className="input-grid" style={{ marginBottom: 30 }}>
         <label style={{
           display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
           textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
@@ -190,7 +389,7 @@ export default function App() {
         </label>
         <textarea
           value={session.problem}
-          onChange={(e) => setSession((s) => ({ ...s, problem: e.target.value }))}
+          onChange={(event) => mutateSession((current) => ({ ...current, problem: event.target.value }))}
           placeholder="Describe the customer problem in plain language…"
           rows={4}
           style={{ marginBottom: 8 }}
@@ -209,49 +408,49 @@ export default function App() {
         <input
           type="text"
           value={session.knownPlayers}
-          onChange={(e) => setSession((s) => ({ ...s, knownPlayers: e.target.value }))}
+          onChange={(event) => mutateSession((current) => ({ ...current, knownPlayers: event.target.value }))}
           placeholder="Accenture, McKinsey…"
           style={{ marginBottom: 16 }}
         />
 
-        <RunButton canRun={canRun} isRunning={isRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
+        <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
       </div>
 
       <hr className="rule" />
 
-      {/* Action bar */}
-      {hasAnyResults && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 0",
-          }}
-        >
-          <button
-            className="btn-text"
-            onClick={downloadResearch}
-            style={{ fontSize: 13, color: "var(--ink-muted)" }}
-          >
-            <DownloadSimple size={13} />
-            Export
-          </button>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "16px 0",
+        flexWrap: "wrap",
+      }}>
+        <ViewToggle activeView={activeView} onChange={setActiveView} />
 
-          <button
-            className="btn-text"
-            onClick={reset}
-            style={{ fontSize: 13, color: "var(--ink-muted)" }}
-          >
+        {activeView === "research" && hasAnyResults && (
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <button className="btn-text" onClick={downloadResearch} style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+              <DownloadSimple size={13} />
+              Export
+            </button>
+
+            <button className="btn-text" onClick={reset} style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+              <ArrowCounterClockwise size={12} />
+              Reset
+            </button>
+          </div>
+        )}
+
+        {activeView === "strategy" && (
+          <button className="btn-text" onClick={reset} style={{ fontSize: 13, color: "var(--ink-muted)" }}>
             <ArrowCounterClockwise size={12} />
             Reset
           </button>
-        </motion.div>
-      )}
+        )}
+      </div>
 
-      {/* Claude instructions */}
-      {hasAnyResults && (
+      {activeView === "research" && hasAnyResults && (
         <>
           <hr className="rule" />
           <motion.div
@@ -270,19 +469,22 @@ export default function App() {
                 </p>
                 <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
                   Export the research, upload to{" "}
-                  <a href="https://claude.ai" target="_blank" rel="noreferrer"
-                    style={{ color: "var(--teal)", textDecoration: "none" }}>claude.ai</a>
+                  <a href="https://claude.ai" target="_blank" rel="noreferrer" style={{ color: "var(--teal)", textDecoration: "none" }}>
+                    claude.ai
+                  </a>
                   , and use this prompt to generate a category design brief.
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
-                <button className="btn-text" onClick={copyPrompt}
-                  style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}>
+                <button
+                  className="btn-text"
+                  onClick={copyPrompt}
+                  style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}
+                >
                   {promptCopied ? <Check size={12} /> : <Copy size={12} />}
                   {promptCopied ? "Copied" : "Copy prompt"}
                 </button>
-                <button className="btn-text" onClick={() => setPromptOpen((x) => !x)}
-                  style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                <button className="btn-text" onClick={() => setPromptOpen((open) => !open)} style={{ fontSize: 12, color: "var(--ink-muted)" }}>
                   <motion.span
                     animate={{ rotate: promptOpen ? 180 : 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -303,11 +505,15 @@ export default function App() {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ type: "spring", stiffness: 260, damping: 28 }}
                   style={{
-                    fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7,
-                    color: "var(--ink-light)", margin: "14px 0 0",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    color: "var(--ink-light)",
+                    margin: "14px 0 0",
                     padding: "14px 16px",
                     border: "1px solid var(--rule)",
-                    whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
                     overflow: "hidden",
                   }}
                 >
@@ -320,8 +526,103 @@ export default function App() {
         </>
       )}
 
-      {/* Output */}
-      <ReportView session={session} onRunPhase={runPhase} isRunning={isRunning} />
+      {activeView === "research" ? (
+        <ReportView session={session} onRunPhase={runPhase} isRunning={phaseRunning} />
+      ) : (
+        <StrategyView
+          session={session}
+          researchRunning={phaseRunning}
+          onInputChange={updateStrategyInput}
+          onSectionChange={updateStrategySection}
+          onGenerate={generateStrategy}
+          onExport={downloadStrategy}
+        />
+      )}
     </div>
+  );
+}
+
+function RunButton({
+  canRun,
+  isRunning,
+  hasAnyResults,
+  onClick,
+}: {
+  canRun: boolean;
+  isRunning: boolean;
+  hasAnyResults: boolean;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      onClick={canRun ? onClick : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontFamily: "var(--font-display)",
+        fontSize: 15,
+        fontWeight: 600,
+        letterSpacing: "0.01em",
+        padding: "10px 52px",
+        border: "none",
+        borderRadius: 999,
+        cursor: canRun ? "pointer" : "not-allowed",
+        background: canRun ? (hovered ? "#3D6B6B" : "#5B8A8A") : "rgba(91, 138, 138, 0.4)",
+        color: "#fff",
+        transition: "background 0.15s",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        userSelect: "none",
+      }}
+    >
+      {isRunning
+        ? (
+          <>
+            <Spinner size="sm" color="current" />
+            <span>Running…</span>
+          </>
+        )
+        : hasAnyResults ? "Re-run All" : "Run"}
+    </button>
+  );
+}
+
+function ViewToggle({
+  activeView,
+  onChange,
+}: {
+  activeView: ActiveView;
+  onChange: (view: ActiveView) => void;
+}) {
+  return (
+    <div style={{ display: "inline-flex", gap: 6, border: "1px solid var(--rule)", padding: 4, borderRadius: 999 }}>
+      <ViewButton label="Research" active={activeView === "research"} onClick={() => onChange("research")} />
+      <ViewButton label="Strategy" active={activeView === "strategy"} onClick={() => onChange("strategy")} />
+    </div>
+  );
+}
+
+function ViewButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: "none",
+        background: active ? "var(--teal)" : "transparent",
+        color: active ? "#fff" : "var(--ink-muted)",
+        borderRadius: 999,
+        padding: "7px 14px",
+        cursor: "pointer",
+        fontFamily: "var(--font-display)",
+        fontSize: 13,
+        lineHeight: 1,
+        transition: "background 0.15s, color 0.15s",
+      }}
+    >
+      {label}
+    </button>
   );
 }
