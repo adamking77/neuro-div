@@ -8,6 +8,7 @@ import {
   mergeStrategyCitations,
   mergeStrategyWarnings,
   parseExaSearchResponse,
+  parseStrategyDraftInput,
   parseStrategyDraftText,
   validateStrategyDraftRequest,
 } from "./_lib/strategy-api.js";
@@ -16,11 +17,15 @@ interface AnthropicResponse {
   content?: Array<{
     type?: string;
     text?: string;
+    name?: string;
+    input?: unknown;
   }>;
   error?: {
     message?: string;
   };
 }
+
+const STRATEGY_DRAFT_TOOL_NAME = "emit_strategy_draft";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -50,6 +55,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         max_tokens: 2200,
         temperature: 0.5,
         system,
+        tools: [
+          {
+            name: STRATEGY_DRAFT_TOOL_NAME,
+            description: "Return the final strategy draft as structured JSON.",
+            input_schema: getStrategyDraftToolSchema(),
+          },
+        ],
+        tool_choice: {
+          type: "tool",
+          name: STRATEGY_DRAFT_TOOL_NAME,
+        },
         messages: [
           {
             role: "user",
@@ -67,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const anthropicData = await anthropicResponse.json() as AnthropicResponse;
-    const draft = parseStrategyDraftText(extractAnthropicText(anthropicData));
+    const draft = parseAnthropicStrategyDraft(anthropicData);
 
     return res.status(200).json({
       ...draft,
@@ -119,4 +135,74 @@ function extractAnthropicText(data: AnthropicResponse): string {
   }
 
   return text;
+}
+
+function parseAnthropicStrategyDraft(data: AnthropicResponse) {
+  const toolInput = data.content?.find((item) =>
+    item.type === "tool_use" && item.name === STRATEGY_DRAFT_TOOL_NAME && item.input,
+  )?.input;
+
+  if (toolInput) {
+    return parseStrategyDraftInput(toolInput);
+  }
+
+  return parseStrategyDraftText(extractAnthropicText(data));
+}
+
+function getStrategyDraftToolSchema() {
+  return {
+    type: "object",
+    required: ["sections", "warnings", "citations"],
+    properties: {
+      sections: {
+        type: "object",
+        required: [
+          "positioning",
+          "channelPlan",
+          "messageAngles",
+          "assetIdeas",
+          "experiments",
+          "thirtyDaySequence",
+        ],
+        properties: {
+          positioning: { type: "string" },
+          channelPlan: { type: "string" },
+          messageAngles: { type: "string" },
+          assetIdeas: { type: "string" },
+          experiments: { type: "string" },
+          thirtyDaySequence: { type: "string" },
+        },
+        additionalProperties: false,
+      },
+      warnings: {
+        type: "array",
+        items: { type: "string" },
+      },
+      citations: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["section", "title", "url"],
+          properties: {
+            section: {
+              type: "string",
+              enum: [
+                "positioning",
+                "channelPlan",
+                "messageAngles",
+                "assetIdeas",
+                "experiments",
+                "thirtyDaySequence",
+              ],
+            },
+            title: { type: "string" },
+            url: { type: "string" },
+            note: { type: "string" },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    additionalProperties: false,
+  };
 }

@@ -208,6 +208,11 @@ export function buildStrategyDraftPrompt(
 
 export function parseStrategyDraftText(text: string): StrategyDraftResponse {
   const parsed = JSON.parse(extractJsonObject(text)) as unknown;
+  return parseStrategyDraftInput(parsed);
+}
+
+export function parseStrategyDraftInput(input: unknown): StrategyDraftResponse {
+  const parsed = typeof input === "string" ? JSON.parse(extractJsonObject(input)) as unknown : input;
   const body = expectRecord(parsed, "Model output must be a JSON object");
   const sectionsRecord = expectRecord(body.sections, "sections must be an object");
 

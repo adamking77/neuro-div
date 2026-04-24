@@ -7,6 +7,7 @@ import {
   getExaConfig,
   mergeStrategyCitations,
   parseExaSearchResponse,
+  parseStrategyDraftInput,
   parseStrategyDraftText,
   parseExaTaskResponse,
   validateStrategyDraftRequest,
@@ -278,6 +279,29 @@ describe("strategy API helpers", () => {
   });
 
   it("parses valid model JSON and rejects malformed output", () => {
+    const draftInput = {
+      sections: {
+        positioning: "Positioning",
+        channelPlan: "Channels",
+        messageAngles: "Angles",
+        assetIdeas: "Assets",
+        experiments: "Experiments",
+        thirtyDaySequence: "Sequence",
+      },
+      warnings: ["Keep posting load low"],
+      citations: [
+        {
+          section: "positioning",
+          title: "Source One",
+          url: "https://example.com",
+          note: "Research support",
+        },
+      ],
+    };
+
+    const toolParsed = parseStrategyDraftInput(draftInput);
+    expect(toolParsed.sections.positioning).toBe("Positioning");
+
     const parsed = parseStrategyDraftText(`{
       "sections": {
         "positioning": "Positioning",
