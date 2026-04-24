@@ -73,6 +73,17 @@ button:disabled { opacity: 1 !important; }
 
 @media (max-width: 720px) {
   .strategy-middle-grid { grid-template-columns: 1fr !important; }
+
+  .asset-row-grid {
+    grid-template-columns: 1fr !important;
+    padding-right: 40px;
+  }
+
+  .asset-row-remove {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 }
 
 /* Prevent pre from overflowing */

@@ -26,6 +26,12 @@ export type OutreachTolerance = "inbound-only" | "warm-intro-ok" | "async-email-
 
 export type ContentMode = "writing" | "short-video" | "audio" | "design" | "interactive" | "other" | "none";
 
+export interface ExistingAsset {
+  name: string;
+  url: string;
+  description: string;
+}
+
 export interface FounderConstraints {
   teamSize: TeamSize;
   budgetBand: BudgetBand;
@@ -35,7 +41,7 @@ export interface FounderConstraints {
   outreachTolerance: OutreachTolerance;
   contentMode: ContentMode[];
   contentModeOther: string;
-  existingCredibility: string;
+  existingAssets: ExistingAsset[];
 }
 
 export interface StrategyInputs extends FounderConstraints {

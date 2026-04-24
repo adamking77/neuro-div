@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton, Spinner } from "@heroui/react";
-import { ArrowClockwise, CaretDown, Check, DownloadSimple, PencilSimple, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, CaretDown, Check, DownloadSimple, PencilSimple, WarningCircle, X } from "@phosphor-icons/react";
 import {
   STRATEGY_SECTIONS,
   getCompletedResearchCount,
@@ -11,6 +11,7 @@ import {
 import type {
   SessionState,
   StrategyCitation,
+  ExistingAsset,
   StrategyInputs,
   StrategySectionKey,
 } from "../types";
@@ -686,16 +687,15 @@ function InputForm({
         </div>
       </div>
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div>
-          <FieldLabel label="Existing Work And Assets" />
-          <textarea
-            value={inputs.existingCredibility}
-            onChange={(e) => onInputChange("existingCredibility", e.target.value)}
-            rows={3}
-            placeholder="Published writing, shipped tools, case studies, press mentions, named clients — anything a stranger could find and verify without your say-so."
-          />
-        </div>
+      <div style={{ marginBottom: 24 }}>
+        <FieldLabel label="Existing Work And Assets" />
+        <AssetRowEditor
+          assets={inputs.existingAssets}
+          onChange={(assets) => onInputChange("existingAssets", assets)}
+        />
+      </div>
+
+      <div>
         <div>
           <FieldLabel label="Channel Avoidances" />
           <textarea
@@ -715,6 +715,111 @@ function InputForm({
           onGenerate={onGenerate}
         />
       </div>
+    </div>
+  );
+}
+
+function AssetRowEditor({
+  assets,
+  onChange,
+}: {
+  assets: ExistingAsset[];
+  onChange: (assets: ExistingAsset[]) => void;
+}) {
+  const rows = assets.length > 0 ? assets : [{ name: "", url: "", description: "" }];
+
+  const updateAsset = (index: number, key: keyof ExistingAsset, value: string) => {
+    onChange(rows.map((asset, assetIndex) =>
+      assetIndex === index ? { ...asset, [key]: value } : asset,
+    ));
+  };
+
+  const addAsset = () => {
+    onChange([...rows, { name: "", url: "", description: "" }]);
+  };
+
+  const removeAsset = (index: number) => {
+    const next = rows.filter((_, assetIndex) => assetIndex !== index);
+    onChange(next.length > 0 ? next : [{ name: "", url: "", description: "" }]);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {rows.map((asset, index) => {
+          const isOnlyEmptyRow = rows.length === 1 &&
+            !asset.name.trim() &&
+            !asset.url.trim() &&
+            !asset.description.trim();
+
+          return (
+            <div
+              key={index}
+              className="asset-row-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 2fr 32px",
+                gap: 8,
+                alignItems: "start",
+                position: "relative",
+              }}
+            >
+              <input
+                type="text"
+                value={asset.name}
+                onChange={(e) => updateAsset(index, "name", e.target.value)}
+                placeholder="GenZen Solutions"
+                aria-label={`Asset ${index + 1} name`}
+              />
+              <input
+                type="text"
+                value={asset.url}
+                onChange={(e) => updateAsset(index, "url", e.target.value)}
+                placeholder="genzen.solutions"
+                aria-label={`Asset ${index + 1} URL`}
+              />
+              <input
+                type="text"
+                value={asset.description}
+                onChange={(e) => updateAsset(index, "description", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && index === rows.length - 1) {
+                    e.preventDefault();
+                    addAsset();
+                  }
+                }}
+                placeholder="counter-exploitation agency, 6 years running"
+                aria-label={`Asset ${index + 1} description`}
+              />
+              {!isOnlyEmptyRow && (
+                <button
+                  className="btn-text asset-row-remove"
+                  onClick={() => removeAsset(index)}
+                  aria-label={`Remove asset ${index + 1}`}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    justifyContent: "center",
+                    color: "var(--ink-muted)",
+                    border: "1px solid var(--rule)",
+                    borderRadius: 999,
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        className="btn-text"
+        onClick={addAsset}
+        style={{ fontSize: 12, color: "var(--teal-deep)", marginTop: 10 }}
+      >
+        + Add asset
+      </button>
     </div>
   );
 }

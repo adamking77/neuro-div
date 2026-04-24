@@ -265,7 +265,7 @@ export default function App() {
           outreachTolerance: session.strategyInputs.outreachTolerance,
           contentMode: session.strategyInputs.contentMode,
           contentModeOther: session.strategyInputs.contentModeOther,
-          existingCredibility: session.strategyInputs.existingCredibility,
+          existingAssets: session.strategyInputs.existingAssets,
         },
         phaseResearch: condensePhaseResearch(session.phases),
       };

@@ -165,7 +165,13 @@ describe("strategy API helpers", () => {
         outreachTolerance: "inbound-only",
         contentMode: ["writing"],
         contentModeOther: "",
-        existingCredibility: "",
+        existingAssets: [
+          {
+            name: "",
+            url: "",
+            description: "",
+          },
+        ],
       },
       phaseResearch: [
         {
@@ -224,6 +230,7 @@ describe("strategy API helpers", () => {
     expect(prompt.system).toContain("PDA");
     expect(prompt.system).toContain("create-once");
     expect(prompt.user).toContain("operators who avoid networking");
+    expect(prompt.user).not.toContain("Existing Work and Assets");
 
     const otherPrompt = buildStrategyDraftPrompt({
       ...payload,
@@ -246,6 +253,40 @@ describe("strategy API helpers", () => {
     });
 
     expect(otherPrompt.user).toContain("interactive calculators and diagnostics");
+
+    const assetPrompt = buildStrategyDraftPrompt({
+      ...payload,
+      founderConstraints: {
+        ...payload.founderConstraints,
+        existingAssets: [
+          {
+            name: "GenZen Solutions",
+            url: "genzen.solutions",
+            description: "counter-exploitation agency, 6 years running",
+          },
+          {
+            name: "",
+            url: "empty-name.example.com",
+            description: "should not appear",
+          },
+        ],
+      },
+    }, {
+      dossier: {
+        audienceSignals: [],
+        positioningEdges: [],
+        lowContactChannels: [],
+        messagePatterns: [],
+        assetDirections: [],
+        experimentLevers: [],
+        risks: [],
+      },
+      citations: {},
+    });
+
+    expect(assetPrompt.user).toContain("existingWorkAndAssets");
+    expect(assetPrompt.user).toContain("- GenZen Solutions (genzen.solutions) — counter-exploitation agency, 6 years running");
+    expect(assetPrompt.user).not.toContain("empty-name.example.com");
   });
 
   it("parses a completed Exa task and maps fallback citations", () => {
@@ -498,7 +539,7 @@ describe("strategy API helpers", () => {
         outreachTolerance: "inbound-only",
         contentMode: ["writing"],
         contentModeOther: "",
-        existingCredibility: "",
+        existingAssets: [{ name: "", url: "", description: "" }],
       },
       phaseResearch: [
         {

@@ -58,7 +58,7 @@ export function createEmptyStrategyInputs(): StrategyInputs {
     outreachTolerance: "inbound-only",
     contentMode: ["writing"],
     contentModeOther: "",
-    existingCredibility: "",
+    existingAssets: [{ name: "", url: "", description: "" }],
   };
 }
 
@@ -225,7 +225,7 @@ export function normalizeFounderConstraints(constraints: FounderConstraints): Fo
     outreachTolerance: constraints.outreachTolerance,
     contentMode: constraints.contentMode,
     contentModeOther: constraints.contentModeOther.trim(),
-    existingCredibility: constraints.existingCredibility.trim(),
+    existingAssets: normalizeExistingAssets(constraints.existingAssets),
   };
 }
 
@@ -241,4 +241,12 @@ function humanizeValue(value: string): string {
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function normalizeExistingAssets(assets: FounderConstraints["existingAssets"]) {
+  return assets.map((asset) => ({
+    name: asset.name.trim(),
+    url: asset.url.trim(),
+    description: asset.description.trim(),
+  }));
 }

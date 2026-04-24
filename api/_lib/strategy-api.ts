@@ -233,6 +233,8 @@ export function buildStrategyDraftPrompt(
 
   const founderConstraints = {
     ...payload.founderConstraints,
+    existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
+    existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
     audienceLens: payload.audienceLens,
   };
 
@@ -466,6 +468,7 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
       ...selectedContentModes.map((m) => contentLabel[m] ?? m),
       ...(contentModes.includes("other") && otherContentMode ? [`other: ${otherContentMode}`] : []),
     ].join(", ");
+  const assetLines = buildExistingAssetLines(payload.founderConstraints.existingAssets);
 
   const founderConstraints = [
     `Audience lens: ${payload.audienceLens}.`,
@@ -477,9 +480,7 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     `Social posting tolerance: ${payload.founderConstraints.socialPostingTolerance}.`,
     `Outreach tolerance: ${outreachLabel[payload.founderConstraints.outreachTolerance] ?? payload.founderConstraints.outreachTolerance}.`,
     `Content creation mode: ${contentModeText}.`,
-    payload.founderConstraints.existingCredibility
-      ? `Existing credibility assets: ${payload.founderConstraints.existingCredibility}.`
-      : "",
+    assetLines ? `Existing Work and Assets:\n${assetLines}` : "",
     payload.founderConstraints.channelAvoidances
       ? `Avoid these channels or tactics when possible: ${payload.founderConstraints.channelAvoidances}.`
       : "",
@@ -512,6 +513,22 @@ function buildSeedContext(payload: StrategyDraftRequestPayload): string {
   });
 
   return trimText(phaseLines.join("\n\n"), 2200);
+}
+
+function buildExistingAssetLines(existingAssets: FounderConstraints["existingAssets"]): string {
+  return existingAssets
+    .filter((asset) => asset.name.trim().length > 0)
+    .map((asset) => {
+      let line = asset.name.trim();
+      if (asset.url.trim()) {
+        line += ` (${asset.url.trim()})`;
+      }
+      if (asset.description.trim()) {
+        line += ` — ${asset.description.trim()}`;
+      }
+      return `- ${line}`;
+    })
+    .join("\n");
 }
 
 function getExaResearchSchema() {
@@ -581,7 +598,7 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     "contentMode is invalid",
   );
   const contentModeOther = expectOptionalString(body.contentModeOther);
-  const existingCredibility = expectOptionalString(body.existingCredibility);
+  const existingAssets = validateExistingAssets(body.existingAssets);
 
   return {
     teamSize,
@@ -592,8 +609,24 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     outreachTolerance,
     contentMode,
     contentModeOther,
-    existingCredibility,
+    existingAssets,
   };
+}
+
+function validateExistingAssets(input: unknown): FounderConstraints["existingAssets"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.map((item, index) => {
+    const asset = expectRecord(item, `existingAssets[${index}] must be an object`);
+
+    return {
+      name: expectOptionalString(asset.name),
+      url: expectOptionalString(asset.url),
+      description: expectOptionalString(asset.description),
+    };
+  });
 }
 
 function validatePhaseResearch(input: unknown) {
