@@ -1,4 +1,3 @@
-import { Spinner } from "@heroui/react";
 import { WarningCircle } from "@phosphor-icons/react";
 import type { IntelligenceBrief, IntelligenceStatus } from "../types";
 import { IntelligenceScorecard } from "./IntelligenceScorecard";
@@ -52,22 +51,67 @@ function Section({ label, number, children }: SectionProps) {
   );
 }
 
+function LoadingStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 18, height: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {done ? (
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "var(--teal)",
+              display: "block",
+              opacity: 0.5,
+            }}
+          />
+        ) : active ? (
+          <span className="spinner" />
+        ) : (
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              border: "1px solid var(--rule)",
+              display: "block",
+              opacity: 0.4,
+            }}
+          />
+        )}
+      </div>
+      <span
+        style={{
+          fontSize: 13,
+          fontFamily: "var(--font-mono)",
+          color: active ? "var(--ink)" : done ? "var(--ink-muted)" : "var(--ink-muted)",
+          opacity: active ? 1 : done ? 0.5 : 0.35,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export function IntelligenceView({ brief, status, error }: Props) {
   if (status === "researching" || status === "drafting") {
     return (
-      <div style={{ padding: "60px 20px", textAlign: "center" }}>
-        <Spinner size="md" color="current" />
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--ink-muted)",
-            marginTop: 16,
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {status === "researching" ? "Running market research…" : "Writing the brief…"}
-        </p>
-        <p style={{ fontSize: 11, color: "var(--ink-muted)", opacity: 0.6, marginTop: 6 }}>
+      <div style={{ padding: "48px 0" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 340 }}>
+          <LoadingStep
+            label="Market research"
+            done={status === "drafting"}
+            active={status === "researching"}
+          />
+          <LoadingStep
+            label="Writing the brief"
+            done={false}
+            active={status === "drafting"}
+          />
+        </div>
+        <p style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 20, opacity: 0.6 }}>
           This takes 60–120 seconds.
         </p>
       </div>

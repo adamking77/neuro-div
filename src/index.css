@@ -38,6 +38,21 @@ body {
   50%       { opacity: 0.2; }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
 /* Native form inputs */
 textarea, input[type="text"], select {
   font-family: var(--font-display);
