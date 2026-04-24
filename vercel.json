@@ -4,7 +4,7 @@
   "framework": "vite",
   "functions": {
     "api/strategy-draft.ts": {
-      "maxDuration": 30
+      "maxDuration": 300
     }
   }
 }
