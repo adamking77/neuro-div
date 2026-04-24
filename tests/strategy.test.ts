@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PHASES } from "../src/phases";
 import {
   buildExaSearchRequest,
+  buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
   getAnthropicConfig,
   getExaConfig,
@@ -419,6 +420,30 @@ describe("strategy API helpers", () => {
 
     expect(parsed.sections.positioning).toBe("Positioning");
     expect(parsed.citations).toHaveLength(1);
+    expect(parseStrategyDraftInput({
+      sections: {
+        "01 Positioning": "Label positioning",
+        "Channel Plan": "Label channels",
+        "Message Angles": "Label angles",
+        "Asset Ideas": "Label assets",
+        "05 Experiments": "Label experiments",
+        "30-day sequence": "Label sequence",
+      },
+      warnings: [],
+      citations: [],
+    }).sections.channelPlan).toBe("Label channels");
+    expect(parseStrategyDraftInput({
+      sections: [
+        { title: "Positioning", content: "Array positioning" },
+        { title: "Channel Plan", content: "Array channels" },
+        { title: "Message Angles", content: "Array angles" },
+        { title: "Asset Ideas", content: "Array assets" },
+        { title: "Experiments", content: "Array experiments" },
+        { title: "30-Day Sequence", content: "Array sequence" },
+      ],
+      warnings: [],
+      citations: [],
+    }).sections.thirtyDaySequence).toBe("Array sequence");
     expect(() => parseStrategyDraftText("not json")).toThrow("Model output did not contain JSON");
     expect(() =>
       parseStrategyDraftInput({
@@ -434,5 +459,65 @@ describe("strategy API helpers", () => {
         citations: [],
       }),
     ).toThrow("Model output missing positioning section");
+  });
+
+  it("builds a complete fallback draft from Exa research when model output is incomplete", () => {
+    const fallback = buildFallbackStrategyDraft({
+      problem: "manual reporting wastes time",
+      knownPlayers: "",
+      audienceLens: "operators who avoid networking",
+      founderConstraints: {
+        teamSize: "solo",
+        budgetBand: "low",
+        weeklyCapacity: "4 hours",
+        socialPostingTolerance: "avoid",
+        channelAvoidances: "",
+        outreachTolerance: "inbound-only",
+        contentMode: ["writing"],
+        existingCredibility: "",
+      },
+      phaseResearch: [
+        {
+          phaseId: 1,
+          phaseName: "Problem Cartography",
+          description: "desc",
+          results: [
+            {
+              title: "Source",
+              url: "https://example.com",
+              highlights: ["Teams hate manual reporting."],
+            },
+          ],
+        },
+      ],
+    }, {
+      dossier: {
+        audienceSignals: ["Operators search before taking calls."],
+        positioningEdges: ["Low-contact proof beats social volume."],
+        lowContactChannels: [
+          {
+            channel: "SEO diagnostics",
+            fit: "Captures async demand",
+            evidence: "Search demand exists",
+            caution: "Slow ramp",
+          },
+        ],
+        messagePatterns: ["Stop rebuilding reports by hand."],
+        assetDirections: ["Diagnostic checklist"],
+        experimentLevers: [
+          {
+            experiment: "Publish one diagnostic page",
+            rationale: "Captures intent",
+            successMetric: "Qualified inbound replies",
+          },
+        ],
+        risks: ["Avoid daily posting."],
+      },
+      citations: {},
+    });
+
+    expect(Object.values(fallback.sections).every((section) => section.trim().length > 0)).toBe(true);
+    expect(fallback.sections.channelPlan).toContain("SEO diagnostics");
+    expect(fallback.warnings).toEqual(["Avoid daily posting."]);
   });
 });

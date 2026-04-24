@@ -16,6 +16,52 @@ const SECTION_KEYS: StrategySectionKey[] = [
   "thirtyDaySequence",
 ];
 
+const SECTION_ALIASES: Record<StrategySectionKey, string[]> = {
+  positioning: ["positioning", "position", "Positioning", "01 Positioning", "1 Positioning"],
+  channelPlan: [
+    "channelPlan",
+    "channel_plan",
+    "channel plan",
+    "channels",
+    "channel",
+    "Channel Plan",
+    "02 Channel Plan",
+    "2 Channel Plan",
+  ],
+  messageAngles: [
+    "messageAngles",
+    "message_angles",
+    "message angles",
+    "messaging",
+    "messages",
+    "hooks",
+    "Message Angles",
+    "03 Message Angles",
+    "3 Message Angles",
+  ],
+  assetIdeas: [
+    "assetIdeas",
+    "asset_ideas",
+    "asset ideas",
+    "assets",
+    "Asset Ideas",
+    "04 Asset Ideas",
+    "4 Asset Ideas",
+  ],
+  experiments: ["experiments", "experiment", "tests", "test", "Experiments", "05 Experiments", "5 Experiments"],
+  thirtyDaySequence: [
+    "thirtyDaySequence",
+    "thirty_day_sequence",
+    "30DaySequence",
+    "30_day_sequence",
+    "30-day sequence",
+    "sequence",
+    "30-Day Sequence",
+    "06 30-Day Sequence",
+    "6 30-Day Sequence",
+  ],
+};
+
 const EXA_DOSSIER_KEYS = [
   "audienceSignals",
   "positioningEdges",
@@ -218,7 +264,7 @@ export function parseStrategyDraftInput(input: unknown): StrategyDraftResponse {
   const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
 
   const sections = SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = expectNonEmptyString(sectionsRecord[key], `Model output missing ${key} section`);
+    acc[key] = expectNonEmptyString(readStrategySectionValue(sectionsRecord, key), `Model output missing ${key} section`);
     return acc;
   }, {} as StrategySections);
 
@@ -229,6 +275,82 @@ export function parseStrategyDraftInput(input: unknown): StrategyDraftResponse {
     sections,
     warnings,
     citations,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+export function buildFallbackStrategyDraft(
+  payload: StrategyDraftRequestPayload,
+  exaResearch: { dossier: ExaResearchDossier; citations: ExaResearchCitations },
+): StrategyDraftResponse {
+  const { dossier } = exaResearch;
+  const audience = payload.audienceLens.trim() || "the target audience";
+  const problem = payload.problem.trim();
+  const seedHighlights = payload.phaseResearch
+    .flatMap((phase) => phase.results.flatMap((result) => result.highlights).filter(Boolean).slice(0, 2))
+    .slice(0, 4);
+
+  const audienceSignals = pickLines(dossier.audienceSignals, seedHighlights, [
+    `The audience is already showing problem-aware demand around ${problem}.`,
+  ]);
+  const positioningEdges = pickLines(dossier.positioningEdges, [], [
+    "Frame the wedge around low-contact, evidence-led progress instead of another high-maintenance advisory relationship.",
+  ]);
+  const channels = dossier.lowContactChannels.length > 0
+    ? dossier.lowContactChannels.slice(0, 4).map((channel) =>
+      `${channel.channel}: ${channel.fit}${channel.evidence ? ` Evidence: ${channel.evidence}` : ""}${channel.caution ? ` Caution: ${channel.caution}` : ""}`,
+    )
+    : [
+      "Search-led resource pages: capture problem-aware demand without needing a posting cadence.",
+      "Partner or directory surfaces: place the asset where buyers already look.",
+    ];
+  const messagePatterns = pickLines(dossier.messagePatterns, audienceSignals, [
+    `Lead with the audience's existing language about ${problem}, then contrast that with a lower-contact path to progress.`,
+  ]);
+  const assets = pickLines(dossier.assetDirections, [], [
+    "Build a diagnostic checklist, comparison guide, or teardown library that can be discovered repeatedly without weekly promotion.",
+  ]);
+  const experiments = dossier.experimentLevers.length > 0
+    ? dossier.experimentLevers.slice(0, 3).map((lever) =>
+      `${lever.experiment}: ${lever.rationale} Success signal: ${lever.successMetric}`,
+    )
+    : [
+      "Publish one searchable diagnostic page and measure qualified inbound replies, saves, or demo-start clicks over 30 days.",
+    ];
+
+  return {
+    sections: {
+      positioning: [
+        `For ${audience}, position the offer around the concrete problem: ${problem}.`,
+        "Use a wedge that promises progress without ongoing social maintenance, cold outreach, or another relationship-heavy advisory loop.",
+        ...positioningEdges,
+        ...audienceSignals.slice(0, 2),
+      ].join("\n- "),
+      channelPlan: [
+        "Prioritize async discovery channels that keep working after the initial build. Start with the surfaces that match existing buyer intent and avoid channels that need daily presence.",
+        ...channels,
+      ].join("\n- "),
+      messageAngles: [
+        "Anchor messages in the words buyers already use before they know the category or solution name. The strongest angles should name the operational pain, the failed old way, and the low-contact alternative.",
+        ...messagePatterns,
+      ].join("\n- "),
+      assetIdeas: [
+        "Build create-once assets that do discovery and qualification before a conversation happens. Match the format to the founder's preferred creation mode and keep maintenance light.",
+        ...assets,
+      ].join("\n- "),
+      experiments: [
+        "Run one bounded test at a time. Each experiment should have a clear async signal and no implied commitment to an ongoing content or outreach cadence.",
+        ...experiments,
+      ].join("\n- "),
+      thirtyDaySequence: [
+        "Week 1: choose one audience wedge, one primary search or partner surface, and one asset format.",
+        "Week 2: draft the asset around the strongest problem language and add a simple conversion path.",
+        "Week 3: publish or place the asset on one low-contact channel, then make only necessary distribution touches.",
+        "Week 4: review qualified signals, capture objections, and decide whether to iterate, pause, or run the next bounded test.",
+      ].join("\n- "),
+    },
+    warnings: dossier.risks,
+    citations: [],
     generatedAt: new Date().toISOString(),
   };
 }
@@ -546,9 +668,13 @@ function validateStrategyCitations(input: unknown) {
 function normalizeStrategySectionsInput(input: unknown): Record<string, unknown> {
   const parsed = parseMaybeJson(input);
 
+  if (Array.isArray(parsed)) {
+    return sectionsArrayToRecord(parsed);
+  }
+
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
     const body = parsed as Record<string, unknown>;
-    const nested = body.sections ?? body.strategyDraft ?? body.draft;
+    const nested = body.sections ?? body.strategyDraft ?? body.strategy ?? body.draft ?? body.draftSections;
 
     if (nested && nested !== parsed) {
       return normalizeStrategySectionsInput(nested);
@@ -558,6 +684,62 @@ function normalizeStrategySectionsInput(input: unknown): Record<string, unknown>
   }
 
   return {};
+}
+
+function sectionsArrayToRecord(input: unknown[]): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+
+  for (const item of input) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const body = item as Record<string, unknown>;
+    const rawKey = firstStringValue(body, ["key", "id", "section", "title", "label", "name"]);
+    const value = firstStringValue(body, ["value", "content", "body", "text", "draft", "markdown"]);
+
+    if (rawKey && value) {
+      record[rawKey] = value;
+    }
+  }
+
+  return record;
+}
+
+function readStrategySectionValue(record: Record<string, unknown>, key: StrategySectionKey): unknown {
+  for (const alias of SECTION_ALIASES[key]) {
+    if (typeof record[alias] === "string" && record[alias].trim().length > 0) {
+      return record[alias];
+    }
+  }
+
+  const normalizedTarget = normalizeLooseKey(key);
+  for (const [rawKey, value] of Object.entries(record)) {
+    if (normalizeLooseKey(rawKey) === normalizedTarget && typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+
+    if (SECTION_ALIASES[key].some((alias) => normalizeLooseKey(alias) === normalizeLooseKey(rawKey)) && typeof value === "string") {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function firstStringValue(record: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function normalizeLooseKey(input: string): string {
+  return input.toLowerCase().replace(/^[0-9]+\s*/, "").replace(/[^a-z0-9]/g, "");
 }
 
 function coerceStrategySectionKey(input: unknown): StrategySectionKey {
@@ -839,6 +1021,24 @@ function coerceStringArray(input: unknown): string[] {
 
     return "";
   }).filter(Boolean);
+}
+
+function pickLines(primary: string[], secondary: string[], fallback: string[]): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const line of [...primary, ...secondary, ...fallback]) {
+    const trimmed = line.trim();
+    const key = trimmed.toLowerCase();
+    if (!trimmed || seen.has(key)) {
+      continue;
+    }
+
+    lines.push(trimmed);
+    seen.add(key);
+  }
+
+  return lines.slice(0, 4);
 }
 
 function expectNonEmptyString(input: unknown, message: string): string {

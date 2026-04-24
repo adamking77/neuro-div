@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   StrategyRequestError,
   buildExaSearchRequest,
+  buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
   getAnthropicConfig,
   getExaConfig,
@@ -83,7 +84,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const anthropicData = await anthropicResponse.json() as AnthropicResponse;
-    const draft = parseAnthropicStrategyDraft(anthropicData);
+    const draft = parseAnthropicStrategyDraftOrFallback(anthropicData, payload, {
+      dossier: exaSearch.dossier,
+      citations: exaSearch.citations,
+    });
 
     return res.status(200).json({
       ...draft,
@@ -147,6 +151,22 @@ function parseAnthropicStrategyDraft(data: AnthropicResponse) {
   }
 
   return parseStrategyDraftText(extractAnthropicText(data));
+}
+
+function parseAnthropicStrategyDraftOrFallback(
+  data: AnthropicResponse,
+  payload: ReturnType<typeof validateStrategyDraftRequest>,
+  exaResearch: Parameters<typeof buildFallbackStrategyDraft>[1],
+) {
+  try {
+    return parseAnthropicStrategyDraft(data);
+  } catch (error) {
+    if (error instanceof StrategyRequestError) {
+      return buildFallbackStrategyDraft(payload, exaResearch);
+    }
+
+    throw error;
+  }
 }
 
 function getStrategyDraftToolSchema() {
