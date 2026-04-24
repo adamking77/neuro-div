@@ -50,6 +50,8 @@ const CONTENT_LABELS: Record<string, string> = {
   "short-video": "Video",
   audio: "Audio",
   design: "Design",
+  interactive: "Interactive",
+  other: "Other",
   none: "No content",
 };
 
@@ -290,12 +292,14 @@ function ConfigDrawer({
           {isOpen ? "Collapse" : "Constraints"}
         </button>
 
-        <GenerateButton
-          canGenerate={canGenerate}
-          buttonLabel={buttonLabel}
-          strategyRunning={strategyRunning}
-          onGenerate={onGenerate}
-        />
+        {!isOpen && (
+          <GenerateButton
+            canGenerate={canGenerate}
+            buttonLabel={buttonLabel}
+            strategyRunning={strategyRunning}
+            onGenerate={onGenerate}
+          />
+        )}
       </div>
 
       {/* Status lines */}
@@ -349,7 +353,14 @@ function ConfigDrawer({
             transition={{ type: "spring", stiffness: 280, damping: 30 }}
             style={{ overflow: "hidden" }}
           >
-            <InputForm inputs={inputs} onInputChange={onInputChange} />
+            <InputForm
+              inputs={inputs}
+              canGenerate={canGenerate}
+              buttonLabel={buttonLabel}
+              strategyRunning={strategyRunning}
+              onInputChange={onInputChange}
+              onGenerate={onGenerate}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -561,10 +572,18 @@ function PipelineStep({
 
 function InputForm({
   inputs,
+  canGenerate,
+  buttonLabel,
+  strategyRunning,
   onInputChange,
+  onGenerate,
 }: {
   inputs: StrategyInputs;
+  canGenerate: boolean;
+  buttonLabel: string;
+  strategyRunning: boolean;
   onInputChange: <K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => void;
+  onGenerate: () => void;
 }) {
   return (
     <div style={{ paddingBottom: 28 }}>
@@ -583,7 +602,7 @@ function InputForm({
 
       <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <SegmentedControl
-          label="Team Size"
+          label="Your Team"
           value={inputs.teamSize}
           options={[
             { value: "solo", label: "Solo" },
@@ -617,7 +636,7 @@ function InputForm({
           }
         />
         <SegmentedControl
-          label="Outreach"
+          label="Outreach Preferences"
           value={inputs.outreachTolerance}
           options={[
             { value: "inbound-only", label: "Inbound" },
@@ -641,7 +660,7 @@ function InputForm({
           />
         </div>
         <div>
-          <FieldLabel label="Content Mode" />
+          <FieldLabel label="Formats You'll Produce" />
           <MultiPillSelector
             values={inputs.contentMode}
             options={[
@@ -649,21 +668,32 @@ function InputForm({
               { value: "short-video", label: "Video" },
               { value: "audio", label: "Audio" },
               { value: "design", label: "Design" },
+              { value: "interactive", label: "Interactive" },
+              { value: "other", label: "Other" },
               { value: "none", label: "None" },
             ]}
             onChange={(next) => onInputChange("contentMode", next as StrategyInputs["contentMode"])}
           />
+          {inputs.contentMode.includes("other") && (
+            <input
+              type="text"
+              value={inputs.contentModeOther}
+              onChange={(e) => onInputChange("contentModeOther", e.target.value)}
+              placeholder="What format would you rather make?"
+              style={{ marginTop: 8 }}
+            />
+          )}
         </div>
       </div>
 
       <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div>
-          <FieldLabel label="Existing Credibility" />
+          <FieldLabel label="Existing Work And Assets" />
           <textarea
             value={inputs.existingCredibility}
             onChange={(e) => onInputChange("existingCredibility", e.target.value)}
             rows={3}
-            placeholder="Writing, tools built, case studies, notable clients."
+            placeholder="Published writing, shipped tools, case studies, press mentions, named clients — anything a stranger could find and verify without your say-so."
           />
         </div>
         <div>
@@ -675,6 +705,15 @@ function InputForm({
             placeholder="What you won't do. E.g. LinkedIn, live events, cold calls."
           />
         </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+        <GenerateButton
+          canGenerate={canGenerate}
+          buttonLabel={buttonLabel}
+          strategyRunning={strategyRunning}
+          onGenerate={onGenerate}
+        />
       </div>
     </div>
   );

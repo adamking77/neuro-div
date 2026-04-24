@@ -264,6 +264,7 @@ export default function App() {
           channelAvoidances: session.strategyInputs.channelAvoidances,
           outreachTolerance: session.strategyInputs.outreachTolerance,
           contentMode: session.strategyInputs.contentMode,
+          contentModeOther: session.strategyInputs.contentModeOther,
           existingCredibility: session.strategyInputs.existingCredibility,
         },
         phaseResearch: condensePhaseResearch(session.phases),

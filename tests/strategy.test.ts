@@ -164,6 +164,7 @@ describe("strategy API helpers", () => {
         channelAvoidances: "LinkedIn and live events",
         outreachTolerance: "inbound-only",
         contentMode: ["writing"],
+        contentModeOther: "",
         existingCredibility: "",
       },
       phaseResearch: [
@@ -223,6 +224,28 @@ describe("strategy API helpers", () => {
     expect(prompt.system).toContain("PDA");
     expect(prompt.system).toContain("create-once");
     expect(prompt.user).toContain("operators who avoid networking");
+
+    const otherPrompt = buildStrategyDraftPrompt({
+      ...payload,
+      founderConstraints: {
+        ...payload.founderConstraints,
+        contentMode: ["other"],
+        contentModeOther: "interactive calculators and diagnostics",
+      },
+    }, {
+      dossier: {
+        audienceSignals: [],
+        positioningEdges: [],
+        lowContactChannels: [],
+        messagePatterns: [],
+        assetDirections: [],
+        experimentLevers: [],
+        risks: [],
+      },
+      citations: {},
+    });
+
+    expect(otherPrompt.user).toContain("interactive calculators and diagnostics");
   });
 
   it("parses a completed Exa task and maps fallback citations", () => {
@@ -474,6 +497,7 @@ describe("strategy API helpers", () => {
         channelAvoidances: "",
         outreachTolerance: "inbound-only",
         contentMode: ["writing"],
+        contentModeOther: "",
         existingCredibility: "",
       },
       phaseResearch: [

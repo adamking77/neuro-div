@@ -452,13 +452,20 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     "short-video": "short video",
     audio: "audio or podcast",
     design: "visual or design assets",
+    interactive: "interactive tools, calculators, diagnostics, or product-led assets",
+    other: "other format",
     none: "no content creation preferred",
   };
 
   const contentModes = payload.founderConstraints.contentMode;
+  const selectedContentModes = contentModes.filter((mode) => mode !== "other");
+  const otherContentMode = payload.founderConstraints.contentModeOther.trim();
   const contentModeText = contentModes.length === 0 || contentModes.includes("none")
     ? "no content creation preferred"
-    : contentModes.map((m) => contentLabel[m] ?? m).join(", ");
+    : [
+      ...selectedContentModes.map((m) => contentLabel[m] ?? m),
+      ...(contentModes.includes("other") && otherContentMode ? [`other: ${otherContentMode}`] : []),
+    ].join(", ");
 
   const founderConstraints = [
     `Audience lens: ${payload.audienceLens}.`,
@@ -570,9 +577,10 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
   );
   const contentMode = expectEnumArray(
     body.contentMode,
-    ["writing", "short-video", "audio", "design", "none"] as const,
+    ["writing", "short-video", "audio", "design", "interactive", "other", "none"] as const,
     "contentMode is invalid",
   );
+  const contentModeOther = expectOptionalString(body.contentModeOther);
   const existingCredibility = expectOptionalString(body.existingCredibility);
 
   return {
@@ -583,6 +591,7 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     channelAvoidances,
     outreachTolerance,
     contentMode,
+    contentModeOther,
     existingCredibility,
   };
 }

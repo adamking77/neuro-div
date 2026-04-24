@@ -24,7 +24,7 @@ export type SocialPostingTolerance = "avoid" | "limited" | "comfortable";
 
 export type OutreachTolerance = "inbound-only" | "warm-intro-ok" | "async-email-ok";
 
-export type ContentMode = "writing" | "short-video" | "audio" | "design" | "none";
+export type ContentMode = "writing" | "short-video" | "audio" | "design" | "interactive" | "other" | "none";
 
 export interface FounderConstraints {
   teamSize: TeamSize;
@@ -34,6 +34,7 @@ export interface FounderConstraints {
   channelAvoidances: string;
   outreachTolerance: OutreachTolerance;
   contentMode: ContentMode[];
+  contentModeOther: string;
   existingCredibility: string;
 }
 

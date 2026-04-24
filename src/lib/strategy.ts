@@ -57,6 +57,7 @@ export function createEmptyStrategyInputs(): StrategyInputs {
     channelAvoidances: "",
     outreachTolerance: "inbound-only",
     contentMode: ["writing"],
+    contentModeOther: "",
     existingCredibility: "",
   };
 }
@@ -223,6 +224,7 @@ export function normalizeFounderConstraints(constraints: FounderConstraints): Fo
     channelAvoidances: constraints.channelAvoidances.trim(),
     outreachTolerance: constraints.outreachTolerance,
     contentMode: constraints.contentMode,
+    contentModeOther: constraints.contentModeOther.trim(),
     existingCredibility: constraints.existingCredibility.trim(),
   };
 }
