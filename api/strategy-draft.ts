@@ -11,7 +11,7 @@ import {
   parseStrategyDraftText,
   validateResearchId,
   validateStrategyDraftRequest,
-} from "./_lib/strategy-api";
+} from "./_lib/strategy-api.js";
 
 interface AnthropicResponse {
   content?: Array<{
@@ -51,6 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (exaTask.status === "failed" || exaTask.status === "canceled") {
       return res.status(502).json({
         error: exaTask.errorMessage || `Exa research ${exaTask.status}`,
+      });
+    }
+
+    if (exaTask.status !== "completed") {
+      return res.status(502).json({
+        error: `Unexpected Exa research status: ${exaTask.status}`,
       });
     }
 

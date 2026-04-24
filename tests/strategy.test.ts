@@ -236,6 +236,63 @@ describe("strategy API helpers", () => {
     ]);
   });
 
+  it("parses completed Exa tasks that return output with grounding citations", () => {
+    const task = parseExaTaskResponse({
+      researchId: "r_456",
+      status: "completed",
+      output: {
+        content: {
+          audienceSignals: ["Signal"],
+          positioningEdges: ["Edge"],
+          lowContactChannels: [
+            {
+              channel: "SEO",
+              fit: "Async",
+              evidence: "Intent exists",
+              caution: "Takes time",
+            },
+          ],
+          messagePatterns: ["Pattern"],
+          assetDirections: ["Asset"],
+          experimentLevers: [
+            {
+              experiment: "Experiment",
+              rationale: "Because",
+              successMetric: "Metric",
+            },
+          ],
+          risks: ["Risk"],
+        },
+        grounding: [
+          {
+            field: "lowContactChannels[0].evidence",
+            citations: [
+              {
+                title: "Grounded Source",
+                url: "https://grounding.example.com",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(task.status).toBe("completed");
+
+    if (task.status !== "completed") {
+      throw new Error("Expected completed task");
+    }
+
+    const merged = mergeStrategyCitations([], task.citations);
+    expect(merged).toEqual([
+      {
+        section: "channelPlan",
+        title: "Grounded Source",
+        url: "https://grounding.example.com",
+      },
+    ]);
+  });
+
   it("parses valid model JSON and rejects malformed output", () => {
     const parsed = parseStrategyDraftText(`{
       "sections": {

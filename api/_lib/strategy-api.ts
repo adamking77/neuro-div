@@ -242,8 +242,8 @@ export function parseExaTaskResponse(input: unknown): ExaTaskResult {
   return {
     researchId,
     status,
-    dossier: validateExaResearchDossier(body.data),
-    citations: validateExaResearchCitations(body.citations),
+    dossier: validateExaResearchDossier(readExaResearchOutput(body)),
+    citations: readExaResearchCitations(body),
   };
 }
 
@@ -571,6 +571,101 @@ function validateExaResearchCitations(input: unknown): ExaResearchCitations {
   }
 
   return citations;
+}
+
+function readExaResearchOutput(body: Record<string, unknown>): unknown {
+  if ("data" in body) {
+    return body.data;
+  }
+
+  const output = body.output;
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return output;
+  }
+
+  const outputRecord = output as Record<string, unknown>;
+  return "content" in outputRecord ? outputRecord.content : outputRecord;
+}
+
+function readExaResearchCitations(body: Record<string, unknown>): ExaResearchCitations {
+  const citations = validateExaResearchCitations(body.citations);
+  const groundingCitations = readGroundingCitations(body.output);
+
+  for (const key of EXA_DOSSIER_KEYS) {
+    const seen = new Set((citations[key] ?? []).map((citation) => citation.url));
+    for (const citation of groundingCitations[key] ?? []) {
+      if (seen.has(citation.url)) {
+        continue;
+      }
+
+      citations[key] = [...(citations[key] ?? []), citation];
+      seen.add(citation.url);
+    }
+  }
+
+  return citations;
+}
+
+function readGroundingCitations(output: unknown): ExaResearchCitations {
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return {};
+  }
+
+  const grounding = (output as Record<string, unknown>).grounding;
+  if (!Array.isArray(grounding)) {
+    return {};
+  }
+
+  const citations: ExaResearchCitations = {};
+
+  for (const item of grounding) {
+    const body = item && typeof item === "object" && !Array.isArray(item)
+      ? item as Record<string, unknown>
+      : null;
+    const key = typeof body?.field === "string" ? getDossierKeyFromGroundingField(body.field) : null;
+    if (!key || !Array.isArray(body?.citations)) {
+      continue;
+    }
+
+    for (const citationInput of body.citations) {
+      const citation = readGroundingCitation(citationInput);
+      if (!citation) {
+        continue;
+      }
+
+      citations[key] = [...(citations[key] ?? []), citation];
+    }
+  }
+
+  return citations;
+}
+
+function getDossierKeyFromGroundingField(field: string): ExaDossierKey | null {
+  return EXA_DOSSIER_KEYS.find((key) =>
+    field === key || field.startsWith(`${key}.`) || field.startsWith(`${key}[`),
+  ) ?? null;
+}
+
+function readGroundingCitation(input: unknown): ExaRawCitation | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const body = input as Record<string, unknown>;
+  if (typeof body.url !== "string" || body.url.trim().length === 0) {
+    return null;
+  }
+
+  const title = typeof body.title === "string" && body.title.trim().length > 0
+    ? body.title.trim()
+    : body.url.trim();
+  const snippet = typeof body.snippet === "string" ? body.snippet.trim() : "";
+
+  return {
+    url: body.url.trim(),
+    title,
+    ...(snippet ? { snippet } : {}),
+  };
 }
 
 function getCitationSectionMap(): Record<ExaDossierKey, StrategySectionKey> {
