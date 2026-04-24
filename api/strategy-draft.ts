@@ -1,15 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   StrategyRequestError,
-  buildExaResearchRequest,
+  buildExaSearchRequest,
   buildStrategyDraftPrompt,
   getAnthropicConfig,
   getExaConfig,
   mergeStrategyCitations,
   mergeStrategyWarnings,
-  parseExaTaskResponse,
+  parseExaSearchResponse,
   parseStrategyDraftText,
-  validateResearchId,
   validateStrategyDraftRequest,
 } from "./_lib/strategy-api.js";
 
@@ -23,10 +22,6 @@ interface AnthropicResponse {
   };
 }
 
-interface ExaCreateTaskResponse {
-  researchId?: string;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -34,36 +29,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const payload = validateStrategyDraftRequest(req.body);
-    const researchIdInput = typeof req.body === "object" && req.body ? (req.body as Record<string, unknown>).researchId : undefined;
-    const { apiKey: exaApiKey, model: exaModel } = getExaConfig(process.env);
-
-    const exaTask = researchIdInput
-      ? await pollExaResearchTask(validateResearchId(researchIdInput), exaApiKey)
-      : await createExaResearchTask(payload, exaApiKey, exaModel);
-
-    if (exaTask.status === "pending" || exaTask.status === "running") {
-      return res.status(202).json({
-        status: "researching",
-        researchId: exaTask.researchId,
-      });
-    }
-
-    if (exaTask.status === "failed" || exaTask.status === "canceled") {
-      return res.status(502).json({
-        error: exaTask.errorMessage || `Exa research ${exaTask.status}`,
-      });
-    }
-
-    if (exaTask.status !== "completed") {
-      return res.status(502).json({
-        error: `Unexpected Exa research status: ${exaTask.status}`,
-      });
-    }
+    const { apiKey: exaApiKey, searchType: exaSearchType } = getExaConfig(process.env);
+    const exaSearch = await runExaDeepSearch(payload, exaApiKey, exaSearchType);
 
     const { apiKey: anthropicApiKey, model: anthropicModel } = getAnthropicConfig(process.env);
     const { system, user } = buildStrategyDraftPrompt(payload, {
-      dossier: exaTask.dossier,
-      citations: exaTask.citations,
+      dossier: exaSearch.dossier,
+      citations: exaSearch.citations,
     });
 
     const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -99,9 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       ...draft,
-      warnings: mergeStrategyWarnings(draft.warnings, exaTask.dossier),
-      citations: mergeStrategyCitations(draft.citations, exaTask.citations),
-      researchId: exaTask.researchId,
+      warnings: mergeStrategyWarnings(draft.warnings, exaSearch.dossier),
+      citations: mergeStrategyCitations(draft.citations, exaSearch.citations),
     });
   } catch (error) {
     if (error instanceof StrategyRequestError) {
@@ -113,13 +84,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function createExaResearchTask(
+async function runExaDeepSearch(
   payload: ReturnType<typeof validateStrategyDraftRequest>,
   apiKey: string,
-  model: string,
+  searchType: string,
 ) {
-  const request = buildExaResearchRequest(payload, model);
-  const response = await fetch("https://api.exa.ai/research/v1", {
+  const request = buildExaSearchRequest(payload, searchType);
+  const response = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -130,32 +101,10 @@ async function createExaResearchTask(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new StrategyRequestError(response.status, `Exa Research create error ${response.status}: ${errorText}`);
+    throw new StrategyRequestError(response.status, `Exa Search error ${response.status}: ${errorText}`);
   }
 
-  const data = await response.json() as ExaCreateTaskResponse;
-  const researchId = validateResearchId(data.researchId);
-
-  return {
-    researchId,
-    status: "running" as const,
-  };
-}
-
-async function pollExaResearchTask(researchId: string, apiKey: string) {
-  const response = await fetch(`https://api.exa.ai/research/v1/${encodeURIComponent(researchId)}`, {
-    method: "GET",
-    headers: {
-      "x-api-key": apiKey,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new StrategyRequestError(response.status, `Exa Research poll error ${response.status}: ${errorText}`);
-  }
-
-  return parseExaTaskResponse(await response.json());
+  return parseExaSearchResponse(await response.json());
 }
 
 function extractAnthropicText(data: AnthropicResponse): string {

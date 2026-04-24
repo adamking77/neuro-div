@@ -24,11 +24,6 @@ import "./index.css";
 
 type ActiveView = "research" | "strategy";
 
-interface StrategyDraftPendingResponse {
-  status: "researching";
-  researchId: string;
-}
-
 interface StrategyDraftErrorResponse {
   error?: string;
 }
@@ -273,53 +268,29 @@ export default function App() {
         phaseResearch: condensePhaseResearch(session.phases),
       };
 
-      let researchId: string | undefined;
-      let finalDraft: StrategyDraft | null = null;
+      const response = await fetch("/api/strategy-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draftRequest),
+      });
 
-      for (let attempt = 0; attempt < 80; attempt += 1) {
-        const response = await fetch("/api/strategy-draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...draftRequest,
-            ...(researchId ? { researchId } : {}),
-          }),
-        });
-
-        const rawText = await response.text();
-        let payload: StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
-        try {
-          payload = JSON.parse(rawText) as StrategyDraft | StrategyDraftPendingResponse | StrategyDraftErrorResponse;
-        } catch {
-          throw new Error(`Server error (${response.status}): ${rawText.slice(0, 200)}`);
-        }
-
-        if (response.status === 202 && "status" in payload && payload.status === "researching") {
-          researchId = payload.researchId;
-          mutateSession((current) => ({
-            ...current,
-            strategyStatus: "researching",
-            strategyError: undefined,
-          }));
-          await new Promise((resolve) => setTimeout(resolve, 2500));
-          continue;
-        }
-
-        if (!response.ok) {
-          throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Strategy draft failed");
-        }
-
-        // Exa is complete — show the Claude drafting phase briefly before applying the result
-        mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
-        await new Promise((resolve) => setTimeout(resolve, 700));
-
-        finalDraft = payload as StrategyDraft;
-        break;
+      const rawText = await response.text();
+      let payload: StrategyDraft | StrategyDraftErrorResponse;
+      try {
+        payload = JSON.parse(rawText) as StrategyDraft | StrategyDraftErrorResponse;
+      } catch {
+        throw new Error(`Server error (${response.status}): ${rawText.slice(0, 200)}`);
       }
 
-      if (!finalDraft) {
-        throw new Error("Exa research did not finish in time. Try again.");
+      if (!response.ok) {
+        throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Strategy draft failed");
       }
+
+      // Exa search is complete — show the Claude drafting phase briefly before applying the result.
+      mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      const finalDraft = payload as StrategyDraft;
 
       const fingerprint = getStrategyFingerprint({
         problem: session.problem,

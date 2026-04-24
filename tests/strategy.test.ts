@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { PHASES } from "../src/phases";
 import {
-  buildExaResearchRequest,
+  buildExaSearchRequest,
   buildStrategyDraftPrompt,
   getAnthropicConfig,
   getExaConfig,
   mergeStrategyCitations,
+  parseExaSearchResponse,
   parseStrategyDraftText,
   parseExaTaskResponse,
   validateStrategyDraftRequest,
@@ -140,7 +141,7 @@ describe("strategy API helpers", () => {
       ],
     };
 
-    const exaRequest = buildExaResearchRequest(payload, "exa-research-pro");
+    const exaRequest = buildExaSearchRequest(payload, "deep-reasoning");
     const prompt = buildStrategyDraftPrompt(payload, {
       dossier: {
         audienceSignals: ["Audience avoids networking-heavy channels."],
@@ -175,8 +176,9 @@ describe("strategy API helpers", () => {
       },
     });
 
-    expect(exaRequest.instructions).toContain("low-contact");
-    expect(exaRequest.model).toBe("exa-research-pro");
+    expect(exaRequest.query).toContain("low-contact");
+    expect(exaRequest.type).toBe("deep-reasoning");
+    expect(exaRequest.outputSchema.properties.lowContactChannels.items.type).toBe("string");
     expect(prompt.system).toContain("PDA");
     expect(prompt.system).toContain("create-once");
     expect(prompt.user).toContain("operators who avoid networking");
@@ -236,31 +238,16 @@ describe("strategy API helpers", () => {
     ]);
   });
 
-  it("parses completed Exa tasks that return output with grounding citations", () => {
-    const task = parseExaTaskResponse({
-      researchId: "r_456",
-      status: "completed",
+  it("parses completed Exa search output with grounding citations", () => {
+    const search = parseExaSearchResponse({
       output: {
         content: {
           audienceSignals: ["Signal"],
           positioningEdges: ["Edge"],
-          lowContactChannels: [
-            {
-              channel: "SEO",
-              fit: "Async",
-              evidence: "Intent exists",
-              caution: "Takes time",
-            },
-          ],
+          lowContactChannels: ["SEO: Async fit because intent exists; caution that results take time."],
           messagePatterns: ["Pattern"],
           assetDirections: ["Asset"],
-          experimentLevers: [
-            {
-              experiment: "Experiment",
-              rationale: "Because",
-              successMetric: "Metric",
-            },
-          ],
+          experimentLevers: ["Experiment: run a searchable page test; success metric is qualified replies."],
           risks: ["Risk"],
         },
         grounding: [
@@ -277,13 +264,10 @@ describe("strategy API helpers", () => {
       },
     });
 
-    expect(task.status).toBe("completed");
+    expect(search.status).toBe("completed");
+    expect(search.dossier.lowContactChannels[0].channel).toContain("SEO");
 
-    if (task.status !== "completed") {
-      throw new Error("Expected completed task");
-    }
-
-    const merged = mergeStrategyCitations([], task.citations);
+    const merged = mergeStrategyCitations([], search.citations);
     expect(merged).toEqual([
       {
         section: "channelPlan",

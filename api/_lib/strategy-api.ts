@@ -79,6 +79,12 @@ interface ExaTerminalTask {
 
 export type ExaTaskResult = ExaCompletedTask | ExaPendingTask | ExaTerminalTask;
 
+export interface ExaSearchResult {
+  status: "completed";
+  dossier: ExaResearchDossier;
+  citations: ExaResearchCitations;
+}
+
 export class StrategyRequestError extends Error {
   statusCode: number;
 
@@ -110,7 +116,7 @@ export function getExaConfig(env: Record<string, string | undefined>) {
 
   return {
     apiKey,
-    model: env.EXA_RESEARCH_MODEL || "exa-research-pro",
+    searchType: env.EXA_SEARCH_TYPE || "deep-reasoning",
   };
 }
 
@@ -139,10 +145,16 @@ export function validateResearchId(input: unknown): string {
   return expectNonEmptyString(input, "researchId is required");
 }
 
-export function buildExaResearchRequest(payload: StrategyDraftRequestPayload, model: string) {
+export function buildExaSearchRequest(payload: StrategyDraftRequestPayload, searchType: string) {
   return {
-    model,
-    instructions: buildExaResearchInstructions(payload),
+    query: buildExaResearchInstructions(payload),
+    type: searchType,
+    numResults: 8,
+    contents: {
+      highlights: {
+        maxCharacters: 4000,
+      },
+    },
     outputSchema: getExaResearchSchema(),
   };
 }
@@ -242,6 +254,16 @@ export function parseExaTaskResponse(input: unknown): ExaTaskResult {
   return {
     researchId,
     status,
+    dossier: validateExaResearchDossier(readExaResearchOutput(body)),
+    citations: readExaResearchCitations(body),
+  };
+}
+
+export function parseExaSearchResponse(input: unknown): ExaSearchResult {
+  const body = expectRecord(input, "Exa search response must be an object");
+
+  return {
+    status: "completed",
     dossier: validateExaResearchDossier(readExaResearchOutput(body)),
     citations: readExaResearchCitations(body),
   };
@@ -364,49 +386,37 @@ function getExaResearchSchema() {
     properties: {
       audienceSignals: {
         type: "array",
+        description: "Audience behavior and demand signals relevant to low-contact distribution.",
         items: { type: "string" },
       },
       positioningEdges: {
         type: "array",
+        description: "Differentiation and positioning edges supported by web evidence.",
         items: { type: "string" },
       },
       lowContactChannels: {
         type: "array",
-        items: {
-          type: "object",
-          required: ["channel", "fit", "evidence", "caution"],
-          properties: {
-            channel: { type: "string" },
-            fit: { type: "string" },
-            evidence: { type: "string" },
-            caution: { type: "string" },
-          },
-          additionalProperties: false,
-        },
+        description: "Async/pull channel recommendations; include channel, fit, evidence, and any caution in each string.",
+        items: { type: "string" },
       },
       messagePatterns: {
         type: "array",
+        description: "Useful phrases, hooks, and language patterns the audience already uses.",
         items: { type: "string" },
       },
       assetDirections: {
         type: "array",
+        description: "Create-once asset ideas that can compound without a posting cadence.",
         items: { type: "string" },
       },
       experimentLevers: {
         type: "array",
-        items: {
-          type: "object",
-          required: ["experiment", "rationale", "successMetric"],
-          properties: {
-            experiment: { type: "string" },
-            rationale: { type: "string" },
-            successMetric: { type: "string" },
-          },
-          additionalProperties: false,
-        },
+        description: "Bounded async experiments; include experiment, rationale, and success metric in each string.",
+        items: { type: "string" },
       },
       risks: {
         type: "array",
+        description: "Risks, cautions, or tactics that may require too much social maintenance.",
         items: { type: "string" },
       },
     },
@@ -524,6 +534,16 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
     audienceSignals: expectArrayOfStrings(body.audienceSignals, "audienceSignals must be an array of strings"),
     positioningEdges: expectArrayOfStrings(body.positioningEdges, "positioningEdges must be an array of strings"),
     lowContactChannels: expectArray(body.lowContactChannels, "lowContactChannels must be an array").map((item, index) => {
+      if (typeof item === "string") {
+        const value = item.trim();
+        return {
+          channel: value,
+          fit: value,
+          evidence: value,
+          caution: "Review for fit against low-contact constraints.",
+        };
+      }
+
       const channel = expectRecord(item, `lowContactChannels[${index}] must be an object`);
       return {
         channel: expectNonEmptyString(channel.channel, `lowContactChannels[${index}].channel is required`),
@@ -535,6 +555,15 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
     messagePatterns: expectArrayOfStrings(body.messagePatterns, "messagePatterns must be an array of strings"),
     assetDirections: expectArrayOfStrings(body.assetDirections, "assetDirections must be an array of strings"),
     experimentLevers: expectArray(body.experimentLevers, "experimentLevers must be an array").map((item, index) => {
+      if (typeof item === "string") {
+        const value = item.trim();
+        return {
+          experiment: value,
+          rationale: value,
+          successMetric: "Define one observable async conversion or engagement signal.",
+        };
+      }
+
       const lever = expectRecord(item, `experimentLevers[${index}] must be an object`);
       return {
         experiment: expectNonEmptyString(lever.experiment, `experimentLevers[${index}].experiment is required`),
