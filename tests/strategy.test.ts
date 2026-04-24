@@ -278,6 +278,23 @@ describe("strategy API helpers", () => {
     ]);
   });
 
+  it("normalizes partial Exa search output instead of failing the draft pipeline", () => {
+    const search = parseExaSearchResponse({
+      output: {
+        content: JSON.stringify({
+          audienceSignals: "Buyers search asynchronously before taking calls.",
+          lowContactChannels: ["SEO diagnostics"],
+          risks: "Avoid channels that require daily posting.",
+        }),
+      },
+    });
+
+    expect(search.dossier.audienceSignals).toEqual(["Buyers search asynchronously before taking calls."]);
+    expect(search.dossier.positioningEdges).toEqual([]);
+    expect(search.dossier.lowContactChannels[0].channel).toBe("SEO diagnostics");
+    expect(search.dossier.risks).toEqual(["Avoid channels that require daily posting."]);
+  });
+
   it("parses valid model JSON and rejects malformed output", () => {
     const draftInput = {
       sections: {
@@ -301,6 +318,45 @@ describe("strategy API helpers", () => {
 
     const toolParsed = parseStrategyDraftInput(draftInput);
     expect(toolParsed.sections.positioning).toBe("Positioning");
+
+    const flatToolParsed = parseStrategyDraftInput({
+      positioning: "Flat positioning",
+      channelPlan: "Flat channels",
+      messageAngles: "Flat angles",
+      assetIdeas: "Flat assets",
+      experiments: "Flat experiments",
+      thirtyDaySequence: "Flat sequence",
+      warnings: "Keep posting load low",
+      citations: [
+        {
+          title: "Missing section source",
+          url: "https://flat.example.com",
+        },
+        {
+          section: "invalid",
+          title: "",
+          url: "",
+        },
+      ],
+    });
+
+    expect(flatToolParsed.sections.positioning).toBe("Flat positioning");
+    expect(flatToolParsed.warnings).toEqual(["Keep posting load low"]);
+    expect(flatToolParsed.citations).toEqual([
+      {
+        section: "positioning",
+        title: "Missing section source",
+        url: "https://flat.example.com",
+        note: "",
+      },
+    ]);
+
+    const stringSectionsParsed = parseStrategyDraftInput({
+      sections: JSON.stringify(draftInput.sections),
+      warnings: [],
+      citations: [],
+    });
+    expect(stringSectionsParsed.sections.channelPlan).toBe("Channels");
 
     const parsed = parseStrategyDraftText(`{
       "sections": {

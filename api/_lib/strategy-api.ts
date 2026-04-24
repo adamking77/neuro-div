@@ -212,16 +212,17 @@ export function parseStrategyDraftText(text: string): StrategyDraftResponse {
 }
 
 export function parseStrategyDraftInput(input: unknown): StrategyDraftResponse {
-  const parsed = typeof input === "string" ? JSON.parse(extractJsonObject(input)) as unknown : input;
+  const parsed = parseMaybeJson(input);
   const body = expectRecord(parsed, "Model output must be a JSON object");
-  const sectionsRecord = expectRecord(body.sections, "sections must be an object");
+  const sectionsInput = body.sections ?? body.strategyDraft ?? body.draft ?? body;
+  const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
 
   const sections = SECTION_KEYS.reduce((acc, key) => {
     acc[key] = expectOptionalString(sectionsRecord[key]);
     return acc;
   }, {} as StrategySections);
 
-  const warnings = expectStringArray(body.warnings);
+  const warnings = coerceStringArray(body.warnings);
   const citations = validateStrategyCitations(body.citations);
 
   return {
@@ -520,25 +521,62 @@ function validateStrategyCitations(input: unknown) {
     return [];
   }
 
-  return input.map((item, index) => {
-    const body = expectRecord(item, `citations[${index}] must be an object`);
+  const citations: StrategyCitation[] = [];
 
-    return {
-      section: expectEnum(body.section, SECTION_KEYS, `citations[${index}].section is invalid`),
-      title: expectNonEmptyString(body.title, `citations[${index}].title is required`),
-      url: expectNonEmptyString(body.url, `citations[${index}].url is required`),
+  for (const item of input) {
+    const body = item && typeof item === "object" && !Array.isArray(item)
+      ? item as Record<string, unknown>
+      : null;
+
+    if (!body || typeof body.url !== "string" || body.url.trim().length === 0) {
+      continue;
+    }
+
+    citations.push({
+      section: coerceStrategySectionKey(body.section),
+      title: typeof body.title === "string" && body.title.trim().length > 0 ? body.title.trim() : body.url.trim(),
+      url: body.url.trim(),
       note: expectOptionalString(body.note),
-    };
-  });
+    });
+  }
+
+  return citations;
+}
+
+function normalizeStrategySectionsInput(input: unknown): Record<string, unknown> {
+  const parsed = parseMaybeJson(input);
+
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const body = parsed as Record<string, unknown>;
+    const nested = body.sections ?? body.strategyDraft ?? body.draft;
+
+    if (nested && nested !== parsed) {
+      return normalizeStrategySectionsInput(nested);
+    }
+
+    return body;
+  }
+
+  return {};
+}
+
+function coerceStrategySectionKey(input: unknown): StrategySectionKey {
+  if (typeof input === "string" && SECTION_KEYS.includes(input as StrategySectionKey)) {
+    return input as StrategySectionKey;
+  }
+
+  return "positioning";
 }
 
 function validateExaResearchDossier(input: unknown): ExaResearchDossier {
-  const body = expectRecord(input, "Completed Exa task did not include research data");
+  const body = input && typeof input === "object" && !Array.isArray(input)
+    ? input as Record<string, unknown>
+    : {};
 
   return {
-    audienceSignals: expectArrayOfStrings(body.audienceSignals, "audienceSignals must be an array of strings"),
-    positioningEdges: expectArrayOfStrings(body.positioningEdges, "positioningEdges must be an array of strings"),
-    lowContactChannels: expectArray(body.lowContactChannels, "lowContactChannels must be an array").map((item, index) => {
+    audienceSignals: coerceStringArray(body.audienceSignals),
+    positioningEdges: coerceStringArray(body.positioningEdges),
+    lowContactChannels: coerceArray(body.lowContactChannels).map((item, index) => {
       if (typeof item === "string") {
         const value = item.trim();
         return {
@@ -551,15 +589,15 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
 
       const channel = expectRecord(item, `lowContactChannels[${index}] must be an object`);
       return {
-        channel: expectNonEmptyString(channel.channel, `lowContactChannels[${index}].channel is required`),
-        fit: expectNonEmptyString(channel.fit, `lowContactChannels[${index}].fit is required`),
-        evidence: expectNonEmptyString(channel.evidence, `lowContactChannels[${index}].evidence is required`),
-        caution: expectNonEmptyString(channel.caution, `lowContactChannels[${index}].caution is required`),
+        channel: expectOptionalString(channel.channel) || "Low-contact channel",
+        fit: expectOptionalString(channel.fit) || "Async or pull-oriented fit.",
+        evidence: expectOptionalString(channel.evidence) || "Evidence not specified by Exa.",
+        caution: expectOptionalString(channel.caution) || "Review for fit against low-contact constraints.",
       };
     }),
-    messagePatterns: expectArrayOfStrings(body.messagePatterns, "messagePatterns must be an array of strings"),
-    assetDirections: expectArrayOfStrings(body.assetDirections, "assetDirections must be an array of strings"),
-    experimentLevers: expectArray(body.experimentLevers, "experimentLevers must be an array").map((item, index) => {
+    messagePatterns: coerceStringArray(body.messagePatterns),
+    assetDirections: coerceStringArray(body.assetDirections),
+    experimentLevers: coerceArray(body.experimentLevers).map((item, index) => {
       if (typeof item === "string") {
         const value = item.trim();
         return {
@@ -571,12 +609,12 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
 
       const lever = expectRecord(item, `experimentLevers[${index}] must be an object`);
       return {
-        experiment: expectNonEmptyString(lever.experiment, `experimentLevers[${index}].experiment is required`),
-        rationale: expectNonEmptyString(lever.rationale, `experimentLevers[${index}].rationale is required`),
-        successMetric: expectNonEmptyString(lever.successMetric, `experimentLevers[${index}].successMetric is required`),
+        experiment: expectOptionalString(lever.experiment) || "Bounded async experiment",
+        rationale: expectOptionalString(lever.rationale) || "Rationale not specified by Exa.",
+        successMetric: expectOptionalString(lever.successMetric) || "Define one observable async conversion or engagement signal.",
       };
     }),
-    risks: expectArrayOfStrings(body.risks, "risks must be an array of strings"),
+    risks: coerceStringArray(body.risks),
   };
 }
 
@@ -609,16 +647,16 @@ function validateExaResearchCitations(input: unknown): ExaResearchCitations {
 
 function readExaResearchOutput(body: Record<string, unknown>): unknown {
   if ("data" in body) {
-    return body.data;
+    return parseMaybeJson(body.data);
   }
 
   const output = body.output;
   if (!output || typeof output !== "object" || Array.isArray(output)) {
-    return output;
+    return parseMaybeJson(output);
   }
 
   const outputRecord = output as Record<string, unknown>;
-  return "content" in outputRecord ? outputRecord.content : outputRecord;
+  return "content" in outputRecord ? parseMaybeJson(outputRecord.content) : outputRecord;
 }
 
 function readExaResearchCitations(body: Record<string, unknown>): ExaResearchCitations {
@@ -749,6 +787,23 @@ function extractJsonObject(text: string): string {
   throw new StrategyRequestError(502, "Model output did not contain JSON");
 }
 
+function parseMaybeJson(input: unknown): unknown {
+  if (typeof input !== "string") {
+    return input;
+  }
+
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return input;
+  }
+
+  try {
+    return JSON.parse(extractJsonObject(trimmed)) as unknown;
+  } catch {
+    return input;
+  }
+}
+
 function expectRecord(input: unknown, message: string): Record<string, unknown> {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new StrategyRequestError(400, message);
@@ -757,12 +812,33 @@ function expectRecord(input: unknown, message: string): Record<string, unknown> 
   return input as Record<string, unknown>;
 }
 
-function expectArray(input: unknown, message: string): unknown[] {
-  if (!Array.isArray(input)) {
-    throw new StrategyRequestError(400, message);
+function coerceArray(input: unknown): unknown[] {
+  if (Array.isArray(input)) {
+    return input;
   }
 
-  return input;
+  if (typeof input === "string" && input.trim().length > 0) {
+    return [input.trim()];
+  }
+
+  return [];
+}
+
+function coerceStringArray(input: unknown): string[] {
+  return coerceArray(input).map((item) => {
+    if (typeof item === "string") {
+      return item.trim();
+    }
+
+    if (item && typeof item === "object") {
+      return Object.values(item as Record<string, unknown>)
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .join(" — ")
+        .trim();
+    }
+
+    return "";
+  }).filter(Boolean);
 }
 
 function expectNonEmptyString(input: unknown, message: string): string {
@@ -783,22 +859,6 @@ function expectOptionalString(input: unknown, message?: string): string {
   }
 
   return input.trim();
-}
-
-function expectStringArray(input: unknown): string[] {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-
-  return input.map((item, index) =>
-    expectOptionalString(item, `warnings[${index}] must be a string`),
-  ).filter(Boolean);
-}
-
-function expectArrayOfStrings(input: unknown, message: string): string[] {
-  return expectArray(input, message).map((item, index) =>
-    expectOptionalString(item, `${message} at index ${index}`),
-  ).filter(Boolean);
 }
 
 function expectNumber(input: unknown, message: string): number {
