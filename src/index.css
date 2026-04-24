@@ -71,6 +71,10 @@ button:disabled { opacity: 1 !important; }
   .constraints-grid { grid-template-columns: 1fr !important; }
 }
 
+@media (max-width: 720px) {
+  .strategy-middle-grid { grid-template-columns: 1fr !important; }
+}
+
 /* Prevent pre from overflowing */
 pre { overflow-x: auto; max-width: 100%; }
 

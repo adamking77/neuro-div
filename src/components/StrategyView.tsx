@@ -870,6 +870,10 @@ function StrategyContent({
 
   if (!draft) return null;
 
+  const anchorSection = STRATEGY_SECTIONS[0];
+  const middleSections = STRATEGY_SECTIONS.slice(1, 5);
+  const outputSection = STRATEGY_SECTIONS[5];
+
   return (
     <div>
       {draft.warnings.length > 0 && (
@@ -916,16 +920,94 @@ function StrategyContent({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        {STRATEGY_SECTIONS.map((section, index) => (
-          <SectionCard
-            key={section.key}
-            section={section}
-            index={index}
-            value={draft.sections[section.key]}
-            citations={draft.citations.filter((c) => c.section === section.key)}
-            isEdited={editedSections.has(section.key)}
-            onEdit={(value) => handleSectionChange(section.key, value)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <SectionCard
+          key={anchorSection.key}
+          section={anchorSection}
+          index={0}
+          value={draft.sections[anchorSection.key]}
+          citations={draft.citations.filter((c) => c.section === anchorSection.key)}
+          isEdited={editedSections.has(anchorSection.key)}
+          onEdit={(value) => handleSectionChange(anchorSection.key, value)}
+        />
+
+        <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {middleSections.map((section, sectionIndex) => {
+            const index = sectionIndex + 1;
+            return (
+              <SectionCard
+                key={section.key}
+                section={section}
+                index={index}
+                value={draft.sections[section.key]}
+                citations={draft.citations.filter((c) => c.section === section.key)}
+                isEdited={editedSections.has(section.key)}
+                onEdit={(value) => handleSectionChange(section.key, value)}
+              />
+            );
+          })}
+        </div>
+
+        <SectionCard
+          key={outputSection.key}
+          section={outputSection}
+          index={STRATEGY_SECTIONS.length - 1}
+          value={draft.sections[outputSection.key]}
+          citations={draft.citations.filter((c) => c.section === outputSection.key)}
+          isEdited={editedSections.has(outputSection.key)}
+          onEdit={(value) => handleSectionChange(outputSection.key, value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StrategyLoadingState() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <StrategySkeletonCard index={0} widths={SKELETON_ROWS[0]} />
+
+      <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        {SKELETON_ROWS.slice(1, 5).map((widths, sectionIndex) => (
+          <StrategySkeletonCard key={sectionIndex + 1} index={sectionIndex + 1} widths={widths} />
+        ))}
+      </div>
+
+      <StrategySkeletonCard index={5} widths={SKELETON_ROWS[5]} />
+    </div>
+  );
+}
+
+function StrategySkeletonCard({ index, widths }: { index: number; widths: number[] }) {
+  const isAnchor = index === 0;
+  const isOutput = index === STRATEGY_SECTIONS.length - 1;
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--rule)",
+        borderLeft: isAnchor ? "2px solid var(--teal)" : "1px solid var(--rule)",
+        padding: 18,
+        opacity: 1 - index * 0.08,
+        background: isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
+      }}
+    >
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+        <Skeleton className="rounded" style={{ width: 18, height: 8 }} />
+        <Skeleton className="rounded" style={{ width: 70 + index * 10, height: 13 }} />
+      </div>
+      <Skeleton
+        className="rounded"
+        style={{ width: "65%", height: 9, marginBottom: 14 }}
+        animationType="pulse"
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {widths.map((w, j) => (
+          <Skeleton
+            key={j}
+            className="rounded"
+            style={{ width: `${w}%`, height: 9 }}
+            animationType="pulse"
           />
         ))}
       </div>
@@ -950,6 +1032,7 @@ function SectionCard({
 }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
+  const bodyMinHeight = isAnchor || isOutput ? 220 : 300;
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -1054,10 +1137,10 @@ function SectionCard({
           value={value}
           onChange={(e) => onEdit(e.target.value)}
           rows={12}
-          style={{ flex: 1, minHeight: 300 }}
+          style={{ flex: 1, minHeight: bodyMinHeight }}
         />
       ) : (
-        <FormattedStrategySection value={value} />
+        <FormattedStrategySection value={value} minHeight={bodyMinHeight} />
       )}
 
       <SectionCitations citations={citations} />
@@ -1070,7 +1153,7 @@ type StrategyTextBlock =
   | { type: "paragraph"; text: string }
   | { type: "list"; ordered: boolean; items: string[] };
 
-function FormattedStrategySection({ value }: { value: string }) {
+function FormattedStrategySection({ value, minHeight }: { value: string; minHeight: number }) {
   const blocks = parseStrategyText(value);
 
   return (
@@ -1078,7 +1161,7 @@ function FormattedStrategySection({ value }: { value: string }) {
       style={{
         border: "1px solid var(--rule)",
         padding: "14px 16px",
-        minHeight: 300,
+        minHeight,
         fontSize: 13,
         lineHeight: 1.65,
         color: "var(--ink-light)",
@@ -1207,44 +1290,6 @@ function renderInlineText(value: string) {
 
     return <span key={index}>{part}</span>;
   });
-}
-
-function StrategyLoadingState() {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-      {SKELETON_ROWS.map((widths, i) => (
-        <div
-          key={i}
-          style={{
-            border: "1px solid var(--rule)",
-            borderLeft: i === 0 ? "2px solid var(--teal)" : "1px solid var(--rule)",
-            padding: 18,
-            opacity: 1 - i * 0.08,
-          }}
-        >
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-            <Skeleton className="rounded" style={{ width: 18, height: 8 }} />
-            <Skeleton className="rounded" style={{ width: 70 + i * 10, height: 13 }} />
-          </div>
-          <Skeleton
-            className="rounded"
-            style={{ width: "65%", height: 9, marginBottom: 14 }}
-            animationType="pulse"
-          />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {widths.map((w, j) => (
-              <Skeleton
-                key={j}
-                className="rounded"
-                style={{ width: `${w}%`, height: 9 }}
-                animationType="pulse"
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function CitationChip({ citations }: { citations: StrategyCitation[] }) {
