@@ -4,8 +4,8 @@ import {
   buildExaSearchRequest,
   buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
-  getAnthropicConfig,
   getExaConfig,
+  getKimiConfig,
   mergeStrategyCitations,
   mergeStrategyWarnings,
   parseExaSearchResponse,
@@ -14,12 +14,23 @@ import {
   validateStrategyDraftRequest,
 } from "./_lib/strategy-api.js";
 
-interface AnthropicResponse {
-  content?: Array<{
-    type?: string;
-    text?: string;
-    name?: string;
-    input?: unknown;
+interface KimiToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+interface KimiResponse {
+  choices?: Array<{
+    message?: {
+      role?: string;
+      content?: string | null;
+      tool_calls?: KimiToolCall[];
+    };
+    finish_reason?: string;
   }>;
   error?: {
     message?: string;
@@ -38,53 +49,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { apiKey: exaApiKey, searchType: exaSearchType } = getExaConfig(process.env);
     const exaSearch = await runExaDeepSearch(payload, exaApiKey, exaSearchType);
 
-    const { apiKey: anthropicApiKey, model: anthropicModel } = getAnthropicConfig(process.env);
+    const { apiKey: kimiApiKey, model: kimiModel, baseUrl } = getKimiConfig(process.env);
     const { system, user } = buildStrategyDraftPrompt(payload, {
       dossier: exaSearch.dossier,
       citations: exaSearch.citations,
     });
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const kimiResponse = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
+        authorization: `Bearer ${kimiApiKey}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: anthropicModel,
+        model: kimiModel,
         max_tokens: 2200,
-        temperature: 0.5,
-        system,
-        tools: [
-          {
-            name: STRATEGY_DRAFT_TOOL_NAME,
-            description: "Return the final strategy draft as structured JSON.",
-            input_schema: getStrategyDraftToolSchema(),
-          },
-        ],
-        tool_choice: {
-          type: "tool",
-          name: STRATEGY_DRAFT_TOOL_NAME,
-        },
+        temperature: 1,
         messages: [
-          {
-            role: "user",
-            content: user,
-          },
+          { role: "system", content: system },
+          { role: "user", content: user },
         ],
       }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      return res.status(anthropicResponse.status).json({
-        error: `Anthropic API error ${anthropicResponse.status}: ${errorText}`,
+    if (!kimiResponse.ok) {
+      const errorText = await kimiResponse.text();
+      return res.status(kimiResponse.status).json({
+        error: `Kimi API error ${kimiResponse.status}: ${errorText}`,
       });
     }
 
-    const anthropicData = await anthropicResponse.json() as AnthropicResponse;
-    const draft = parseAnthropicStrategyDraftOrFallback(anthropicData, payload, {
+    const kimiData = await kimiResponse.json() as KimiResponse;
+    const draft = parseKimiStrategyDraftOrFallback(kimiData, payload, {
       dossier: exaSearch.dossier,
       citations: exaSearch.citations,
     });
@@ -127,39 +123,34 @@ async function runExaDeepSearch(
   return parseExaSearchResponse(await response.json());
 }
 
-function extractAnthropicText(data: AnthropicResponse): string {
-  const text = data.content
-    ?.filter((item) => item.type === "text" && typeof item.text === "string")
-    .map((item) => item.text)
-    .join("\n")
-    .trim();
+function extractKimiText(data: KimiResponse): string {
+  const text = data.choices?.[0]?.message?.content;
 
-  if (!text) {
-    throw new StrategyRequestError(502, data.error?.message || "Anthropic response did not include text output");
+  if (!text || typeof text !== "string") {
+    throw new StrategyRequestError(502, data.error?.message || "Kimi response did not include text output");
   }
 
-  return text;
+  return text.trim();
 }
 
-function parseAnthropicStrategyDraft(data: AnthropicResponse) {
-  const toolInput = data.content?.find((item) =>
-    item.type === "tool_use" && item.name === STRATEGY_DRAFT_TOOL_NAME && item.input,
-  )?.input;
+function parseKimiStrategyDraft(data: KimiResponse) {
+  const toolCalls = data.choices?.[0]?.message?.tool_calls;
+  const toolCall = toolCalls?.find((tc) => tc.function?.name === STRATEGY_DRAFT_TOOL_NAME);
 
-  if (toolInput) {
-    return parseStrategyDraftInput(toolInput);
+  if (toolCall && toolCall.function.arguments) {
+    return parseStrategyDraftInput(JSON.parse(toolCall.function.arguments));
   }
 
-  return parseStrategyDraftText(extractAnthropicText(data));
+  return parseStrategyDraftText(extractKimiText(data));
 }
 
-function parseAnthropicStrategyDraftOrFallback(
-  data: AnthropicResponse,
+function parseKimiStrategyDraftOrFallback(
+  data: KimiResponse,
   payload: ReturnType<typeof validateStrategyDraftRequest>,
   exaResearch: Parameters<typeof buildFallbackStrategyDraft>[1],
 ) {
   try {
-    return parseAnthropicStrategyDraft(data);
+    return parseKimiStrategyDraft(data);
   } catch (error) {
     if (error instanceof StrategyRequestError) {
       return buildFallbackStrategyDraft(payload, exaResearch);
@@ -171,11 +162,11 @@ function parseAnthropicStrategyDraftOrFallback(
 
 function getStrategyDraftToolSchema() {
   return {
-    type: "object",
+    type: "object" as const,
     required: ["sections", "warnings", "citations"],
     properties: {
       sections: {
-        type: "object",
+        type: "object" as const,
         required: [
           "positioning",
           "channelPlan",
@@ -186,32 +177,32 @@ function getStrategyDraftToolSchema() {
         ],
         properties: {
           positioning: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive positioning strategy text, not a placeholder.",
           },
           channelPlan: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive low-contact channel strategy text, not a placeholder.",
           },
           messageAngles: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive messaging strategy text, not a placeholder.",
           },
           assetIdeas: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive create-once asset recommendations, not a placeholder.",
           },
           experiments: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive bounded experiment recommendations, not a placeholder.",
           },
           thirtyDaySequence: {
-            type: "string",
+            type: "string" as const,
             minLength: 40,
             description: "Substantive 30-day sprint sequence, not a placeholder.",
           },
@@ -219,17 +210,17 @@ function getStrategyDraftToolSchema() {
         additionalProperties: false,
       },
       warnings: {
-        type: "array",
-        items: { type: "string" },
+        type: "array" as const,
+        items: { type: "string" as const },
       },
       citations: {
-        type: "array",
+        type: "array" as const,
         items: {
-          type: "object",
+          type: "object" as const,
           required: ["section", "title", "url"],
           properties: {
             section: {
-              type: "string",
+              type: "string" as const,
               enum: [
                 "positioning",
                 "channelPlan",
@@ -239,9 +230,9 @@ function getStrategyDraftToolSchema() {
                 "thirtyDaySequence",
               ],
             },
-            title: { type: "string" },
-            url: { type: "string" },
-            note: { type: "string" },
+            title: { type: "string" as const },
+            url: { type: "string" as const },
+            note: { type: "string" as const },
           },
           additionalProperties: false,
         },

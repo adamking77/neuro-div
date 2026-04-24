@@ -5,6 +5,9 @@
   "functions": {
     "api/strategy-draft.ts": {
       "maxDuration": 300
+    },
+    "api/intelligence-brief.ts": {
+      "maxDuration": 300
     }
   }
 }

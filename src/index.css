@@ -61,6 +61,21 @@ select {
   border-radius: 0;
 }
 
+/* Focus-visible rings */
+button:focus-visible,
+[role="button"]:focus-visible,
+.btn-text:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+textarea:focus-visible,
+input[type="text"]:focus-visible,
+select:focus-visible {
+  border-color: rgba(26, 26, 24, 0.35);
+  box-shadow: 0 0 0 2px rgba(91, 138, 138, 0.15);
+}
+
 /* Prevent HeroUI from dimming plain buttons */
 button:disabled { opacity: 1 !important; }
 
@@ -89,6 +104,14 @@ button:disabled { opacity: 1 !important; }
 /* Prevent pre from overflowing */
 pre { overflow-x: auto; max-width: 100%; }
 
+/* Strategy inputs — slightly smaller */
+.strategy-input,
+.strategy-input input[type="text"],
+.strategy-input textarea {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
 /* Text button — bare, no chrome */
 .btn-text {
   background: none;
@@ -100,4 +123,10 @@ pre { overflow-x: auto; max-width: 100%; }
   align-items: center;
   gap: 5px;
   line-height: 1;
+}
+
+.btn-text:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

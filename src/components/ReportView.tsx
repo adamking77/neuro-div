@@ -236,12 +236,13 @@ function ResultItem({ result }: { result: any }) {
           <button
             onClick={() => setHighlightsOpen((open) => !open)}
             className="flex items-center gap-1.5 transition-colors duration-150"
-            style={{ color: "oklch(38% 0.005 286)", marginTop: 2 }}
+            aria-expanded={highlightsOpen}
+            style={{ color: "var(--ink-light)", marginTop: 2 }}
             onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLElement).style.color = "oklch(55% 0.01 286)")
+              ((e.currentTarget as HTMLElement).style.color = "var(--ink-muted)")
             }
             onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLElement).style.color = "oklch(38% 0.005 286)")
+              ((e.currentTarget as HTMLElement).style.color = "var(--ink-light)")
             }
           >
             <motion.span

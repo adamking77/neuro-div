@@ -140,19 +140,6 @@ export class StrategyRequestError extends Error {
   }
 }
 
-export function getAnthropicConfig(env: Record<string, string | undefined>) {
-  const apiKey = env.ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    throw new StrategyRequestError(500, "ANTHROPIC_API_KEY not configured");
-  }
-
-  return {
-    apiKey,
-    model: env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-  };
-}
-
 export function getExaConfig(env: Record<string, string | undefined>) {
   const apiKey = env.EXA_API_KEY;
 
@@ -163,6 +150,20 @@ export function getExaConfig(env: Record<string, string | undefined>) {
   return {
     apiKey,
     searchType: env.EXA_SEARCH_TYPE || "deep-reasoning",
+  };
+}
+
+export function getKimiConfig(env: Record<string, string | undefined>) {
+  const apiKey = env.KIMI_API_KEY;
+
+  if (!apiKey) {
+    throw new StrategyRequestError(500, "KIMI_API_KEY not configured");
+  }
+
+  return {
+    apiKey,
+    model: env.KIMI_MODEL || "kimi-k2.6",
+    baseUrl: env.KIMI_BASE_URL || "https://api.moonshot.ai/v1",
   };
 }
 

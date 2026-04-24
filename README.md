@@ -28,7 +28,7 @@ Built for category design research. Runs semantic search across six distinct len
 
 - **Frontend** — React 19, TypeScript, Vite, Tailwind CSS v4, HeroUI v3, Framer Motion
 - **Search & research** — [Exa](https://exa.ai) neural search plus deep-reasoning search via Vercel serverless functions
-- **Strategy synthesis** — [Anthropic Claude Sonnet 4](https://docs.anthropic.com/en/docs/models-overview)
+- **Strategy synthesis** — [Anthropic Claude Sonnet 4](https://docs.anthropic.com/en/docs/models-overview) or [Kimi K2.6](https://www.moonshot.cn/) (selectable)
 - **Deployment** — Vercel
 
 ## Setup
@@ -40,6 +40,9 @@ EXA_API_KEY=your_key_here
 EXA_SEARCH_TYPE=deep-reasoning
 ANTHROPIC_API_KEY=your_key_here
 ANTHROPIC_MODEL=claude-sonnet-4-6
+KIMI_API_KEY=your_key_here
+KIMI_MODEL=kimi-k2-6
+KIMI_BASE_URL=https://api.moonshot.cn/v1
 ```
 
 Add to Vercel project settings under Environment Variables.

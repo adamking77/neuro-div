@@ -107,6 +107,98 @@ export interface StrategyDraftRequestPayload {
 
 export interface StrategyDraftResponse extends StrategyDraft {}
 
+export interface IntelligenceScorecardMetric {
+  label: string;
+  grade: "high" | "medium" | "low";
+  rationale: string;
+}
+
+export interface IntelligenceLandscapeCallout {
+  type: "insight" | "warning" | "opportunity";
+  text: string;
+}
+
+export interface IntelligenceComparisonRow {
+  dimension: string;
+  us: string;
+  competitorA: string;
+  competitorB: string;
+  usSentiment: "positive" | "neutral" | "negative";
+}
+
+export interface IntelligenceChannelRow {
+  channel: string;
+  fitScore: number;
+  effort: string;
+  speed: string;
+  evidence: string;
+  verdict: "prioritize" | "test" | "defer";
+}
+
+export interface IntelligenceRisk {
+  name: string;
+  impact: "high" | "medium" | "low";
+  probability: "high" | "medium" | "low";
+  mitigation: string;
+  level: "critical" | "watch" | "managed";
+}
+
+export interface IntelligenceTimelinePhase {
+  name: string;
+  weeks: string;
+  focus: string;
+  tasks: string[];
+}
+
+export interface IntelligenceBrief {
+  generatedAt: string;
+  summary: string;
+  scorecard: {
+    metrics: IntelligenceScorecardMetric[];
+    /** Optional HTML/CSS visualization rendered as a visual gauge/dashboard */
+    visualization?: string;
+  };
+  landscape: {
+    content: string;
+    callouts: IntelligenceLandscapeCallout[];
+    /** Optional HTML narrative layout with editorial styling */
+    visualization?: string;
+  };
+  positioning: {
+    headers: string[];
+    rows: IntelligenceComparisonRow[];
+    /** Optional HTML 2D positioning map */
+    visualization?: string;
+  };
+  channels: {
+    headers: string[];
+    rows: IntelligenceChannelRow[];
+    /** Optional HTML channel funnel/bars */
+    visualization?: string;
+  };
+  risks: {
+    risks: IntelligenceRisk[];
+    /** Optional HTML risk heatmap/matrix */
+    visualization?: string;
+  };
+  timeline: {
+    phases: IntelligenceTimelinePhase[];
+    /** Optional HTML visual timeline */
+    visualization?: string;
+  };
+  resources: {
+    time: string[];
+    budget: string[];
+    tools: string[];
+    skills: string[];
+    gaps: string[];
+    /** Optional HTML resource allocation chart */
+    visualization?: string;
+  };
+}
+
+export type IntelligenceStatus = "idle" | "researching" | "drafting" | "done" | "error";
+
 export interface SessionState {
   problem: string;
   knownPlayers: string;
@@ -117,6 +209,9 @@ export interface SessionState {
   strategyError?: string;
   strategyDirty: boolean;
   strategySourceFingerprint: string | null;
+  intelligenceBrief: IntelligenceBrief | null;
+  intelligenceStatus: IntelligenceStatus;
+  intelligenceError?: string;
 }
 
 export interface PhaseConfig {

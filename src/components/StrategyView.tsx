@@ -7,14 +7,18 @@ import {
   getCompletedResearchCount,
   getStrategyReadiness,
   hasCompleteStrategyDraft,
+  renderAgentBrief,
 } from "../lib/strategy";
 import type {
   SessionState,
   StrategyCitation,
+  StrategyDraft,
   ExistingAsset,
   StrategyInputs,
   StrategySectionKey,
 } from "../types";
+import { IntelligenceView } from "./IntelligenceView";
+import { AgentBriefView } from "./AgentBriefView";
 
 interface Props {
   session: SessionState;
@@ -22,7 +26,10 @@ interface Props {
   onInputChange: <K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => void;
   onSectionChange: (key: StrategySectionKey, value: string) => void;
   onGenerate: () => void;
+  onGenerateIntelligence: () => void;
   onExport: () => void;
+  onExportIntelligence: () => void;
+  draftHistory: StrategyDraft[];
 }
 
 const REQUIRED_PHASES: Array<{ id: number; label: string }> = [
@@ -57,17 +64,24 @@ const CONTENT_LABELS: Record<string, string> = {
   none: "No content",
 };
 
+type StrategyTab = "draft" | "intelligence" | "agent";
+
 export function StrategyView({
   session,
   researchRunning,
   onInputChange,
   onSectionChange,
   onGenerate,
+  onGenerateIntelligence,
   onExport,
+  onExportIntelligence,
+
+  draftHistory,
 }: Props) {
   const draft = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft : null;
   const hasDraft = !!draft;
   const [drawerOpen, setDrawerOpen] = useState(!hasDraft);
+  const [activeTab, setActiveTab] = useState<StrategyTab>("draft");
   const prevDraftAt = useRef<string | null>(draft?.generatedAt ?? null);
 
   useEffect(() => {
@@ -83,9 +97,17 @@ export function StrategyView({
   const audienceReady = session.strategyInputs.audienceLens.trim().length > 0;
   const strategyRunning =
     session.strategyStatus === "researching" || session.strategyStatus === "drafting";
-  const canGenerate = readiness.ready && audienceReady && !researchRunning && !strategyRunning;
+  const intelligenceRunning =
+    session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting";
 
-  const buttonLabel =
+  const isRunning = activeTab === "draft"
+    ? strategyRunning
+    : activeTab === "intelligence"
+      ? intelligenceRunning
+      : false;
+  const canGenerate = readiness.ready && audienceReady && !researchRunning && !isRunning;
+
+  const draftButtonLabel =
     session.strategyStatus === "researching"
       ? "Researching…"
       : session.strategyStatus === "drafting"
@@ -95,6 +117,31 @@ export function StrategyView({
             ? "Regenerate"
             : "Rebuild"
           : "Generate draft";
+
+  const intelligenceButtonLabel =
+    session.intelligenceStatus === "researching"
+      ? "Researching…"
+      : session.intelligenceStatus === "drafting"
+        ? "Synthesizing…"
+        : session.intelligenceBrief
+          ? "Regenerate brief"
+          : "Generate intelligence brief";
+
+  const buttonLabel = activeTab === "draft"
+    ? draftButtonLabel
+    : activeTab === "intelligence"
+      ? intelligenceButtonLabel
+      : hasDraft
+        ? "Agent brief ready"
+        : "Generate draft first";
+
+  const handleGenerate = () => {
+    if (activeTab === "draft") {
+      onGenerate();
+    } else if (activeTab === "intelligence") {
+      onGenerateIntelligence();
+    }
+  };
 
   return (
     <div>
@@ -130,21 +177,63 @@ export function StrategyView({
               margin: 0,
             }}
           >
-            The research is in. Now build the plan — one that works with how you actually
-            operate, not against it. Set your constraints once, generate the draft, edit what
-            needs editing.
+            {activeTab === "draft"
+              ? "The research is in. Now build the plan — one that works with how you actually operate, not against it. Set your constraints, generate the draft, edit what needs editing."
+              : activeTab === "intelligence"
+                ? "A comprehensive market analysis synthesizing all research into actionable intelligence — scorecards, competitive positioning, risk assessment, and roadmap."
+                : "PDA-aware execution instructions for AI agents. Copy this brief and paste it into Claude Code, Cursor, or any agentic workflow to delegate strategy execution."}
           </p>
         </div>
 
-        {hasDraft && (
-          <button
-            className="btn-text"
-            onClick={onExport}
-            style={{ fontSize: 13, color: "var(--ink-muted)", flexShrink: 0 }}
+        {activeTab === "draft" && hasDraft && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+            <button
+              className="btn-text"
+              onClick={onExport}
+              style={{ fontSize: 13, color: "var(--ink-muted)" }}
+            >
+              <DownloadSimple size={13} />
+              Export
+            </button>
+          </div>
+        )}
+        {activeTab === "intelligence" && session.intelligenceBrief && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+            <button
+              className="btn-text"
+              onClick={onExportIntelligence}
+              style={{ fontSize: 13, color: "var(--ink-muted)" }}
+            >
+              <DownloadSimple size={13} />
+              Export
+            </button>
+          </div>
+        )}
+
+        {draftHistory.length > 0 && (
+          <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
+            {draftHistory.length} draft{draftHistory.length > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* Tab Toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 18 }}>
+        <TabPill label="Strategy Draft" active={activeTab === "draft"} onClick={() => setActiveTab("draft")} />
+        <TabPill label="Intelligence Brief" active={activeTab === "intelligence"} onClick={() => setActiveTab("intelligence")} />
+        <TabPill label="Agent Brief" active={activeTab === "agent"} onClick={() => setActiveTab("agent")} />
+        {session.intelligenceBrief && activeTab === "intelligence" && (
+          <span
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              color: "var(--ink-muted)",
+              opacity: 0.5,
+              marginLeft: 8,
+            }}
           >
-            <DownloadSimple size={13} />
-            Export
-          </button>
+            Kimi
+          </span>
         )}
       </div>
 
@@ -155,30 +244,44 @@ export function StrategyView({
         readiness={readiness}
         completedResearch={completedResearch}
         audienceReady={audienceReady}
-        strategyRunning={strategyRunning}
-        strategyStatus={session.strategyStatus}
+        strategyRunning={isRunning}
+        strategyStatus={activeTab === "draft" ? session.strategyStatus : session.intelligenceStatus}
         strategyDirty={session.strategyDirty}
         draftExists={hasDraft}
         researchRunning={researchRunning}
-        error={session.strategyError}
+        error={activeTab === "draft" ? session.strategyError : session.intelligenceError}
         canGenerate={canGenerate}
         buttonLabel={buttonLabel}
         isOpen={drawerOpen}
         onToggle={() => setDrawerOpen((o) => !o)}
         onInputChange={onInputChange}
-        onGenerate={onGenerate}
+        onGenerate={handleGenerate}
       />
 
       <hr className="rule" style={{ marginBottom: 32 }} />
 
-      <StrategyContent
-        key={draft?.generatedAt ?? "empty"}
-        session={session}
-        strategyRunning={strategyRunning}
-        readiness={readiness}
-        onSectionChange={onSectionChange}
-        onGenerate={onGenerate}
-      />
+      {activeTab === "draft" && (
+        <StrategyContent
+          key={draft?.generatedAt ?? "empty"}
+          session={session}
+          strategyRunning={strategyRunning}
+          readiness={readiness}
+          onSectionChange={onSectionChange}
+          onGenerate={handleGenerate}
+        />
+      )}
+      {activeTab === "intelligence" && (
+        <IntelligenceView
+          brief={session.intelligenceBrief}
+          status={session.intelligenceStatus}
+          error={session.intelligenceError}
+        />
+      )}
+      {activeTab === "agent" && (
+        <AgentBriefView
+          markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem)}
+        />
+      )}
     </div>
   );
 }
@@ -284,6 +387,7 @@ function ConfigDrawer({
         <button
           className="btn-text"
           onClick={onToggle}
+          aria-expanded={isOpen}
           style={{ fontSize: 12, color: "var(--ink-muted)", flexShrink: 0, gap: 4 }}
         >
           <motion.span
@@ -390,7 +494,7 @@ function ReadinessIndicators({
               display: "inline-flex",
               alignItems: "center",
               gap: 5,
-              padding: "3px 9px",
+              padding: "2px 7px",
               borderRadius: 999,
               border: `1px solid ${done ? "var(--teal)" : "var(--rule)"}`,
               background: done ? "rgba(91, 138, 138, 0.08)" : "transparent",
@@ -413,7 +517,7 @@ function ReadinessIndicators({
             )}
             <span
               style={{
-                fontSize: 11,
+                fontSize: 10,
                 fontFamily: "var(--font-display)",
                 color: done ? "var(--teal-deep)" : "var(--ink-muted)",
                 opacity: done ? 1 : 0.5,
@@ -445,11 +549,11 @@ function MiniPill({ label }: { label: string }) {
   return (
     <span
       style={{
-        fontSize: 10,
+        fontSize: 9,
         fontFamily: "var(--font-mono)",
         color: "var(--ink-muted)",
         border: "1px solid var(--rule)",
-        padding: "2px 7px",
+        padding: "1px 6px",
         borderRadius: 999,
         letterSpacing: "0.03em",
         whiteSpace: "nowrap",
@@ -477,10 +581,10 @@ function GenerateButton({
       disabled={!canGenerate}
       style={{
         fontFamily: "var(--font-display)",
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: 600,
         letterSpacing: "0.01em",
-        padding: "8px 16px",
+        padding: "10px 52px",
         border: "none",
         borderRadius: 999,
         cursor: canGenerate ? "pointer" : "not-allowed",
@@ -489,7 +593,7 @@ function GenerateButton({
         transition: "background 0.15s",
         display: "inline-flex",
         alignItems: "center",
-        gap: 6,
+        gap: 8,
         flexShrink: 0,
       }}
     >
@@ -528,7 +632,7 @@ function PipelineIndicator({ status }: { status: SessionState["strategyStatus"] 
           opacity: exaDone ? 1 : 0.4,
         }}
       />
-      <PipelineStep label="Claude draft" active={exaDone} done={false} />
+      <PipelineStep label="AI synthesis" active={exaDone} done={false} />
     </div>
   );
 }
@@ -595,6 +699,7 @@ function InputForm({
         <GroupLabel label="Audience" />
         <FieldLabel label="Who you're building for" required />
         <textarea
+          className="strategy-input"
           value={inputs.audienceLens}
           onChange={(e) => onInputChange("audienceLens", e.target.value)}
           rows={3}
@@ -667,13 +772,13 @@ function InputForm({
               background: inputs.peerCollaborationOk ? "var(--teal)" : "transparent",
               color: inputs.peerCollaborationOk ? "#fff" : "var(--ink-muted)",
               borderRadius: 999,
-              fontSize: 12,
+              fontSize: 11,
               fontFamily: "var(--font-display)",
-              padding: "7px 12px",
+              padding: "5px 10px",
               cursor: "pointer",
               transition: "all 0.15s",
               lineHeight: 1.35,
-              marginTop: 12,
+              marginTop: 10,
             }}
           >
             Peer collaboration
@@ -698,6 +803,7 @@ function InputForm({
           <FieldLabel label="Weekly Capacity" />
           <input
             type="text"
+            className="strategy-input"
             value={inputs.weeklyCapacity}
             onChange={(e) => onInputChange("weeklyCapacity", e.target.value)}
             placeholder="E.g. 4 focused hours"
@@ -721,6 +827,7 @@ function InputForm({
           {inputs.contentMode.includes("other") && (
             <input
               type="text"
+              className="strategy-input"
               value={inputs.contentModeOther}
               onChange={(e) => onInputChange("contentModeOther", e.target.value)}
               placeholder="What format would you rather make?"
@@ -809,6 +916,7 @@ function AssetRowEditor({
             >
               <input
                 type="text"
+                className="strategy-input"
                 value={asset.name}
                 onChange={(e) => updateAsset(index, "name", e.target.value)}
                 placeholder="GenZen Solutions"
@@ -816,6 +924,7 @@ function AssetRowEditor({
               />
               <input
                 type="text"
+                className="strategy-input"
                 value={asset.url}
                 onChange={(e) => updateAsset(index, "url", e.target.value)}
                 placeholder="genzen.solutions"
@@ -823,6 +932,7 @@ function AssetRowEditor({
               />
               <input
                 type="text"
+                className="strategy-input"
                 value={asset.description}
                 onChange={(e) => updateAsset(index, "description", e.target.value)}
                 onKeyDown={(e) => {
@@ -840,15 +950,15 @@ function AssetRowEditor({
                   onClick={() => removeAsset(index)}
                   aria-label={`Remove asset ${index + 1}`}
                   style={{
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     justifyContent: "center",
                     color: "var(--ink-muted)",
                     border: "1px solid var(--rule)",
                     borderRadius: 999,
                   }}
                 >
-                  <X size={12} />
+                  <X size={11} />
                 </button>
               )}
             </div>
@@ -887,7 +997,7 @@ function SegmentedControl({
           border: "1px solid var(--rule)",
           borderRadius: 999,
           overflow: "hidden",
-          minHeight: 38,
+          minHeight: 32,
         }}
       >
         {options.map((option, index) => {
@@ -903,9 +1013,9 @@ function SegmentedControl({
                   index < options.length - 1 ? "1px solid var(--rule)" : "none",
                 background: active ? "var(--teal)" : "transparent",
                 color: active ? "#fff" : "var(--ink-muted)",
-                fontSize: 12,
+                fontSize: 11,
                 fontFamily: "var(--font-display)",
-                padding: "9px 8px",
+                padding: "6px 8px",
                 cursor: "pointer",
                 transition: "background 0.15s, color 0.15s",
                 lineHeight: 1.25,
@@ -939,7 +1049,7 @@ function MultiPillSelector({
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 5 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingTop: 5 }}>
       {options.map((option) => {
         const active = values.includes(option.value);
         return (
@@ -951,9 +1061,9 @@ function MultiPillSelector({
               background: active ? "var(--teal)" : "transparent",
               color: active ? "#fff" : "var(--ink-muted)",
               borderRadius: 999,
-              fontSize: 12,
+              fontSize: 11,
               fontFamily: "var(--font-display)",
-              padding: "7px 12px",
+              padding: "5px 10px",
               cursor: "pointer",
               transition: "all 0.15s",
               lineHeight: 1.35,
@@ -1069,7 +1179,7 @@ function StrategyContent({
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <SectionCard
           key={anchorSection.key}
           section={anchorSection}
@@ -1080,7 +1190,7 @@ function StrategyContent({
           onEdit={(value) => handleSectionChange(anchorSection.key, value)}
         />
 
-        <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {middleSections.map((section, sectionIndex) => {
             const index = sectionIndex + 1;
             return (
@@ -1113,10 +1223,10 @@ function StrategyContent({
 
 function StrategyLoadingState() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <StrategySkeletonCard index={0} widths={SKELETON_ROWS[0]} />
 
-      <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {SKELETON_ROWS.slice(1, 5).map((widths, sectionIndex) => (
           <StrategySkeletonCard key={sectionIndex + 1} index={sectionIndex + 1} widths={widths} />
         ))}
@@ -1136,7 +1246,7 @@ function StrategySkeletonCard({ index, widths }: { index: number; widths: number
       style={{
         border: "1px solid var(--rule)",
         borderLeft: isAnchor ? "2px solid var(--teal)" : "1px solid var(--rule)",
-        padding: 18,
+        padding: 16,
         opacity: 1 - index * 0.08,
         background: isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
       }}
@@ -1181,7 +1291,7 @@ function SectionCard({
 }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
-  const bodyMinHeight = isAnchor || isOutput ? 220 : 300;
+  const bodyMinHeight = isAnchor ? 200 : isOutput ? 160 : 140;
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -1191,9 +1301,9 @@ function SectionCard({
       transition={{ delay: index * 0.04, duration: 0.2 }}
       style={{
         border: "1px solid var(--rule)",
-        borderLeft: isAnchor ? "2px solid var(--teal)" : "1px solid var(--rule)",
-        background: isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
-        padding: 22,
+        borderLeft: isAnchor ? "3px solid var(--teal)" : isOutput ? "3px solid var(--terracotta)" : "1px solid var(--rule)",
+        background: isAnchor ? "rgba(91, 138, 138, 0.03)" : isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
+        padding: 18,
         display: "flex",
         flexDirection: "column",
       }}
@@ -1252,7 +1362,7 @@ function SectionCard({
                   opacity: 0.7,
                 }}
               >
-                action output
+                what to do this month
               </span>
             )}
           </div>
@@ -1283,6 +1393,7 @@ function SectionCard({
 
       {isEditing ? (
         <textarea
+          className="strategy-input"
           value={value}
           onChange={(e) => onEdit(e.target.value)}
           rows={12}
@@ -1472,6 +1583,7 @@ function SectionCitations({ citations }: { citations: StrategyCitation[] }) {
       <button
         onClick={() => setOpen((c) => !c)}
         className="btn-text"
+        aria-expanded={open}
         style={{ fontSize: 11, color: "var(--ink-muted)" }}
       >
         <motion.span
@@ -1611,3 +1723,29 @@ function FieldLabel({ label, required = false }: { label: string; required?: boo
     </label>
   );
 }
+
+function TabPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: "none",
+        background: active ? "var(--teal)" : "transparent",
+        color: active ? "#fff" : "var(--ink-muted)",
+        borderRadius: 999,
+        padding: "5px 14px",
+        cursor: "pointer",
+        fontFamily: "var(--font-display)",
+        fontSize: 12,
+        fontWeight: active ? 600 : 500,
+        letterSpacing: "0.02em",
+        lineHeight: 1,
+        transition: "background 0.15s, color 0.15s",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+

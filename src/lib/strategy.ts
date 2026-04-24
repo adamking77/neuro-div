@@ -252,3 +252,182 @@ function normalizeExistingAssets(assets: FounderConstraints["existingAssets"]) {
     description: asset.description.trim(),
   }));
 }
+
+const AGENT_BRIEF_PREAMBLE = `This is a distribution strategy for a PDA-neurodivergent founder. Treat it as a *living plan*, not a one-time execution list.
+
+The founder cannot sustain pushed demands. Surface relevant moves as **invitations, not assignments**. Expect to engage with this strategy across batched work sessions separated by ambient quiet — not as a daily task queue. When the founder returns to distribution work, orient them to where they are in the plan and what's available, rather than presenting a list.
+
+Key expectations of the receiving agent:
+
+1. **Respect hard constraints** (listed below). Do not suggest moves that violate them, even if the strategy evolves.
+2. **Surface one thing at a time** during active distribution work. Never present a full sequence as a to-do list.
+3. **Track outcomes.** When the founder engages with a move, log what was tried, what happened, what was dropped. Update this brief over time.
+4. **Flag staleness.** When accumulated outcomes indicate the strategy is drifting from reality, suggest the founder regenerate from Category Scout with updated context.
+5. **Integrate with the founder's own system.** The founder already has a working rhythm; map the strategy's execution shape onto that rhythm without imposing a new one.`;
+
+const AGENT_BRIEF_HARD_CONSTRAINTS = `- Low-contact is a hard constraint, not a preference. Do not propose high-touch outreach regardless of perceived opportunity.
+- Create-once over do-again. Favor assets that compound without maintenance over recurring tasks.
+- No demand stacking. One focus at a time.
+- Respect stated channel avoidances without exception.`;
+
+const AGENT_BRIEF_EXECUTION_SHAPE = `How this strategy wants to be *paced*, independent of any specific weekly rhythm:
+
+- **Batched bursts.** Execution work happens in concentrated sessions, not distributed across days. The founder can accomplish several strategy items in one focused sitting; that is preferred over spreading them thin.
+- **Ambient quiet between bursts.** Between work sessions, do not surface pending items. Previously-built assets continue working in the background; the founder is not "behind."
+- **Invitation register.** All surfacing language should be optional ("there's an X queued — want to start it?"), not imperative.
+- **One thing visible at a time.** When the founder is actively engaged with the strategy, show a single move, not a list. The next move comes after the current one is closed (completed, dropped, or deferred).
+
+Map this shape onto the founder's existing operating rhythm. Do not impose a specific cadence.`;
+
+const AGENT_BRIEF_EVOLUTION_PROTOCOL = `When the founder engages with this strategy:
+
+1. **Log outcomes** against specific moves. What was tried, what happened, what was dropped.
+2. **Surface staleness** when accumulated outcomes indicate the strategy is drifting. Suggest regeneration from Category Scout rather than attempting to rewrite internally.
+3. **Preserve the founder's edits.** If the founder has edited strategy sections inside Category Scout, those represent deliberate decisions. Do not silently replace them when regenerating.`;
+
+export function renderAgentBrief(
+  draft: StrategyDraft | null,
+  inputs: StrategyInputs,
+  problemStatement: string,
+): string {
+  if (!hasCompleteStrategyDraft(draft)) {
+    return "";
+  }
+
+  const date = new Date(draft.generatedAt).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const lines: string[] = [
+    `# Category Scout Agent Brief`,
+    `**Problem:** ${problemStatement || "Not specified"}`,
+    `**Generated:** ${date}`,
+    "",
+    "---",
+    "",
+    "## For the receiving agent",
+    "",
+    AGENT_BRIEF_PREAMBLE,
+    "",
+    "---",
+    "",
+    "## Founder profile",
+    "",
+    `- **Audience lens:** ${inputs.audienceLens || "Not specified"}`,
+    `- **Team size:** ${humanizeValue(inputs.teamSize)}`,
+    `- **Budget band:** ${humanizeValue(inputs.budgetBand)}`,
+    `- **Weekly capacity:** ${inputs.weeklyCapacity || "Not specified"}`,
+    `- **Social posting tolerance:** ${humanizeValue(inputs.socialPostingTolerance)}`,
+    `- **Outreach preferences:** ${humanizeValue(inputs.outreachTolerance)}`,
+    inputs.peerCollaborationOk ? "- **Peer collaboration:** Open to content swaps, podcast guesting, cross-promotion" : "",
+    `- **Content formats:** ${formatContentModes(inputs)}`,
+    inputs.channelAvoidances ? `- **Channel avoidances:** ${inputs.channelAvoidances}` : "",
+    "",
+    "---",
+    "",
+    "## Existing work and assets",
+    "",
+    renderExistingAssets(inputs.existingAssets),
+    "",
+    "---",
+    "",
+    "## Hard constraints",
+    "",
+    AGENT_BRIEF_HARD_CONSTRAINTS,
+    "",
+    "---",
+    "",
+  ];
+
+  for (const section of STRATEGY_SECTIONS) {
+    lines.push(`## ${section.label}`, "", draft.sections[section.key], "");
+  }
+
+  if (draft.warnings.length > 0) {
+    lines.push("---", "", "## Warnings surfaced by the planner", "");
+    for (const warning of draft.warnings) {
+      lines.push(`- ${warning}`);
+    }
+    lines.push("");
+  }
+
+  if (draft.citations.length > 0) {
+    lines.push("---", "", "## Evidence / citations", "");
+    const grouped = groupCitationsBySection(draft.citations);
+    for (const [sectionLabel, citations] of grouped) {
+      lines.push(`### ${sectionLabel}`, "");
+      for (const citation of citations) {
+        lines.push(`- [${citation.title}](${citation.url})${citation.note ? ` — ${citation.note}` : ""}`);
+      }
+      lines.push("");
+    }
+  }
+
+  lines.push(
+    "---",
+    "",
+    "## Execution shape",
+    "",
+    AGENT_BRIEF_EXECUTION_SHAPE,
+    "",
+    "---",
+    "",
+    "## Evolution protocol",
+    "",
+    AGENT_BRIEF_EVOLUTION_PROTOCOL,
+    "",
+  );
+
+  return lines.filter(Boolean).join("\n");
+}
+
+function formatContentModes(inputs: StrategyInputs): string {
+  const modeLabels: Record<string, string> = {
+    writing: "Writing",
+    "short-video": "Video",
+    audio: "Audio",
+    design: "Design",
+    interactive: "Interactive",
+    other: inputs.contentModeOther || "Other",
+    none: "No content",
+  };
+
+  if (inputs.contentMode.length === 0 || inputs.contentMode.includes("none")) {
+    return "No content creation preferred";
+  }
+
+  return inputs.contentMode.map((m) => modeLabels[m] ?? m).join(", ");
+}
+
+function renderExistingAssets(assets: FounderConstraints["existingAssets"]): string {
+  const populated = assets.filter((a) => a.name.trim().length > 0);
+  if (populated.length === 0) {
+    return "none listed";
+  }
+
+  return populated
+    .map((asset) => {
+      let line = `- **${asset.name.trim()}**`;
+      if (asset.url.trim()) {
+        line += ` (${asset.url.trim()})`;
+      }
+      if (asset.description.trim()) {
+        line += ` — ${asset.description.trim()}`;
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+function groupCitationsBySection(citations: StrategyDraft["citations"]): Map<string, typeof citations> {
+  const map = new Map<string, typeof citations>();
+  for (const citation of citations) {
+    const label = STRATEGY_SECTIONS.find((s) => s.key === citation.section)?.label ?? citation.section;
+    const existing = map.get(label) ?? [];
+    existing.push(citation);
+    map.set(label, existing);
+  }
+  return map;
+}

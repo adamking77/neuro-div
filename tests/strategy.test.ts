@@ -4,7 +4,6 @@ import {
   buildExaSearchRequest,
   buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
-  getAnthropicConfig,
   getExaConfig,
   mergeStrategyCitations,
   parseExaSearchResponse,
@@ -19,6 +18,7 @@ import {
   getStrategyFingerprint,
   getStrategyReadiness,
   hasCompleteStrategyDraft,
+  renderAgentBrief,
 } from "../src/lib/strategy";
 import type { PhaseResult } from "../src/types";
 
@@ -139,10 +139,6 @@ describe("strategy draft completeness", () => {
 });
 
 describe("strategy API helpers", () => {
-  it("rejects missing Anthropic credentials", () => {
-    expect(() => getAnthropicConfig({})).toThrow("ANTHROPIC_API_KEY not configured");
-  });
-
   it("rejects missing Exa credentials", () => {
     expect(() => getExaConfig({})).toThrow("EXA_API_KEY not configured");
   });
@@ -151,7 +147,7 @@ describe("strategy API helpers", () => {
     expect(() => validateStrategyDraftRequest({})).toThrow("problem is required");
   });
 
-  it("builds Exa research and Anthropic prompts with low-contact guidance", () => {
+  it("builds Exa research and Kimi prompts with low-contact guidance", () => {
     const payload = {
       problem: "manual reporting wastes time",
       knownPlayers: "",
@@ -611,5 +607,128 @@ describe("strategy API helpers", () => {
     expect(Object.values(fallback.sections).every((section) => section.trim().length > 0)).toBe(true);
     expect(fallback.sections.channelPlan).toContain("SEO diagnostics");
     expect(fallback.warnings).toEqual(["Avoid daily posting."]);
+  });
+});
+
+describe("renderAgentBrief", () => {
+  const baseDraft = {
+    sections: {
+      positioning: "Positioning text here.",
+      channelPlan: "Channel plan text here.",
+      messageAngles: "Message angles text here.",
+      assetIdeas: "Asset ideas text here.",
+      experiments: "Experiments text here.",
+      thirtyDaySequence: "30-day sequence text here.",
+    },
+    warnings: ["Avoid daily posting."],
+    citations: [
+      {
+        section: "positioning" as const,
+        title: "Source One",
+        url: "https://example.com",
+        note: "Research support",
+      },
+    ],
+    generatedAt: "2026-04-24T00:00:00.000Z",
+  };
+
+  const baseInputs = createEmptyStrategyInputs();
+
+  it("produces non-empty markdown for a complete draft", () => {
+    const brief = renderAgentBrief(baseDraft, baseInputs, "manual reporting wastes time");
+    expect(brief.length).toBeGreaterThan(0);
+    expect(brief).toContain("# Category Scout Agent Brief");
+    expect(brief).toContain("manual reporting wastes time");
+  });
+
+  it("includes all six strategy sections with correct headings", () => {
+    const brief = renderAgentBrief(baseDraft, baseInputs, "test");
+    expect(brief).toContain("## Positioning");
+    expect(brief).toContain("## Channel Plan");
+    expect(brief).toContain("## Message Angles");
+    expect(brief).toContain("## Asset Ideas");
+    expect(brief).toContain("## Experiments");
+    expect(brief).toContain("## 30-Day Sequence");
+  });
+
+  it("renders founder profile from inputs", () => {
+    const inputs = {
+      ...baseInputs,
+      audienceLens: "solo operators",
+      teamSize: "small-team" as const,
+      budgetBand: "moderate" as const,
+      weeklyCapacity: "6 hours",
+    };
+    const brief = renderAgentBrief(baseDraft, inputs, "test");
+    expect(brief).toContain("solo operators");
+    expect(brief).toContain("Small Team");
+    expect(brief).toContain("Moderate");
+    expect(brief).toContain("6 hours");
+  });
+
+  it("shows 'none listed' when no assets have names", () => {
+    const brief = renderAgentBrief(baseDraft, baseInputs, "test");
+    expect(brief).toContain("none listed");
+  });
+
+  it("renders existing assets when names are populated", () => {
+    const inputs = {
+      ...baseInputs,
+      existingAssets: [
+        { name: "GenZen Solutions", url: "genzen.solutions", description: "counter-exploitation agency" },
+        { name: "", url: "", description: "" },
+      ],
+    };
+    const brief = renderAgentBrief(baseDraft, inputs, "test");
+    expect(brief).toContain("GenZen Solutions");
+    expect(brief).toContain("genzen.solutions");
+    expect(brief).toContain("counter-exploitation agency");
+    expect(brief).not.toContain("empty-name");
+  });
+
+  it("omits warnings section when warnings are empty", () => {
+    const draft = { ...baseDraft, warnings: [] };
+    const brief = renderAgentBrief(draft, baseInputs, "test");
+    expect(brief).not.toContain("## Warnings surfaced by the planner");
+  });
+
+  it("includes warnings section when warnings exist", () => {
+    const brief = renderAgentBrief(baseDraft, baseInputs, "test");
+    expect(brief).toContain("## Warnings surfaced by the planner");
+    expect(brief).toContain("Avoid daily posting.");
+  });
+
+  it("omits evidence section when citations are empty", () => {
+    const draft = { ...baseDraft, citations: [] };
+    const brief = renderAgentBrief(draft, baseInputs, "test");
+    expect(brief).not.toContain("## Evidence / citations");
+  });
+
+  it("includes evidence section with grouped citations", () => {
+    const brief = renderAgentBrief(baseDraft, baseInputs, "test");
+    expect(brief).toContain("## Evidence / citations");
+    expect(brief).toContain("### Positioning");
+    expect(brief).toContain("[Source One](https://example.com)");
+  });
+
+  it("appends contentModeOther when 'other' is selected", () => {
+    const inputs = {
+      ...baseInputs,
+      contentMode: ["other"] as const,
+      contentModeOther: "interactive calculators",
+    };
+    const brief = renderAgentBrief(baseDraft, inputs, "test");
+    expect(brief).toContain("interactive calculators");
+  });
+
+  it("reflects peer collaboration when enabled", () => {
+    const inputs = { ...baseInputs, peerCollaborationOk: true };
+    const brief = renderAgentBrief(baseDraft, inputs, "test");
+    expect(brief).toContain("Peer collaboration");
+  });
+
+  it("returns empty string for incomplete draft", () => {
+    const incomplete = { ...baseDraft, sections: { ...baseDraft.sections, positioning: "" } };
+    expect(renderAgentBrief(incomplete, baseInputs, "test")).toBe("");
   });
 });
