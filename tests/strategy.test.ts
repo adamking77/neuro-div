@@ -17,6 +17,7 @@ import {
   createEmptyStrategyInputs,
   getStrategyFingerprint,
   getStrategyReadiness,
+  hasCompleteStrategyDraft,
 } from "../src/lib/strategy";
 import type { PhaseResult } from "../src/types";
 
@@ -95,6 +96,44 @@ describe("strategy fingerprinting", () => {
     });
 
     expect(first).not.toEqual(second);
+  });
+});
+
+describe("strategy draft completeness", () => {
+  it("does not treat citation-only drafts with blank sections as complete", () => {
+    expect(hasCompleteStrategyDraft(null)).toBe(false);
+    expect(hasCompleteStrategyDraft({
+      sections: {
+        positioning: "",
+        channelPlan: "Channels",
+        messageAngles: "Angles",
+        assetIdeas: "Assets",
+        experiments: "Experiments",
+        thirtyDaySequence: "Sequence",
+      },
+      warnings: ["Warning"],
+      citations: [
+        {
+          section: "positioning",
+          title: "Source",
+          url: "https://example.com",
+        },
+      ],
+      generatedAt: "2026-04-24T00:00:00.000Z",
+    })).toBe(false);
+    expect(hasCompleteStrategyDraft({
+      sections: {
+        positioning: "Positioning",
+        channelPlan: "Channels",
+        messageAngles: "Angles",
+        assetIdeas: "Assets",
+        experiments: "Experiments",
+        thirtyDaySequence: "Sequence",
+      },
+      warnings: [],
+      citations: [],
+      generatedAt: "2026-04-24T00:00:00.000Z",
+    })).toBe(true);
   });
 });
 

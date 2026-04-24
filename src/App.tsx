@@ -10,6 +10,7 @@ import {
   condensePhaseResearch,
   createEmptyStrategyInputs,
   getStrategyFingerprint,
+  hasCompleteStrategyDraft,
   syncStrategyDirtyState,
 } from "./lib/strategy";
 import type {
@@ -239,7 +240,7 @@ export default function App() {
     if (!session.problem.trim()) return;
     if (!session.strategyInputs.audienceLens.trim()) return;
 
-    if (session.strategyDraft) {
+    if (hasCompleteStrategyDraft(session.strategyDraft)) {
       const shouldReplace = window.confirm("Regenerating will replace the current strategy draft. Continue?");
       if (!shouldReplace) return;
     }
@@ -291,6 +292,9 @@ export default function App() {
       await new Promise((resolve) => setTimeout(resolve, 700));
 
       const finalDraft = payload as StrategyDraft;
+      if (!hasCompleteStrategyDraft(finalDraft)) {
+        throw new Error("Strategy draft returned without section text. Try rebuilding.");
+      }
 
       const fingerprint = getStrategyFingerprint({
         problem: session.problem,
@@ -312,6 +316,7 @@ export default function App() {
     } catch (error) {
       mutateSession((current) => ({
         ...current,
+        strategyDraft: hasCompleteStrategyDraft(current.strategyDraft) ? current.strategyDraft : null,
         strategyStatus: "error",
         strategyError: error instanceof Error ? error.message : "Strategy draft failed",
       }));

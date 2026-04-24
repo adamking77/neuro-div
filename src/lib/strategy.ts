@@ -6,6 +6,7 @@ import type {
   PhaseResult,
   SessionState,
   StrategyInputs,
+  StrategyDraft,
   StrategySectionKey,
 } from "../types";
 
@@ -125,7 +126,7 @@ export function getStrategyFingerprint(args: {
 export function buildStrategyMarkdown(session: SessionState): string {
   const { strategyDraft, strategyInputs } = session;
 
-  if (!strategyDraft) {
+  if (!hasCompleteStrategyDraft(strategyDraft)) {
     return "";
   }
 
@@ -175,7 +176,7 @@ export function buildStrategyMarkdown(session: SessionState): string {
 }
 
 export function syncStrategyDirtyState(session: SessionState): SessionState {
-  if (!session.strategyDraft || !session.strategySourceFingerprint) {
+  if (!hasCompleteStrategyDraft(session.strategyDraft) || !session.strategySourceFingerprint) {
     return {
       ...session,
       strategyDirty: false,
@@ -193,6 +194,16 @@ export function syncStrategyDirtyState(session: SessionState): SessionState {
     ...session,
     strategyDirty: session.strategySourceFingerprint !== nextFingerprint,
   };
+}
+
+export function hasCompleteStrategyDraft(draft: StrategyDraft | null | undefined): draft is StrategyDraft {
+  if (!draft) {
+    return false;
+  }
+
+  return STRATEGY_SECTIONS.every((section) =>
+    typeof draft.sections?.[section.key] === "string" && draft.sections[section.key].trim().length > 0,
+  );
 }
 
 export function summarizeResultSource(result: ExaResult): string {

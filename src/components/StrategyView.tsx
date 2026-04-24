@@ -6,6 +6,7 @@ import {
   STRATEGY_SECTIONS,
   getCompletedResearchCount,
   getStrategyReadiness,
+  hasCompleteStrategyDraft,
 } from "../lib/strategy";
 import type {
   SessionState,
@@ -60,11 +61,13 @@ export function StrategyView({
   onGenerate,
   onExport,
 }: Props) {
-  const [drawerOpen, setDrawerOpen] = useState(!session.strategyDraft);
-  const prevDraftAt = useRef<string | null>(session.strategyDraft?.generatedAt ?? null);
+  const draft = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft : null;
+  const hasDraft = !!draft;
+  const [drawerOpen, setDrawerOpen] = useState(!hasDraft);
+  const prevDraftAt = useRef<string | null>(draft?.generatedAt ?? null);
 
   useEffect(() => {
-    const current = session.strategyDraft?.generatedAt ?? null;
+    const current = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft.generatedAt : null;
     if (current && current !== prevDraftAt.current) {
       setDrawerOpen(false);
       prevDraftAt.current = current;
@@ -83,7 +86,7 @@ export function StrategyView({
       ? "Researching…"
       : session.strategyStatus === "drafting"
         ? "Drafting…"
-        : session.strategyDraft
+        : hasDraft
           ? session.strategyDirty
             ? "Regenerate"
             : "Rebuild"
@@ -129,7 +132,7 @@ export function StrategyView({
           </p>
         </div>
 
-        {session.strategyDraft && (
+        {hasDraft && (
           <button
             className="btn-text"
             onClick={onExport}
@@ -151,7 +154,7 @@ export function StrategyView({
         strategyRunning={strategyRunning}
         strategyStatus={session.strategyStatus}
         strategyDirty={session.strategyDirty}
-        draftExists={!!session.strategyDraft}
+        draftExists={hasDraft}
         researchRunning={researchRunning}
         error={session.strategyError}
         canGenerate={canGenerate}
@@ -165,7 +168,7 @@ export function StrategyView({
       <hr className="rule" style={{ marginBottom: 32 }} />
 
       <StrategyContent
-        key={session.strategyDraft?.generatedAt ?? "empty"}
+        key={draft?.generatedAt ?? "empty"}
         session={session}
         strategyRunning={strategyRunning}
         readiness={readiness}
@@ -796,11 +799,13 @@ function StrategyContent({
     onSectionChange(key, value);
   };
 
-  if (!session.strategyDraft && strategyRunning) {
+  const draft = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft : null;
+
+  if (!draft && strategyRunning) {
     return <StrategyLoadingState />;
   }
 
-  if (!session.strategyDraft && !readiness.ready) {
+  if (!draft && !readiness.ready) {
     return (
       <EmptyStrategyState
         title="Complete enough research to unlock the draft."
@@ -809,20 +814,22 @@ function StrategyContent({
     );
   }
 
-  if (!session.strategyDraft && readiness.ready) {
+  if (!draft && readiness.ready) {
     return (
       <EmptyStrategyState
-        title="Research is ready."
-        body="Add your audience and constraints above, then generate the draft."
+        title={session.strategyDraft ? "Draft needs to be rebuilt." : "Research is ready."}
+        body={
+          session.strategyDraft
+            ? "The saved draft is missing section text. Generate again to replace it with a complete draft."
+            : "Add your audience and constraints above, then generate the draft."
+        }
         actionLabel="Generate draft"
         onAction={onGenerate}
       />
     );
   }
 
-  if (!session.strategyDraft) return null;
-
-  const draft = session.strategyDraft;
+  if (!draft) return null;
 
   return (
     <div>
