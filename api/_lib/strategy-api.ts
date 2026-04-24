@@ -233,6 +233,7 @@ export function buildStrategyDraftPrompt(
 
   const founderConstraints = {
     ...payload.founderConstraints,
+    outreachPreferencesText: formatOutreachPreferences(payload.founderConstraints.outreachTolerance),
     existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
     existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
     audienceLens: payload.audienceLens,
@@ -443,12 +444,6 @@ export function mergeStrategyWarnings(warnings: string[], exaDossier: ExaResearc
 }
 
 function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): string {
-  const outreachLabel: Record<string, string> = {
-    "inbound-only": "inbound only — no outreach of any kind",
-    "warm-intro-ok": "warm introductions only — no cold outreach",
-    "async-email-ok": "async cold email acceptable but no calls or social DMs",
-  };
-
   const contentLabel: Record<string, string> = {
     writing: "written content (articles, guides, emails)",
     "short-video": "short video",
@@ -470,6 +465,8 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     ].join(", ");
   const assetLines = buildExistingAssetLines(payload.founderConstraints.existingAssets);
 
+  const outreachText = formatOutreachPreferences(payload.founderConstraints.outreachTolerance);
+
   const founderConstraints = [
     `Audience lens: ${payload.audienceLens}.`,
     `Team size: ${payload.founderConstraints.teamSize}.`,
@@ -478,7 +475,7 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
       ? `Weekly capacity: ${payload.founderConstraints.weeklyCapacity}.`
       : "",
     `Social posting tolerance: ${payload.founderConstraints.socialPostingTolerance}.`,
-    `Outreach tolerance: ${outreachLabel[payload.founderConstraints.outreachTolerance] ?? payload.founderConstraints.outreachTolerance}.`,
+    `Outreach preferences: ${outreachText}.`,
     `Content creation mode: ${contentModeText}.`,
     assetLines ? `Existing Work and Assets:\n${assetLines}` : "",
     payload.founderConstraints.channelAvoidances
@@ -500,6 +497,17 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     "Return structured output that is specific, evidence-grounded, and directly useful for follow-on strategy drafting.",
     `Seed research:\n${seedContext}`,
   ].filter(Boolean).join("\n\n"), 4096);
+}
+
+function formatOutreachPreferences(outreachTolerance: FounderConstraints["outreachTolerance"]): string {
+  const outreachLabel: Record<string, string> = {
+    "inbound-only": "inbound only — no outreach of any kind",
+    "warm-intro-ok": "warm introductions only — no cold outreach",
+    "async-email-ok": "async cold email acceptable but no calls or social DMs",
+  };
+  const outreachModes = outreachTolerance.length > 0 ? outreachTolerance : ["inbound-only"];
+
+  return outreachModes.map((mode) => outreachLabel[mode] ?? mode).join("; ");
 }
 
 function buildSeedContext(payload: StrategyDraftRequestPayload): string {
@@ -587,9 +595,9 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     "socialPostingTolerance is invalid",
   );
   const channelAvoidances = expectOptionalString(body.channelAvoidances);
-  const outreachTolerance = expectEnum(
+  const outreachTolerance = expectEnumArray(
     body.outreachTolerance,
-    ["inbound-only", "warm-intro-ok", "async-email-ok"],
+    ["inbound-only", "warm-intro-ok", "async-email-ok"] as const,
     "outreachTolerance is invalid",
   );
   const contentMode = expectEnumArray(

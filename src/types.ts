@@ -38,7 +38,7 @@ export interface FounderConstraints {
   weeklyCapacity: string;
   socialPostingTolerance: SocialPostingTolerance;
   channelAvoidances: string;
-  outreachTolerance: OutreachTolerance;
+  outreachTolerance: OutreachTolerance[];
   contentMode: ContentMode[];
   contentModeOther: string;
   existingAssets: ExistingAsset[];

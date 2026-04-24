@@ -162,7 +162,7 @@ describe("strategy API helpers", () => {
         weeklyCapacity: "4 hours",
         socialPostingTolerance: "avoid",
         channelAvoidances: "LinkedIn and live events",
-        outreachTolerance: "inbound-only",
+        outreachTolerance: ["inbound-only", "warm-intro-ok"],
         contentMode: ["writing"],
         contentModeOther: "",
         existingAssets: [
@@ -230,6 +230,7 @@ describe("strategy API helpers", () => {
     expect(prompt.system).toContain("PDA");
     expect(prompt.system).toContain("create-once");
     expect(prompt.user).toContain("operators who avoid networking");
+    expect(prompt.user).toContain("warm introductions only");
     expect(prompt.user).not.toContain("Existing Work and Assets");
 
     const otherPrompt = buildStrategyDraftPrompt({
@@ -536,7 +537,7 @@ describe("strategy API helpers", () => {
         weeklyCapacity: "4 hours",
         socialPostingTolerance: "avoid",
         channelAvoidances: "",
-        outreachTolerance: "inbound-only",
+        outreachTolerance: ["inbound-only"],
         contentMode: ["writing"],
         contentModeOther: "",
         existingAssets: [{ name: "", url: "", description: "" }],

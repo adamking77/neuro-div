@@ -271,7 +271,9 @@ function ConfigDrawer({
         {audienceReady && (
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <MiniPill label={inputs.teamSize === "solo" ? "Solo" : "Small team"} />
-            <MiniPill label={OUTREACH_LABELS[inputs.outreachTolerance] ?? inputs.outreachTolerance} />
+            {inputs.outreachTolerance.length > 0 && (
+              <MiniPill label={inputs.outreachTolerance.map((m) => OUTREACH_LABELS[m] ?? m).join(", ")} />
+            )}
             {inputs.contentMode.length > 0 && !inputs.contentMode.includes("none") && (
               <MiniPill label={inputs.contentMode.map((m) => CONTENT_LABELS[m] ?? m).join(", ")} />
             )}
@@ -636,18 +638,18 @@ function InputForm({
             )
           }
         />
-        <SegmentedControl
-          label="Outreach Preferences"
-          value={inputs.outreachTolerance}
-          options={[
-            { value: "inbound-only", label: "Inbound" },
-            { value: "warm-intro-ok", label: "Warm intro" },
-            { value: "async-email-ok", label: "Async email" },
-          ]}
-          onChange={(v) =>
-            onInputChange("outreachTolerance", v as StrategyInputs["outreachTolerance"])
-          }
-        />
+        <div>
+          <FieldLabel label="Outreach Preferences" />
+          <MultiPillSelector
+            values={inputs.outreachTolerance}
+            options={[
+              { value: "inbound-only", label: "Inbound" },
+              { value: "warm-intro-ok", label: "Warm intro" },
+              { value: "async-email-ok", label: "Async email" },
+            ]}
+            onChange={(next) => onInputChange("outreachTolerance", next as StrategyInputs["outreachTolerance"])}
+          />
+        </div>
       </div>
 
       <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>

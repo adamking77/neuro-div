@@ -55,7 +55,7 @@ export function createEmptyStrategyInputs(): StrategyInputs {
     weeklyCapacity: "",
     socialPostingTolerance: "avoid",
     channelAvoidances: "",
-    outreachTolerance: "inbound-only",
+    outreachTolerance: ["inbound-only"],
     contentMode: ["writing"],
     contentModeOther: "",
     existingAssets: [{ name: "", url: "", description: "" }],
