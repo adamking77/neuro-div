@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton, Spinner } from "@heroui/react";
-import { ArrowClockwise, CaretDown, Check, DownloadSimple, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, CaretDown, Check, DownloadSimple, PencilSimple, WarningCircle } from "@phosphor-icons/react";
 import {
   STRATEGY_SECTIONS,
   getCompletedResearchCount,
@@ -911,6 +911,7 @@ function SectionCard({
 }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
+  const [isEditing, setIsEditing] = useState(false);
 
   return (
     <motion.div
@@ -988,14 +989,185 @@ function SectionCard({
             {section.hint}
           </p>
         </div>
-        <CitationChip citations={citations} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <CitationChip citations={citations} />
+          <button
+            className="btn-text"
+            onClick={() => setIsEditing((current) => !current)}
+            aria-label={isEditing ? `Done editing ${section.label}` : `Edit ${section.label}`}
+            style={{
+              color: isEditing ? "var(--teal-deep)" : "var(--ink-muted)",
+              border: "1px solid var(--rule)",
+              borderRadius: 999,
+              width: 26,
+              height: 26,
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {isEditing ? <Check size={13} weight="bold" /> : <PencilSimple size={13} />}
+          </button>
+        </div>
       </div>
 
-      <textarea value={value} onChange={(e) => onEdit(e.target.value)} rows={7} style={{ flex: 1 }} />
+      {isEditing ? (
+        <textarea
+          value={value}
+          onChange={(e) => onEdit(e.target.value)}
+          rows={12}
+          style={{ flex: 1, minHeight: 300 }}
+        />
+      ) : (
+        <FormattedStrategySection value={value} />
+      )}
 
       <SectionCitations citations={citations} />
     </motion.div>
   );
+}
+
+type StrategyTextBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; ordered: boolean; items: string[] };
+
+function FormattedStrategySection({ value }: { value: string }) {
+  const blocks = parseStrategyText(value);
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--rule)",
+        padding: "14px 16px",
+        minHeight: 300,
+        fontSize: 13,
+        lineHeight: 1.65,
+        color: "var(--ink-light)",
+      }}
+    >
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return (
+            <p
+              key={index}
+              style={{
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink)",
+                margin: index === 0 ? "0 0 8px" : "16px 0 8px",
+              }}
+            >
+              {renderInlineText(block.text)}
+            </p>
+          );
+        }
+
+        if (block.type === "list") {
+          const ListTag = block.ordered ? "ol" : "ul";
+          return (
+            <ListTag
+              key={index}
+              style={{
+                margin: index === 0 ? "0 0 10px" : "10px 0",
+                paddingLeft: block.ordered ? 20 : 18,
+                display: "flex",
+                flexDirection: "column",
+                gap: 7,
+              }}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} style={{ paddingLeft: 2 }}>
+                  {renderInlineText(item)}
+                </li>
+              ))}
+            </ListTag>
+          );
+        }
+
+        return (
+          <p key={index} style={{ margin: index === 0 ? "0 0 10px" : "10px 0" }}>
+            {renderInlineText(block.text)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function parseStrategyText(value: string): StrategyTextBlock[] {
+  const lines = value.replace(/\r/g, "").split("\n");
+  const blocks: StrategyTextBlock[] = [];
+  let paragraph: string[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+
+  const flushParagraph = () => {
+    if (paragraph.length === 0) return;
+    blocks.push({ type: "paragraph", text: paragraph.join(" ") });
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!list) return;
+    blocks.push({ type: "list", ordered: list.ordered, items: list.items });
+    list = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const heading = line.match(/^#{1,4}\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      blocks.push({ type: "heading", text: stripMarkdownMarks(heading[1]) });
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      flushParagraph();
+      const ordered = Boolean(numbered);
+      if (!list || list.ordered !== ordered) {
+        flushList();
+        list = { ordered, items: [] };
+      }
+      list.items.push(stripMarkdownMarks((bullet?.[1] ?? numbered?.[1] ?? "").trim()));
+      continue;
+    }
+
+    flushList();
+    paragraph.push(stripMarkdownMarks(line));
+  }
+
+  flushParagraph();
+  flushList();
+
+  return blocks.length > 0 ? blocks : [{ type: "paragraph", text: value.trim() }];
+}
+
+function stripMarkdownMarks(value: string): string {
+  return value.replace(/^#+\s*/, "").trim();
+}
+
+function renderInlineText(value: string) {
+  const parts = value.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} style={{ color: "var(--ink)", fontWeight: 650 }}>{part.slice(2, -2)}</strong>;
+    }
+
+    return <span key={index}>{part}</span>;
+  });
 }
 
 function StrategyLoadingState() {
