@@ -229,10 +229,11 @@ function ConfigDrawer({
       {/* Summary bar */}
       <div
         style={{
-          padding: "18px 0",
+          padding: "22px 0",
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: 18,
+          rowGap: 12,
           flexWrap: "wrap",
         }}
       >
@@ -589,8 +590,8 @@ function InputForm({
   onGenerate: () => void;
 }) {
   return (
-    <div style={{ paddingBottom: 28 }}>
-      <div style={{ marginBottom: 28 }}>
+    <div style={{ padding: "10px 0 38px" }}>
+      <div style={{ marginBottom: 42 }}>
         <GroupLabel label="Audience" />
         <FieldLabel label="Who you're building for" required />
         <textarea
@@ -603,7 +604,16 @@ function InputForm({
 
       <GroupLabel label="How you operate" />
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+      <div
+        className="constraints-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          columnGap: 30,
+          rowGap: 30,
+          marginBottom: 38,
+        }}
+      >
         <SegmentedControl
           label="Your Team"
           value={inputs.teamSize}
@@ -657,24 +667,33 @@ function InputForm({
               background: inputs.peerCollaborationOk ? "var(--teal)" : "transparent",
               color: inputs.peerCollaborationOk ? "#fff" : "var(--ink-muted)",
               borderRadius: 999,
-              fontSize: 11,
+              fontSize: 12,
               fontFamily: "var(--font-display)",
-              padding: "4px 10px",
+              padding: "7px 12px",
               cursor: "pointer",
               transition: "all 0.15s",
-              lineHeight: 1.4,
-              marginTop: 8,
+              lineHeight: 1.35,
+              marginTop: 12,
             }}
           >
             Peer collaboration
           </button>
-          <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.45, margin: "6px 0 0" }}>
+          <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.55, margin: "8px 0 0" }}>
             Content swaps, podcast guesting, cross-promotion with other operators.
           </p>
         </div>
       </div>
 
-      <div className="constraints-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+      <div
+        className="constraints-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          columnGap: 30,
+          rowGap: 30,
+          marginBottom: 38,
+        }}
+      >
         <div>
           <FieldLabel label="Weekly Capacity" />
           <input
@@ -705,13 +724,13 @@ function InputForm({
               value={inputs.contentModeOther}
               onChange={(e) => onInputChange("contentModeOther", e.target.value)}
               placeholder="What format would you rather make?"
-              style={{ marginTop: 8 }}
+              style={{ marginTop: 12 }}
             />
           )}
         </div>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 38 }}>
         <FieldLabel label="Existing Work And Assets" />
         <AssetRowEditor
           assets={inputs.existingAssets}
@@ -731,7 +750,7 @@ function InputForm({
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 34 }}>
         <GenerateButton
           canGenerate={canGenerate}
           buttonLabel={buttonLabel}
@@ -769,7 +788,7 @@ function AssetRowEditor({
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {rows.map((asset, index) => {
           const isOnlyEmptyRow = rows.length === 1 &&
             !asset.name.trim() &&
@@ -783,7 +802,7 @@ function AssetRowEditor({
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr 2fr 32px",
-                gap: 8,
+                gap: 12,
                 alignItems: "start",
                 position: "relative",
               }}
@@ -840,7 +859,7 @@ function AssetRowEditor({
       <button
         className="btn-text"
         onClick={addAsset}
-        style={{ fontSize: 12, color: "var(--teal-deep)", marginTop: 10 }}
+        style={{ fontSize: 12, color: "var(--teal-deep)", marginTop: 14 }}
       >
         + Add asset
       </button>
@@ -868,6 +887,7 @@ function SegmentedControl({
           border: "1px solid var(--rule)",
           borderRadius: 999,
           overflow: "hidden",
+          minHeight: 38,
         }}
       >
         {options.map((option, index) => {
@@ -883,12 +903,12 @@ function SegmentedControl({
                   index < options.length - 1 ? "1px solid var(--rule)" : "none",
                 background: active ? "var(--teal)" : "transparent",
                 color: active ? "#fff" : "var(--ink-muted)",
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "var(--font-display)",
-                padding: "6px 0",
+                padding: "9px 8px",
                 cursor: "pointer",
                 transition: "background 0.15s, color 0.15s",
-                lineHeight: 1.2,
+                lineHeight: 1.25,
               }}
             >
               {option.label}
@@ -919,7 +939,7 @@ function MultiPillSelector({
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingTop: 2 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 5 }}>
       {options.map((option) => {
         const active = values.includes(option.value);
         return (
@@ -931,12 +951,12 @@ function MultiPillSelector({
               background: active ? "var(--teal)" : "transparent",
               color: active ? "#fff" : "var(--ink-muted)",
               borderRadius: 999,
-              fontSize: 11,
+              fontSize: 12,
               fontFamily: "var(--font-display)",
-              padding: "4px 10px",
+              padding: "7px 12px",
               cursor: "pointer",
               transition: "all 0.15s",
-              lineHeight: 1.4,
+              lineHeight: 1.35,
             }}
           >
             {option.label}
@@ -1563,7 +1583,7 @@ function GroupLabel({ label }: { label: string }) {
         textTransform: "uppercase",
         color: "var(--ink-muted)",
         fontFamily: "var(--font-mono)",
-        margin: "0 0 18px",
+        margin: "0 0 22px",
         opacity: 0.65,
       }}
     >
@@ -1582,7 +1602,7 @@ function FieldLabel({ label, required = false }: { label: string; required?: boo
         letterSpacing: "0.12em",
         textTransform: "uppercase",
         color: "var(--ink-muted)",
-        marginBottom: 6,
+        marginBottom: 9,
         fontFamily: "var(--font-mono)",
       }}
     >
