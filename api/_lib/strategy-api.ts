@@ -231,9 +231,15 @@ export function buildStrategyDraftPrompt(
     "Citations must point to source URLs from the evidence pack. Include only citations you actually used.",
   ].join(" ");
 
+  const { peerCollaborationOk, ...baseFounderConstraints } = payload.founderConstraints;
   const founderConstraints = {
-    ...payload.founderConstraints,
+    ...baseFounderConstraints,
     outreachPreferencesText: formatOutreachPreferences(payload.founderConstraints.outreachTolerance),
+    ...(peerCollaborationOk
+      ? {
+        peerCollaboration: "Open to peer collaboration (content swaps, podcast guesting, cross-promotion with other operators).",
+      }
+      : {}),
     existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
     existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
     audienceLens: payload.audienceLens,
@@ -476,6 +482,9 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
       : "",
     `Social posting tolerance: ${payload.founderConstraints.socialPostingTolerance}.`,
     `Outreach preferences: ${outreachText}.`,
+    payload.founderConstraints.peerCollaborationOk
+      ? "Open to peer collaboration (content swaps, podcast guesting, cross-promotion with other operators)."
+      : "",
     `Content creation mode: ${contentModeText}.`,
     assetLines ? `Existing Work and Assets:\n${assetLines}` : "",
     payload.founderConstraints.channelAvoidances
@@ -504,10 +513,10 @@ function formatOutreachPreferences(outreachTolerance: FounderConstraints["outrea
     "inbound-only": "inbound only — no outreach of any kind",
     "warm-intro-ok": "warm introductions only — no cold outreach",
     "async-email-ok": "async cold email acceptable but no calls or social DMs",
+    "live-calls-ok": "willing to take scheduled 1:1 calls once a connection exists",
   };
-  const outreachModes = outreachTolerance.length > 0 ? outreachTolerance : ["inbound-only"];
 
-  return outreachModes.map((mode) => outreachLabel[mode] ?? mode).join("; ");
+  return outreachLabel[outreachTolerance] ?? outreachTolerance;
 }
 
 function buildSeedContext(payload: StrategyDraftRequestPayload): string {
@@ -595,11 +604,12 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     "socialPostingTolerance is invalid",
   );
   const channelAvoidances = expectOptionalString(body.channelAvoidances);
-  const outreachTolerance = expectEnumArray(
+  const outreachTolerance = expectEnum(
     body.outreachTolerance,
-    ["inbound-only", "warm-intro-ok", "async-email-ok"] as const,
+    ["inbound-only", "warm-intro-ok", "async-email-ok", "live-calls-ok"],
     "outreachTolerance is invalid",
   );
+  const peerCollaborationOk = Boolean(body.peerCollaborationOk);
   const contentMode = expectEnumArray(
     body.contentMode,
     ["writing", "short-video", "audio", "design", "interactive", "other", "none"] as const,
@@ -615,6 +625,7 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     socialPostingTolerance,
     channelAvoidances,
     outreachTolerance,
+    peerCollaborationOk,
     contentMode,
     contentModeOther,
     existingAssets,

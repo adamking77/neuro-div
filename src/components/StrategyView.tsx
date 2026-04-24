@@ -44,6 +44,7 @@ const OUTREACH_LABELS: Record<string, string> = {
   "inbound-only": "Inbound",
   "warm-intro-ok": "Warm intro",
   "async-email-ok": "Async email",
+  "live-calls-ok": "Live calls",
 };
 
 const CONTENT_LABELS: Record<string, string> = {
@@ -271,9 +272,8 @@ function ConfigDrawer({
         {audienceReady && (
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <MiniPill label={inputs.teamSize === "solo" ? "Solo" : "Small team"} />
-            {inputs.outreachTolerance.length > 0 && (
-              <MiniPill label={inputs.outreachTolerance.map((m) => OUTREACH_LABELS[m] ?? m).join(", ")} />
-            )}
+            <MiniPill label={OUTREACH_LABELS[inputs.outreachTolerance] ?? inputs.outreachTolerance} />
+            {inputs.peerCollaborationOk && <MiniPill label="Peer collaboration" />}
             {inputs.contentMode.length > 0 && !inputs.contentMode.includes("none") && (
               <MiniPill label={inputs.contentMode.map((m) => CONTENT_LABELS[m] ?? m).join(", ")} />
             )}
@@ -639,16 +639,38 @@ function InputForm({
           }
         />
         <div>
-          <FieldLabel label="Outreach Preferences" />
-          <MultiPillSelector
-            values={inputs.outreachTolerance}
+          <SegmentedControl
+            label="Outreach Preferences"
+            value={inputs.outreachTolerance}
             options={[
               { value: "inbound-only", label: "Inbound" },
               { value: "warm-intro-ok", label: "Warm intro" },
               { value: "async-email-ok", label: "Async email" },
+              { value: "live-calls-ok", label: "Live calls" },
             ]}
-            onChange={(next) => onInputChange("outreachTolerance", next as StrategyInputs["outreachTolerance"])}
+            onChange={(v) => onInputChange("outreachTolerance", v as StrategyInputs["outreachTolerance"])}
           />
+          <button
+            onClick={() => onInputChange("peerCollaborationOk", !inputs.peerCollaborationOk)}
+            style={{
+              border: `1px solid ${inputs.peerCollaborationOk ? "var(--teal)" : "var(--rule)"}`,
+              background: inputs.peerCollaborationOk ? "var(--teal)" : "transparent",
+              color: inputs.peerCollaborationOk ? "#fff" : "var(--ink-muted)",
+              borderRadius: 999,
+              fontSize: 11,
+              fontFamily: "var(--font-display)",
+              padding: "4px 10px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              lineHeight: 1.4,
+              marginTop: 8,
+            }}
+          >
+            Peer collaboration
+          </button>
+          <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.45, margin: "6px 0 0" }}>
+            Content swaps, podcast guesting, cross-promotion with other operators.
+          </p>
         </div>
       </div>
 

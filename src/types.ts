@@ -22,7 +22,7 @@ export type BudgetBand = "none" | "low" | "moderate";
 
 export type SocialPostingTolerance = "avoid" | "limited" | "comfortable";
 
-export type OutreachTolerance = "inbound-only" | "warm-intro-ok" | "async-email-ok";
+export type OutreachTolerance = "inbound-only" | "warm-intro-ok" | "async-email-ok" | "live-calls-ok";
 
 export type ContentMode = "writing" | "short-video" | "audio" | "design" | "interactive" | "other" | "none";
 
@@ -38,7 +38,8 @@ export interface FounderConstraints {
   weeklyCapacity: string;
   socialPostingTolerance: SocialPostingTolerance;
   channelAvoidances: string;
-  outreachTolerance: OutreachTolerance[];
+  outreachTolerance: OutreachTolerance;
+  peerCollaborationOk: boolean;
   contentMode: ContentMode[];
   contentModeOther: string;
   existingAssets: ExistingAsset[];

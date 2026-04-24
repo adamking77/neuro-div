@@ -263,6 +263,7 @@ export default function App() {
           socialPostingTolerance: session.strategyInputs.socialPostingTolerance,
           channelAvoidances: session.strategyInputs.channelAvoidances,
           outreachTolerance: session.strategyInputs.outreachTolerance,
+          peerCollaborationOk: session.strategyInputs.peerCollaborationOk,
           contentMode: session.strategyInputs.contentMode,
           contentModeOther: session.strategyInputs.contentModeOther,
           existingAssets: session.strategyInputs.existingAssets,

@@ -162,7 +162,8 @@ describe("strategy API helpers", () => {
         weeklyCapacity: "4 hours",
         socialPostingTolerance: "avoid",
         channelAvoidances: "LinkedIn and live events",
-        outreachTolerance: ["inbound-only", "warm-intro-ok"],
+        outreachTolerance: "warm-intro-ok",
+        peerCollaborationOk: false,
         contentMode: ["writing"],
         contentModeOther: "",
         existingAssets: [
@@ -231,7 +232,31 @@ describe("strategy API helpers", () => {
     expect(prompt.system).toContain("create-once");
     expect(prompt.user).toContain("operators who avoid networking");
     expect(prompt.user).toContain("warm introductions only");
+    expect(prompt.user).not.toContain("peer collaboration");
     expect(prompt.user).not.toContain("Existing Work and Assets");
+
+    const liveCallsPrompt = buildStrategyDraftPrompt({
+      ...payload,
+      founderConstraints: {
+        ...payload.founderConstraints,
+        outreachTolerance: "live-calls-ok",
+        peerCollaborationOk: true,
+      },
+    }, {
+      dossier: {
+        audienceSignals: [],
+        positioningEdges: [],
+        lowContactChannels: [],
+        messagePatterns: [],
+        assetDirections: [],
+        experimentLevers: [],
+        risks: [],
+      },
+      citations: {},
+    });
+
+    expect(liveCallsPrompt.user).toContain("scheduled 1:1 calls");
+    expect(liveCallsPrompt.user).toContain("Open to peer collaboration");
 
     const otherPrompt = buildStrategyDraftPrompt({
       ...payload,
@@ -537,7 +562,8 @@ describe("strategy API helpers", () => {
         weeklyCapacity: "4 hours",
         socialPostingTolerance: "avoid",
         channelAvoidances: "",
-        outreachTolerance: ["inbound-only"],
+        outreachTolerance: "inbound-only",
+        peerCollaborationOk: false,
         contentMode: ["writing"],
         contentModeOther: "",
         existingAssets: [{ name: "", url: "", description: "" }],
