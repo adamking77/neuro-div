@@ -1129,18 +1129,14 @@ function StrategyContent({
 
   if (!draft) return null;
 
-  const anchorSection = STRATEGY_SECTIONS[0];
-  const middleSections = STRATEGY_SECTIONS.slice(1, 5);
-  const outputSection = STRATEGY_SECTIONS[5];
-
   return (
     <div>
       {draft.warnings.length > 0 && (
         <div
           style={{
-            marginBottom: 24,
-            border: "1px solid rgba(196, 114, 90, 0.2)",
-            padding: 16,
+            marginBottom: 32,
+            borderLeft: "3px solid rgba(196, 114, 90, 0.4)",
+            paddingLeft: 14,
           }}
         >
           <p
@@ -1150,7 +1146,7 @@ function StrategyContent({
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: "var(--terracotta)",
-              margin: "0 0 8px",
+              margin: "0 0 10px",
               fontFamily: "var(--font-mono)",
             }}
           >
@@ -1163,14 +1159,7 @@ function StrategyContent({
                   size={13}
                   style={{ color: "var(--terracotta)", flexShrink: 0, marginTop: 2 }}
                 />
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--ink-light)",
-                    lineHeight: 1.6,
-                    margin: 0,
-                  }}
-                >
+                <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
                   {warning}
                 </p>
               </div>
@@ -1179,60 +1168,36 @@ function StrategyContent({
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <SectionCard
-          key={anchorSection.key}
-          section={anchorSection}
-          index={0}
-          value={draft.sections[anchorSection.key]}
-          citations={draft.citations.filter((c) => c.section === anchorSection.key)}
-          isEdited={editedSections.has(anchorSection.key)}
-          onEdit={(value) => handleSectionChange(anchorSection.key, value)}
-        />
-
-        <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {middleSections.map((section, sectionIndex) => {
-            const index = sectionIndex + 1;
-            return (
-              <SectionCard
-                key={section.key}
-                section={section}
-                index={index}
-                value={draft.sections[section.key]}
-                citations={draft.citations.filter((c) => c.section === section.key)}
-                isEdited={editedSections.has(section.key)}
-                onEdit={(value) => handleSectionChange(section.key, value)}
-              />
-            );
-          })}
+      {STRATEGY_SECTIONS.map((section, index) => (
+        <div key={section.key}>
+          <SectionCard
+            section={section}
+            index={index}
+            value={draft.sections[section.key]}
+            citations={draft.citations.filter((c) => c.section === section.key)}
+            isEdited={editedSections.has(section.key)}
+            onEdit={(value) => handleSectionChange(section.key, value)}
+          />
+          {index < STRATEGY_SECTIONS.length - 1 && (
+            <hr className="rule" style={{ margin: "36px 0" }} />
+          )}
         </div>
-
-        <SectionCard
-          key={outputSection.key}
-          section={outputSection}
-          index={STRATEGY_SECTIONS.length - 1}
-          value={draft.sections[outputSection.key]}
-          citations={draft.citations.filter((c) => c.section === outputSection.key)}
-          isEdited={editedSections.has(outputSection.key)}
-          onEdit={(value) => handleSectionChange(outputSection.key, value)}
-        />
-      </div>
+      ))}
     </div>
   );
 }
 
 function StrategyLoadingState() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <StrategySkeletonCard index={0} widths={SKELETON_ROWS[0]} />
-
-      <div className="strategy-middle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {SKELETON_ROWS.slice(1, 5).map((widths, sectionIndex) => (
-          <StrategySkeletonCard key={sectionIndex + 1} index={sectionIndex + 1} widths={widths} />
-        ))}
-      </div>
-
-      <StrategySkeletonCard index={5} widths={SKELETON_ROWS[5]} />
+    <div>
+      {SKELETON_ROWS.map((widths, index) => (
+        <div key={index}>
+          <StrategySkeletonCard index={index} widths={widths} />
+          {index < SKELETON_ROWS.length - 1 && (
+            <hr className="rule" style={{ margin: "36px 0" }} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1240,27 +1205,24 @@ function StrategyLoadingState() {
 function StrategySkeletonCard({ index, widths }: { index: number; widths: number[] }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
+  const accentColor = isAnchor ? "var(--teal)" : isOutput ? "var(--terracotta)" : null;
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--rule)",
-        borderLeft: isAnchor ? "2px solid var(--teal)" : "1px solid var(--rule)",
-        padding: 16,
-        opacity: 1 - index * 0.08,
-        background: isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
-      }}
-    >
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-        <Skeleton className="rounded" style={{ width: 18, height: 8 }} />
-        <Skeleton className="rounded" style={{ width: 70 + index * 10, height: 13 }} />
+    <div style={{ opacity: 1 - index * 0.07 }}>
+      <div
+        style={{
+          marginBottom: 14,
+          paddingLeft: accentColor ? 14 : 0,
+          borderLeft: accentColor ? `3px solid ${accentColor}` : "none",
+        }}
+      >
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <Skeleton className="rounded" style={{ width: 18, height: 8 }} />
+          <Skeleton className="rounded" style={{ width: 70 + index * 12, height: 13 }} />
+        </div>
+        <Skeleton className="rounded" style={{ width: "55%", height: 9 }} animationType="pulse" />
       </div>
-      <Skeleton
-        className="rounded"
-        style={{ width: "65%", height: 9, marginBottom: 14 }}
-        animationType="pulse"
-      />
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {widths.map((w, j) => (
           <Skeleton
             key={j}
@@ -1291,34 +1253,29 @@ function SectionCard({
 }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
-  const bodyMinHeight = isAnchor ? 200 : isOutput ? 160 : 140;
   const [isEditing, setIsEditing] = useState(false);
+  const accentColor = isAnchor ? "var(--teal)" : isOutput ? "var(--terracotta)" : null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.2 }}
-      style={{
-        border: "1px solid var(--rule)",
-        borderLeft: isAnchor ? "3px solid var(--teal)" : isOutput ? "3px solid var(--terracotta)" : "1px solid var(--rule)",
-        background: isAnchor ? "rgba(91, 138, 138, 0.03)" : isOutput ? "rgba(196, 114, 90, 0.025)" : "transparent",
-        padding: 18,
-        display: "flex",
-        flexDirection: "column",
-      }}
     >
+      {/* Section heading */}
       <div
         style={{
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 12,
-          marginBottom: 14,
+          marginBottom: 16,
+          paddingLeft: accentColor ? 14 : 0,
+          borderLeft: accentColor ? `3px solid ${accentColor}` : "none",
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
             <span
               className="mono"
               style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.08em" }}
@@ -1391,16 +1348,16 @@ function SectionCard({
         </div>
       </div>
 
+      {/* Content */}
       {isEditing ? (
         <textarea
           className="strategy-input"
           value={value}
           onChange={(e) => onEdit(e.target.value)}
           rows={12}
-          style={{ flex: 1, minHeight: bodyMinHeight }}
         />
       ) : (
-        <FormattedStrategySection value={value} minHeight={bodyMinHeight} />
+        <FormattedStrategySection value={value} />
       )}
 
       <SectionCitations citations={citations} />
@@ -1413,15 +1370,12 @@ type StrategyTextBlock =
   | { type: "paragraph"; text: string }
   | { type: "list"; ordered: boolean; items: string[] };
 
-function FormattedStrategySection({ value, minHeight }: { value: string; minHeight: number }) {
+function FormattedStrategySection({ value }: { value: string }) {
   const blocks = parseStrategyText(value);
 
   return (
     <div
       style={{
-        border: "1px solid var(--rule)",
-        padding: "14px 16px",
-        minHeight,
         fontSize: 13,
         lineHeight: 1.65,
         color: "var(--ink-light)",
