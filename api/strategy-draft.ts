@@ -165,12 +165,36 @@ function getStrategyDraftToolSchema() {
           "thirtyDaySequence",
         ],
         properties: {
-          positioning: { type: "string" },
-          channelPlan: { type: "string" },
-          messageAngles: { type: "string" },
-          assetIdeas: { type: "string" },
-          experiments: { type: "string" },
-          thirtyDaySequence: { type: "string" },
+          positioning: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive positioning strategy text, not a placeholder.",
+          },
+          channelPlan: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive low-contact channel strategy text, not a placeholder.",
+          },
+          messageAngles: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive messaging strategy text, not a placeholder.",
+          },
+          assetIdeas: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive create-once asset recommendations, not a placeholder.",
+          },
+          experiments: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive bounded experiment recommendations, not a placeholder.",
+          },
+          thirtyDaySequence: {
+            type: "string",
+            minLength: 40,
+            description: "Substantive 30-day sprint sequence, not a placeholder.",
+          },
         },
         additionalProperties: false,
       },

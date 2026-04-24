@@ -381,5 +381,19 @@ describe("strategy API helpers", () => {
     expect(parsed.sections.positioning).toBe("Positioning");
     expect(parsed.citations).toHaveLength(1);
     expect(() => parseStrategyDraftText("not json")).toThrow("Model output did not contain JSON");
+    expect(() =>
+      parseStrategyDraftInput({
+        sections: {
+          positioning: "",
+          channelPlan: "Channels",
+          messageAngles: "Angles",
+          assetIdeas: "Assets",
+          experiments: "Experiments",
+          thirtyDaySequence: "Sequence",
+        },
+        warnings: [],
+        citations: [],
+      }),
+    ).toThrow("Model output missing positioning section");
   });
 });

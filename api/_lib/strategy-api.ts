@@ -173,8 +173,8 @@ export function buildStrategyDraftPrompt(
     "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
     "Only cite URLs that appear in the provided evidence packs.",
-    "Return JSON only with this exact shape:",
-    "{\"sections\":{\"positioning\":\"\",\"channelPlan\":\"\",\"messageAngles\":\"\",\"assetIdeas\":\"\",\"experiments\":\"\",\"thirtyDaySequence\":\"\"},\"warnings\":[\"\"],\"citations\":[{\"section\":\"positioning\",\"title\":\"\",\"url\":\"\",\"note\":\"\"}]}",
+    "Return JSON only with this exact shape, with every section populated with substantive draft text:",
+    "{\"sections\":{\"positioning\":\"draft text\",\"channelPlan\":\"draft text\",\"messageAngles\":\"draft text\",\"assetIdeas\":\"draft text\",\"experiments\":\"draft text\",\"thirtyDaySequence\":\"draft text\"},\"warnings\":[\"warning text\"],\"citations\":[{\"section\":\"positioning\",\"title\":\"source title\",\"url\":\"source URL\",\"note\":\"why it supports the section\"}]}",
     "Section guidance — positioning: who this is for, what tension matters, how to frame the wedge, drawn from problem language and white space in the research.",
     "channelPlan: specific async and pull channels with evidence of fit; flag any channel requiring ongoing maintenance as a caution; shape recommendations around the founder's outreach tolerance and content mode.",
     "messageAngles: hooks and language patterns drawn directly from the research vocabulary and evidence; prioritize language the audience already uses before they know a solution exists.",
@@ -218,7 +218,7 @@ export function parseStrategyDraftInput(input: unknown): StrategyDraftResponse {
   const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
 
   const sections = SECTION_KEYS.reduce((acc, key) => {
-    acc[key] = expectOptionalString(sectionsRecord[key]);
+    acc[key] = expectNonEmptyString(sectionsRecord[key], `Model output missing ${key} section`);
     return acc;
   }, {} as StrategySections);
 
