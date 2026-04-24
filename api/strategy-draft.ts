@@ -11,7 +11,7 @@ import {
   parseStrategyDraftText,
   validateResearchId,
   validateStrategyDraftRequest,
-} from "../src/lib/strategy-api";
+} from "./_lib/strategy-api";
 
 interface AnthropicResponse {
   content?: Array<{
