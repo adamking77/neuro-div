@@ -100,11 +100,9 @@ export function StrategyView({
   const intelligenceRunning =
     session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting";
 
-  const isRunning = activeTab === "draft"
-    ? strategyRunning
-    : activeTab === "intelligence"
-      ? intelligenceRunning
-      : false;
+  const isRunning = activeTab === "intelligence"
+    ? intelligenceRunning
+    : strategyRunning;
   const canGenerate = readiness.ready && audienceReady && !researchRunning && !isRunning;
 
   const draftButtonLabel =
@@ -127,19 +125,15 @@ export function StrategyView({
           ? "Regenerate brief"
           : "Generate intelligence brief";
 
-  const buttonLabel = activeTab === "draft"
-    ? draftButtonLabel
-    : activeTab === "intelligence"
-      ? intelligenceButtonLabel
-      : hasDraft
-        ? "Agent brief ready"
-        : "Generate draft first";
+  const buttonLabel = activeTab === "intelligence"
+    ? intelligenceButtonLabel
+    : draftButtonLabel;
 
   const handleGenerate = () => {
-    if (activeTab === "draft") {
-      onGenerate();
-    } else if (activeTab === "intelligence") {
+    if (activeTab === "intelligence") {
       onGenerateIntelligence();
+    } else {
+      onGenerate();
     }
   };
 
