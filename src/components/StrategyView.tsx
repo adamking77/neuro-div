@@ -336,7 +336,7 @@ function ConfigDrawer({
           display: "flex",
           alignItems: "center",
           gap: 18,
-          rowGap: 12,
+          rowGap: 20,
           flexWrap: "wrap",
         }}
       >
