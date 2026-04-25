@@ -145,7 +145,7 @@ export function StrategyView({
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 24,
-          marginBottom: 18,
+          marginBottom: 28,
         }}
       >
         <div>
@@ -212,10 +212,12 @@ export function StrategyView({
       </div>
 
       {/* Tab Toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 18 }}>
-        <TabPill label="Strategy Draft" active={activeTab === "draft"} onClick={() => setActiveTab("draft")} />
-        <TabPill label="Intelligence Brief" active={activeTab === "intelligence"} onClick={() => setActiveTab("intelligence")} />
-        <TabPill label="Agent Brief" active={activeTab === "agent"} onClick={() => setActiveTab("agent")} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "inline-flex", gap: 2, border: "1px solid var(--rule)", padding: 3, borderRadius: 999 }}>
+          <TabPill label="Strategy Draft" active={activeTab === "draft"} onClick={() => setActiveTab("draft")} />
+          <TabPill label="Intelligence Brief" active={activeTab === "intelligence"} onClick={() => setActiveTab("intelligence")} />
+          <TabPill label="Agent Brief" active={activeTab === "agent"} onClick={() => setActiveTab("agent")} />
+        </div>
         {session.intelligenceBrief && activeTab === "intelligence" && (
           <span
             style={{
@@ -223,7 +225,6 @@ export function StrategyView({
               fontFamily: "var(--font-mono)",
               color: "var(--ink-muted)",
               opacity: 0.5,
-              marginLeft: 8,
             }}
           >
             Kimi
