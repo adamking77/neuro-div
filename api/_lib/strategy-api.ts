@@ -307,9 +307,12 @@ export function buildFallbackStrategyDraft(
     "Frame the wedge around low-contact, evidence-led progress instead of another high-maintenance advisory relationship.",
   ]);
   const channels = dossier.lowContactChannels.length > 0
-    ? dossier.lowContactChannels.slice(0, 4).map((channel) =>
-      `${channel.channel}: ${channel.fit}${channel.evidence ? ` Evidence: ${channel.evidence}` : ""}${channel.caution ? ` Caution: ${channel.caution}` : ""}`,
-    )
+    ? dossier.lowContactChannels.slice(0, 4).map((channel) => {
+      const label = channel.fit && channel.fit !== channel.channel ? `${channel.channel}: ${channel.fit}` : channel.channel;
+      const evidence = channel.evidence && channel.evidence !== channel.channel && channel.evidence !== channel.fit ? ` Evidence: ${channel.evidence}` : "";
+      const caution = channel.caution ? ` Caution: ${channel.caution}` : "";
+      return `${label}${evidence}${caution}`;
+    })
     : [
       "Search-led resource pages: capture problem-aware demand without needing a posting cadence.",
       "Partner or directory surfaces: place the asset where buyers already look.",
@@ -321,9 +324,10 @@ export function buildFallbackStrategyDraft(
     "Build a diagnostic checklist, comparison guide, or teardown library that can be discovered repeatedly without weekly promotion.",
   ]);
   const experiments = dossier.experimentLevers.length > 0
-    ? dossier.experimentLevers.slice(0, 3).map((lever) =>
-      `${lever.experiment}: ${lever.rationale} Success signal: ${lever.successMetric}`,
-    )
+    ? dossier.experimentLevers.slice(0, 3).map((lever) => {
+      const label = lever.rationale && lever.rationale !== lever.experiment ? `${lever.experiment}: ${lever.rationale}` : lever.experiment;
+      return `${label} Success signal: ${lever.successMetric}`;
+    })
     : [
       "Publish one searchable diagnostic page and measure qualified inbound replies, saves, or demo-start clicks over 30 days.",
     ];
@@ -597,9 +601,12 @@ export function buildFallbackStrategyDraftPart1(
     "Frame the wedge around low-contact, evidence-led progress instead of another high-maintenance advisory relationship.",
   ]);
   const channels = dossier.lowContactChannels.length > 0
-    ? dossier.lowContactChannels.slice(0, 4).map((channel) =>
-      `${channel.channel}: ${channel.fit}${channel.evidence ? ` Evidence: ${channel.evidence}` : ""}${channel.caution ? ` Caution: ${channel.caution}` : ""}`,
-    )
+    ? dossier.lowContactChannels.slice(0, 4).map((channel) => {
+      const label = channel.fit && channel.fit !== channel.channel ? `${channel.channel}: ${channel.fit}` : channel.channel;
+      const evidence = channel.evidence && channel.evidence !== channel.channel && channel.evidence !== channel.fit ? ` Evidence: ${channel.evidence}` : "";
+      const caution = channel.caution ? ` Caution: ${channel.caution}` : "";
+      return `${label}${evidence}${caution}`;
+    })
     : [
       "Search-led resource pages: capture problem-aware demand without needing a posting cadence.",
       "Partner or directory surfaces: place the asset where buyers already look.",
@@ -639,9 +646,10 @@ export function buildFallbackStrategyDraftPart2(
     "Build a diagnostic checklist, comparison guide, or teardown library that can be discovered repeatedly without weekly promotion.",
   ]);
   const experiments = dossier.experimentLevers.length > 0
-    ? dossier.experimentLevers.slice(0, 3).map((lever) =>
-      `${lever.experiment}: ${lever.rationale} Success signal: ${lever.successMetric}`,
-    )
+    ? dossier.experimentLevers.slice(0, 3).map((lever) => {
+      const label = lever.rationale && lever.rationale !== lever.experiment ? `${lever.experiment}: ${lever.rationale}` : lever.experiment;
+      return `${label} Success signal: ${lever.successMetric}`;
+    })
     : [
       "Publish one searchable diagnostic page and measure qualified inbound replies, saves, or demo-start clicks over 30 days.",
     ];
@@ -1075,9 +1083,9 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
         const value = item.trim();
         return {
           channel: value,
-          fit: value,
-          evidence: value,
-          caution: "Review for fit against low-contact constraints.",
+          fit: "",
+          evidence: "",
+          caution: "",
         };
       }
 
@@ -1096,7 +1104,7 @@ function validateExaResearchDossier(input: unknown): ExaResearchDossier {
         const value = item.trim();
         return {
           experiment: value,
-          rationale: value,
+          rationale: "",
           successMetric: "Define one observable async conversion or engagement signal.",
         };
       }
