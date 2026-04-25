@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Spinner } from "@heroui/react";
 import { ArrowCounterClockwise, DownloadSimple, Copy, Check, CaretDown, Plus, PencilSimple, Trash, X } from "@phosphor-icons/react";
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
@@ -818,7 +817,7 @@ function RunButton({
       {isRunning
         ? (
           <>
-            <Spinner size="sm" color="current" />
+            <span className="spinner" style={{ width: 14, height: 14 }} />
             <span>Running…</span>
           </>
         )

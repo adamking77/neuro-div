@@ -450,6 +450,256 @@ export function mergeStrategyWarnings(warnings: string[], exaDossier: ExaResearc
   return merged;
 }
 
+export type StrategyDraftPart1 = {
+  sections: Pick<StrategySections, "positioning" | "channelPlan" | "messageAngles">;
+  warnings: string[];
+  citations: StrategyCitation[];
+};
+
+export type StrategyDraftPart2 = {
+  sections: Pick<StrategySections, "assetIdeas" | "experiments" | "thirtyDaySequence">;
+  citations: StrategyCitation[];
+};
+
+export function buildStrategyDraftPromptPart1(
+  payload: StrategyDraftRequestPayload,
+  exaResearch: { dossier: ExaResearchDossier; citations: ExaResearchCitations },
+) {
+  const system = [
+    "You are the distribution strategist for Category Scout, a research tool used by neurodivergent founders — specifically people with PDA (Persistent Demand Avoidance) who do deep strategic thinking well but find ongoing social maintenance, direct outreach, and networking genuinely aversive.",
+    "This is a hard constraint, not a soft preference.",
+    "These founders have real histories of difficult experiences with high-touch client relationships and direct outreach.",
+    "The strategy must work without requiring: ongoing social media presence or content cadence, cold outreach or relationship-maintenance sequences, community management or networking events, or any tactic that demands consistent daily or weekly social energy.",
+    "Prioritize in this order: (1) create-once/discovered-many assets — SEO content, templates, tools, searchable resources, diagnostics; (2) async pull channels — directories, partner surfaces, problem-aware search, occasional newsletters; (3) warm referral systems that run without active tending; (4) single, bounded, reversible async experiments.",
+    "Flag any recommended tactic that requires ongoing social maintenance, outreach cadence, or relationship energy as a warning.",
+    "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
+    "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
+    "Only cite URLs that appear in the provided evidence packs.",
+    'Return JSON only with this exact shape: {"sections":{"positioning":"draft text","channelPlan":"draft text","messageAngles":"draft text"},"warnings":["warning text"],"citations":[{"section":"positioning","title":"source title","url":"source URL","note":"why it supports the section"}]}',
+    "Section guidance — positioning: who this is for, what tension matters, how to frame the wedge, drawn from problem language and white space in the research.",
+    "channelPlan: specific async and pull channels with evidence of fit; include inline cautions for channels requiring ongoing maintenance directly in the section text; shape recommendations around the founder's outreach tolerance and content mode.",
+    "messageAngles: hooks and language patterns drawn directly from the research vocabulary and evidence; prioritize language the audience already uses before they know a solution exists.",
+    "Each section should be concise but specific, use markdown bulleting or short paragraphs where helpful, and ground recommendations in the provided research.",
+    "Citations must point to source URLs from the evidence pack. Include only citations you actually used.",
+  ].join(" ");
+
+  const { peerCollaborationOk, ...baseFounderConstraints } = payload.founderConstraints;
+  const founderConstraints = {
+    ...baseFounderConstraints,
+    outreachPreferencesText: formatOutreachPreferences(payload.founderConstraints.outreachTolerance),
+    ...(peerCollaborationOk
+      ? { peerCollaboration: "Open to peer collaboration (content swaps, podcast guesting, cross-promotion with other operators)." }
+      : {}),
+    existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
+    existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
+    audienceLens: payload.audienceLens,
+  };
+
+  const user = JSON.stringify(
+    {
+      task: "Draft positioning, channel plan, and message angles for this founder.",
+      problem: payload.problem,
+      knownPlayers: payload.knownPlayers,
+      founderConstraints,
+      phaseResearch: payload.phaseResearch,
+      exaResearch,
+    },
+    null,
+    2,
+  );
+
+  return { system, user };
+}
+
+export function buildStrategyDraftPromptPart2(
+  payload: StrategyDraftRequestPayload,
+  exaResearch: { dossier: ExaResearchDossier; citations: ExaResearchCitations },
+) {
+  const system = [
+    "You are the distribution strategist for Category Scout, a research tool used by neurodivergent founders — specifically people with PDA (Persistent Demand Avoidance) who do deep strategic thinking well but find ongoing social maintenance, direct outreach, and networking genuinely aversive.",
+    "This is a hard constraint, not a soft preference.",
+    "These founders have real histories of difficult experiences with high-touch client relationships and direct outreach.",
+    "The strategy must work without requiring: ongoing social media presence or content cadence, cold outreach or relationship-maintenance sequences, community management or networking events, or any tactic that demands consistent daily or weekly social energy.",
+    "Prioritize in this order: (1) create-once/discovered-many assets — SEO content, templates, tools, searchable resources, diagnostics; (2) async pull channels — directories, partner surfaces, problem-aware search, occasional newsletters; (3) warm referral systems that run without active tending; (4) single, bounded, reversible async experiments.",
+    "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
+    "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
+    "Only cite URLs that appear in the provided evidence packs.",
+    'Return JSON only with this exact shape: {"sections":{"assetIdeas":"draft text","experiments":"draft text","thirtyDaySequence":"draft text"},"citations":[{"section":"assetIdeas","title":"source title","url":"source URL","note":"why it supports the section"}]}',
+    "Section guidance — assetIdeas: create-once assets — templates, tools, teardowns, guides, diagnostics — that compound over time without a posting cadence; match format to the founder's content creation mode.",
+    "experiments: single, bounded, async tests — one at a time, clear success signal, low energy cost, no ongoing commitment required; include an inline success signal for each experiment in the section text.",
+    "thirtyDaySequence: a map of phases with no implied timing — write each phase opening as 'when you're ready to [action]', never as 'Week N: [action]'; Phase 1 is the one decision that opens everything else (choose wedge and surface); Phase 2 builds the asset around the strongest problem language; Phase 3 places the asset on one low-contact channel with only necessary distribution touches; Phase 4 reads qualified signals and decides whether to iterate, pause, or run the next bounded test.",
+    "Each section should be concise but specific, use markdown bulleting or short paragraphs where helpful, and ground recommendations in the provided research.",
+    "Citations must point to source URLs from the evidence pack. Include only citations you actually used.",
+  ].join(" ");
+
+  const { peerCollaborationOk, ...baseFounderConstraints } = payload.founderConstraints;
+  const founderConstraints = {
+    ...baseFounderConstraints,
+    outreachPreferencesText: formatOutreachPreferences(payload.founderConstraints.outreachTolerance),
+    ...(peerCollaborationOk
+      ? { peerCollaboration: "Open to peer collaboration (content swaps, podcast guesting, cross-promotion with other operators)." }
+      : {}),
+    existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
+    existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
+    audienceLens: payload.audienceLens,
+  };
+
+  const user = JSON.stringify(
+    {
+      task: "Draft asset ideas, experiments, and 30-day phases for this founder.",
+      problem: payload.problem,
+      knownPlayers: payload.knownPlayers,
+      founderConstraints,
+      phaseResearch: payload.phaseResearch,
+      exaResearch,
+    },
+    null,
+    2,
+  );
+
+  return { system, user };
+}
+
+export function parseStrategyDraftPart1Text(text: string): StrategyDraftPart1 {
+  const parsed = JSON.parse(extractJsonObject(text)) as unknown;
+  return parseStrategyDraftPart1Input(parsed);
+}
+
+export function parseStrategyDraftPart2Text(text: string): StrategyDraftPart2 {
+  const parsed = JSON.parse(extractJsonObject(text)) as unknown;
+  return parseStrategyDraftPart2Input(parsed);
+}
+
+export function mergeStrategyDraftParts(part1: StrategyDraftPart1, part2: StrategyDraftPart2): StrategyDraftResponse {
+  return {
+    sections: { ...part1.sections, ...part2.sections },
+    warnings: part1.warnings,
+    citations: [...part1.citations, ...part2.citations],
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+export function buildFallbackStrategyDraftPart1(
+  payload: StrategyDraftRequestPayload,
+  exaResearch: { dossier: ExaResearchDossier; citations: ExaResearchCitations },
+): StrategyDraftPart1 {
+  const { dossier } = exaResearch;
+  const audience = payload.audienceLens.trim() || "the target audience";
+  const problem = payload.problem.trim();
+  const seedHighlights = payload.phaseResearch
+    .flatMap((phase) => phase.results.flatMap((result) => result.highlights).filter(Boolean).slice(0, 2))
+    .slice(0, 4);
+
+  const audienceSignals = pickLines(dossier.audienceSignals, seedHighlights, [
+    `The audience is already showing problem-aware demand around ${problem}.`,
+  ]);
+  const positioningEdges = pickLines(dossier.positioningEdges, [], [
+    "Frame the wedge around low-contact, evidence-led progress instead of another high-maintenance advisory relationship.",
+  ]);
+  const channels = dossier.lowContactChannels.length > 0
+    ? dossier.lowContactChannels.slice(0, 4).map((channel) =>
+      `${channel.channel}: ${channel.fit}${channel.evidence ? ` Evidence: ${channel.evidence}` : ""}${channel.caution ? ` Caution: ${channel.caution}` : ""}`,
+    )
+    : [
+      "Search-led resource pages: capture problem-aware demand without needing a posting cadence.",
+      "Partner or directory surfaces: place the asset where buyers already look.",
+    ];
+  const messagePatterns = pickLines(dossier.messagePatterns, audienceSignals, [
+    `Lead with the audience's existing language about ${problem}, then contrast that with a lower-contact path to progress.`,
+  ]);
+
+  return {
+    sections: {
+      positioning: [
+        `For ${audience}, position the offer around the concrete problem: ${problem}.`,
+        "Use a wedge that promises progress without ongoing social maintenance, cold outreach, or another relationship-heavy advisory loop.",
+        ...positioningEdges,
+        ...audienceSignals.slice(0, 2),
+      ].join("\n- "),
+      channelPlan: [
+        "Prioritize async discovery channels that keep working after the initial build. Start with the surfaces that match existing buyer intent and avoid channels that need daily presence.",
+        ...channels,
+      ].join("\n- "),
+      messageAngles: [
+        "Anchor messages in the words buyers already use before they know the category or solution name. The strongest angles should name the operational pain, the failed old way, and the low-contact alternative.",
+        ...messagePatterns,
+      ].join("\n- "),
+    },
+    warnings: dossier.risks,
+    citations: [],
+  };
+}
+
+export function buildFallbackStrategyDraftPart2(
+  _payload: StrategyDraftRequestPayload,
+  exaResearch: { dossier: ExaResearchDossier; citations: ExaResearchCitations },
+): StrategyDraftPart2 {
+  const { dossier } = exaResearch;
+  const assets = pickLines(dossier.assetDirections, [], [
+    "Build a diagnostic checklist, comparison guide, or teardown library that can be discovered repeatedly without weekly promotion.",
+  ]);
+  const experiments = dossier.experimentLevers.length > 0
+    ? dossier.experimentLevers.slice(0, 3).map((lever) =>
+      `${lever.experiment}: ${lever.rationale} Success signal: ${lever.successMetric}`,
+    )
+    : [
+      "Publish one searchable diagnostic page and measure qualified inbound replies, saves, or demo-start clicks over 30 days.",
+    ];
+
+  return {
+    sections: {
+      assetIdeas: [
+        "Build create-once assets that do discovery and qualification before a conversation happens. Match the format to the founder's preferred creation mode and keep maintenance light.",
+        ...assets,
+      ].join("\n- "),
+      experiments: [
+        "Run one bounded test at a time. Each experiment should have a clear async signal and no implied commitment to an ongoing content or outreach cadence.",
+        ...experiments,
+      ].join("\n- "),
+      thirtyDaySequence: [
+        "Phase 1 — Choose: when you're ready to choose, pick one audience wedge, one primary search or partner surface, and one asset format.",
+        "Phase 2 — Build: when you're ready to build, draft the asset around the strongest problem language and add a simple conversion path.",
+        "Phase 3 — Place: when you're ready to place, publish the asset on one low-contact channel and make only necessary distribution touches.",
+        "Phase 4 — Read: when you're ready to review, check the qualified signals, capture objections, and decide whether to iterate, pause, or run the next bounded test.",
+      ].join("\n- "),
+    },
+    citations: [],
+  };
+}
+
+function parseStrategyDraftPart1Input(input: unknown): StrategyDraftPart1 {
+  const parsed = parseMaybeJson(input);
+  const body = expectRecord(parsed, "Model output must be a JSON object");
+  const sectionsInput = body.sections ?? body.strategyDraft ?? body.draft ?? body;
+  const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
+
+  return {
+    sections: {
+      positioning: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "positioning"), "Model output missing positioning section"),
+      channelPlan: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "channelPlan"), "Model output missing channelPlan section"),
+      messageAngles: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "messageAngles"), "Model output missing messageAngles section"),
+    },
+    warnings: coerceStringArray(body.warnings),
+    citations: validateStrategyCitations(body.citations),
+  };
+}
+
+function parseStrategyDraftPart2Input(input: unknown): StrategyDraftPart2 {
+  const parsed = parseMaybeJson(input);
+  const body = expectRecord(parsed, "Model output must be a JSON object");
+  const sectionsInput = body.sections ?? body.strategyDraft ?? body.draft ?? body;
+  const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
+
+  return {
+    sections: {
+      assetIdeas: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "assetIdeas"), "Model output missing assetIdeas section"),
+      experiments: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "experiments"), "Model output missing experiments section"),
+      thirtyDaySequence: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "thirtyDaySequence"), "Model output missing thirtyDaySequence section"),
+    },
+    citations: validateStrategyCitations(body.citations),
+  };
+}
+
 function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): string {
   const contentLabel: Record<string, string> = {
     writing: "written content (articles, guides, emails)",

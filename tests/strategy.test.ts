@@ -692,10 +692,9 @@ describe("renderAgentBrief", () => {
     expect(brief).not.toContain("## Warnings surfaced by the planner");
   });
 
-  it("includes warnings section when warnings exist", () => {
+  it("does not render a standalone warnings block even when warnings exist", () => {
     const brief = renderAgentBrief(baseDraft, baseInputs, "test");
-    expect(brief).toContain("## Warnings surfaced by the planner");
-    expect(brief).toContain("Avoid daily posting.");
+    expect(brief).not.toContain("## Warnings surfaced by the planner");
   });
 
   it("omits evidence section when citations are empty", () => {
