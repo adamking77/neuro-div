@@ -6,6 +6,7 @@ import { ReportView } from "./components/ReportView";
 import { StrategyView } from "./components/StrategyView";
 import { NDContextBuilder } from "./components/NDContextBuilder";
 import { NDProcessDesigner } from "./components/NDProcessDesigner";
+import { SkillsLibrary } from "./components/SkillsLibrary";
 import { buildNDProfileContext, loadNDProfile } from "./lib/nd-profile";
 import {
   applyNDProfileDefaults,
@@ -39,7 +40,7 @@ import type {
 } from "./types";
 import "./index.css";
 
-type ActiveTool = "category-scout" | "context-builder" | "process-designer";
+type ActiveTool = "category-scout" | "distribution-strategy" | "context-builder" | "process-designer" | "skills";
 
 type OpenSection = "research" | "strategy" | null;
 
@@ -125,7 +126,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (activeTool === "category-scout") {
+    if (activeTool === "category-scout" || activeTool === "distribution-strategy") {
       const nextContext = getLiveNDProfileContext();
       setNdProfileContext(nextContext);
       setSession((current) => syncStrategyDirtyState(applyProfileToSession(current), nextContext));
@@ -180,13 +181,13 @@ export default function App() {
     const empty = createEmptySession();
     setSession(empty);
     setDraftHistory([]);
-    setOpenSection("research");
+    setOpenSection(activeTool === "distribution-strategy" ? "strategy" : "research");
     const saved = saveProject(empty, []);
     setProjectId(saved.id);
     saveCurrentProjectId(saved.id);
     setLastSavedAt(saved.updatedAt);
     refreshProjects();
-  }, [refreshProjects]);
+  }, [activeTool, refreshProjects]);
 
   const switchProject = useCallback((id: string) => {
     const project = loadProject(id);
@@ -194,11 +195,11 @@ export default function App() {
     setProjectId(project.id);
     setSession(syncStrategyDirtyState(applyProfileToSession(project.session), ndProfileContext));
     setDraftHistory(project.draftHistory);
-    setOpenSection("research");
+    setOpenSection(activeTool === "distribution-strategy" ? "strategy" : "research");
     saveCurrentProjectId(project.id);
     setLastSavedAt(project.updatedAt);
     setProjectDrawerOpen(false);
-  }, [ndProfileContext]);
+  }, [activeTool, ndProfileContext]);
 
   const handleDeleteProject = useCallback((id: string) => {
     if (!window.confirm("Delete this project? This can't be undone.")) return;
@@ -588,9 +589,14 @@ export default function App() {
   const totalResultCount = Object.values(session.phases).reduce((sum, p) => sum + p.results.length, 0);
   const toolTitle = activeTool === "category-scout"
     ? "Category Scout"
+    : activeTool === "distribution-strategy"
+      ? "Distribution Strategy"
     : activeTool === "context-builder"
       ? "ND Context Builder"
-      : "ND Process Designer";
+      : activeTool === "process-designer"
+        ? "ND Process Designer"
+        : "Skills";
+  const usesProjectShell = activeTool === "category-scout" || activeTool === "distribution-strategy";
 
   return (
     <div className="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>
@@ -618,7 +624,7 @@ export default function App() {
               {toolTitle}
             </span>
           </div>
-          {activeTool === "category-scout" ? (
+          {usesProjectShell ? (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
                 className="btn-text"
@@ -671,8 +677,10 @@ export default function App() {
         {(
           [
             { id: "category-scout" as ActiveTool, label: "Category Scout" },
+            { id: "distribution-strategy" as ActiveTool, label: "Distribution Strategy" },
             { id: "context-builder" as ActiveTool, label: "ND Context Builder" },
             { id: "process-designer" as ActiveTool, label: "ND Process Designer" },
+            { id: "skills" as ActiveTool, label: "Skills" },
           ] as { id: ActiveTool; label: string; disabled?: boolean }[]
         ).map(({ id, label, disabled }) => {
           const isActive = activeTool === id;
@@ -711,6 +719,12 @@ export default function App() {
       {activeTool === "process-designer" && (
         <div style={{ paddingTop: 40 }}>
           <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
+        </div>
+      )}
+
+      {activeTool === "skills" && (
+        <div style={{ paddingTop: 40 }}>
+          <SkillsLibrary />
         </div>
       )}
 
@@ -881,10 +895,30 @@ export default function App() {
         )}
       </ToolSection>
 
+      {hasAnyResults && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, paddingTop: 16, flexWrap: "wrap" }}>
+          <button
+            className="btn-text"
+            onClick={() => setActiveTool("distribution-strategy")}
+            style={{ fontSize: 12, color: "var(--teal-deep)" }}
+          >
+            Open Distribution Strategy
+          </button>
+          <button className="btn-text" onClick={reset} aria-label="Start fresh" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+            <ArrowCounterClockwise size={12} />
+            Reset
+          </button>
+        </div>
+      )}
+      </>
+      )}
+
+      {activeTool === "distribution-strategy" && (
+      <>
       <ToolSection
-        number="02"
+        number="01"
         label="Distribution Strategy"
-        description="The part most ND founders dread — getting work out into the world. Builds a plan around what you can actually sustain, not what hustle culture assumes you're willing to do."
+        description="Takes the research and turns it into an ND-aware distribution plan, intelligence brief, and receiving-agent handoff."
         statusChip={
           (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
            session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
@@ -905,9 +939,24 @@ export default function App() {
             </span>
           ) : undefined
         }
-        isOpen={openSection === "strategy"}
-        onToggle={() => setOpenSection(openSection === "strategy" ? null : "strategy")}
+        isOpen
+        onToggle={() => setOpenSection("strategy")}
       >
+        {!hasAnyResults && (
+          <div style={{ marginBottom: 28, maxWidth: 600 }}>
+            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: "0 0 10px" }}>
+              This surface expects a research dossier first. Run the research in `Category Scout`, then come back here for synthesis.
+            </p>
+            <button
+              className="btn-text"
+              onClick={() => setActiveTool("category-scout")}
+              style={{ fontSize: 12, color: "var(--teal-deep)" }}
+            >
+              Open Category Scout
+            </button>
+          </div>
+        )}
+
         <StrategyView
           session={session}
           ndProfileContext={ndProfileContext}
@@ -923,7 +972,14 @@ export default function App() {
       </ToolSection>
 
       {hasAnyResults && (
-        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, paddingTop: 16, flexWrap: "wrap" }}>
+          <button
+            className="btn-text"
+            onClick={() => setActiveTool("category-scout")}
+            style={{ fontSize: 12, color: "var(--ink-muted)" }}
+          >
+            Back to research
+          </button>
           <button className="btn-text" onClick={reset} aria-label="Start fresh" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
             <ArrowCounterClockwise size={12} />
             Reset

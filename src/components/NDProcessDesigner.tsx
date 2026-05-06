@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, DownloadSimple } from "@phosphor-icons/react";
-import type { NDProfileContext, ProcessDesignerInputs } from "../types";
+import { ArrowLeft, Check, Copy, DownloadSimple, PencilSimple, Trash } from "@phosphor-icons/react";
+import type { NDProfileContext, ProcessDesignerInputs, ProcessMove, ProcessPlan } from "../types";
 import { loadNDProfileContext } from "../lib/nd-profile";
 import {
   buildProcessMarkdown,
   buildProcessPlan,
   clearProcessDesignerDraft,
   createEmptyProcessDesignerInputs,
+  deleteProcessArtifact,
+  getDefaultProcessName,
+  listProcessArtifacts,
+  loadCurrentProcessArtifactId,
+  loadProcessArtifact,
   loadProcessDesignerDraft,
+  renameProcessArtifact,
+  saveCurrentProcessArtifactId,
+  saveProcessArtifact,
   saveProcessDesignerDraft,
+  type SavedProcessArtifact,
 } from "../lib/process-designer";
 
 type StepId = "intro" | "goal" | "context" | "boundaries" | "done";
@@ -25,13 +34,16 @@ const STEP_LABELS: Record<StepId, string> = {
 
 export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuilder: () => void }) {
   const savedDraft = loadProcessDesignerDraft();
+  const initialArtifactId = loadCurrentProcessArtifactId() ?? savedDraft?.currentArtifactId ?? null;
+  const initialArtifact = initialArtifactId ? loadProcessArtifact(initialArtifactId) : null;
+  const initialInputs = initialArtifact?.inputs ?? savedDraft?.inputs ?? createEmptyProcessDesignerInputs();
+
   const [step, setStep] = useState<StepId>("intro");
   const [profileContext, setProfileContext] = useState<NDProfileContext | null>(() => loadNDProfileContext());
-  const [inputs, setInputs] = useState<ProcessDesignerInputs>(() => savedDraft?.inputs ?? createEmptyProcessDesignerInputs());
-  const [hasExisting] = useState(() => {
-    const next = savedDraft?.inputs ?? createEmptyProcessDesignerInputs();
-    return Object.values(next).some((value) => value.trim().length > 0);
-  });
+  const [inputs, setInputs] = useState<ProcessDesignerInputs>(initialInputs);
+  const [currentArtifactId, setCurrentArtifactId] = useState<string | null>(initialArtifact?.id ?? savedDraft?.currentArtifactId ?? null);
+  const [artifacts, setArtifacts] = useState<SavedProcessArtifact[]>(() => listProcessArtifacts());
+  const [copiedBrief, setCopiedBrief] = useState(false);
 
   useEffect(() => {
     const refreshProfile = () => setProfileContext(loadNDProfileContext());
@@ -43,15 +55,22 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
 
   useEffect(() => {
     if (step !== "intro") {
-      saveProcessDesignerDraft(inputs, buildProcessPlan(inputs, profileContext));
+      saveProcessDesignerDraft(inputs, currentArtifactId);
     }
-  }, [inputs, profileContext, step]);
+  }, [inputs, currentArtifactId, step]);
 
   const plan = useMemo(() => buildProcessPlan(inputs, profileContext), [inputs, profileContext]);
   const markdown = useMemo(() => buildProcessMarkdown(inputs, plan), [inputs, plan]);
 
+  const hasExistingDraft = Object.values(initialInputs).some((value) => value.trim().length > 0);
+  const hasSavedProcesses = artifacts.length > 0;
+
   const updateInputs = useCallback((update: Partial<ProcessDesignerInputs>) => {
     setInputs((current) => ({ ...current, ...update }));
+  }, []);
+
+  const refreshArtifacts = useCallback(() => {
+    setArtifacts(listProcessArtifacts());
   }, []);
 
   function goToStep(id: StepId) {
@@ -73,13 +92,82 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
     }
   }
 
+  const handlePersistCurrent = useCallback((nextInputs: ProcessDesignerInputs = inputs) => {
+    const builtPlan = buildProcessPlan(nextInputs, profileContext);
+    const saved = saveProcessArtifact(nextInputs, builtPlan, currentArtifactId);
+    setCurrentArtifactId(saved.id);
+    saveCurrentProcessArtifactId(saved.id);
+    saveProcessDesignerDraft(nextInputs, saved.id);
+    refreshArtifacts();
+    return saved;
+  }, [currentArtifactId, inputs, profileContext, refreshArtifacts]);
+
+  function finish() {
+    handlePersistCurrent(inputs);
+    goToStep("done");
+  }
+
   function handleRestart() {
     if (window.confirm("Start a new process? Your current draft will be cleared.")) {
       clearProcessDesignerDraft();
+      saveCurrentProcessArtifactId(null);
       setInputs(createEmptyProcessDesignerInputs());
+      setCurrentArtifactId(null);
       goToStep("intro");
     }
   }
+
+  function handleStartFresh() {
+    clearProcessDesignerDraft();
+    saveCurrentProcessArtifactId(null);
+    setInputs(createEmptyProcessDesignerInputs());
+    setCurrentArtifactId(null);
+    goToStep("goal");
+  }
+
+  function handleOpenArtifact(id: string) {
+    const artifact = loadProcessArtifact(id);
+    if (!artifact) return;
+    setInputs(artifact.inputs);
+    setCurrentArtifactId(artifact.id);
+    saveCurrentProcessArtifactId(artifact.id);
+    saveProcessDesignerDraft(artifact.inputs, artifact.id);
+    goToStep("done");
+  }
+
+  function handleDeleteArtifact(id: string) {
+    if (!window.confirm("Delete this saved process? This can't be undone.")) return;
+    deleteProcessArtifact(id);
+    if (id === currentArtifactId) {
+      saveCurrentProcessArtifactId(null);
+      setCurrentArtifactId(null);
+    }
+    refreshArtifacts();
+  }
+
+  function handleRenameArtifact(id: string, currentName: string) {
+    const nextName = window.prompt("Rename this saved process", currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+    renameProcessArtifact(id, nextName);
+    refreshArtifacts();
+  }
+
+  function handleSaveAsNew() {
+    const saved = saveProcessArtifact(inputs, buildProcessPlan(inputs, profileContext), null);
+    setCurrentArtifactId(saved.id);
+    saveCurrentProcessArtifactId(saved.id);
+    saveProcessDesignerDraft(inputs, saved.id);
+    refreshArtifacts();
+  }
+
+  async function handleCopyBrief() {
+    await navigator.clipboard.writeText(plan.agentBrief);
+    setCopiedBrief(true);
+    setTimeout(() => setCopiedBrief(false), 2000);
+  }
+
+  const currentArtifactName = artifacts.find((artifact) => artifact.id === currentArtifactId)?.name
+    ?? getDefaultProcessName(inputs);
 
   const stepIndex = STEP_ORDER.indexOf(step);
   const isFormStep = step !== "intro" && step !== "done";
@@ -134,14 +222,15 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
       {step === "intro" && (
         <IntroStep
           onBegin={() => goToStep("goal")}
-          onStartFresh={() => {
-            clearProcessDesignerDraft();
-            setInputs(createEmptyProcessDesignerInputs());
-            goToStep("goal");
-          }}
-          hasExisting={hasExisting}
+          onStartFresh={handleStartFresh}
+          hasExisting={hasExistingDraft}
           hasProfile={!!profileContext}
+          hasSavedProcesses={hasSavedProcesses}
           onOpenContextBuilder={onOpenContextBuilder}
+          artifacts={artifacts}
+          onOpenArtifact={handleOpenArtifact}
+          onRenameArtifact={handleRenameArtifact}
+          onDeleteArtifact={handleDeleteArtifact}
         />
       )}
       {step === "goal" && (
@@ -157,10 +246,32 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
         />
       )}
       {step === "boundaries" && (
-        <BoundariesStep inputs={inputs} onChange={updateInputs} onBack={back} onContinue={next} />
+        <BoundariesStep inputs={inputs} onChange={updateInputs} onBack={back} onContinue={finish} />
       )}
       {step === "done" && (
-        <DoneStep markdown={markdown} onRestart={handleRestart} onBack={back} goal={plan.goal} />
+        <DoneStep
+          plan={plan}
+          markdown={markdown}
+          currentArtifactName={currentArtifactName}
+          copiedBrief={copiedBrief}
+          onCopyBrief={handleCopyBrief}
+          onDownload={() => {
+            const blob = new Blob([markdown], { type: "text/markdown" });
+            const anchor = document.createElement("a");
+            anchor.href = URL.createObjectURL(blob);
+            anchor.download = `nd-process-${Date.now()}.md`;
+            anchor.click();
+            URL.revokeObjectURL(anchor.href);
+          }}
+          onSaveAsNew={handleSaveAsNew}
+          onRestart={handleRestart}
+          onBack={back}
+          artifacts={artifacts}
+          currentArtifactId={currentArtifactId}
+          onOpenArtifact={handleOpenArtifact}
+          onRenameArtifact={handleRenameArtifact}
+          onDeleteArtifact={handleDeleteArtifact}
+        />
       )}
     </div>
   );
@@ -171,16 +282,26 @@ function IntroStep({
   onStartFresh,
   hasExisting,
   hasProfile,
+  hasSavedProcesses,
   onOpenContextBuilder,
+  artifacts,
+  onOpenArtifact,
+  onRenameArtifact,
+  onDeleteArtifact,
 }: {
   onBegin: () => void;
   onStartFresh: () => void;
   hasExisting: boolean;
   hasProfile: boolean;
+  hasSavedProcesses: boolean;
   onOpenContextBuilder: () => void;
+  artifacts: SavedProcessArtifact[];
+  onOpenArtifact: (id: string) => void;
+  onRenameArtifact: (id: string, name: string) => void;
+  onDeleteArtifact: (id: string) => void;
 }) {
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{ maxWidth: 680 }}>
       <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px" }}>
         This builds a process document you can hand to any AI assistant so it knows how to help you move a goal without turning it into pressure.
       </p>
@@ -195,7 +316,7 @@ function IntroStep({
           ? "A saved ND profile is loaded and will shape the process automatically."
           : "No saved ND profile is loaded. You can still continue, or open ND Context Builder first if you want this to be more personalized."}
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: hasSavedProcesses ? 40 : 0 }}>
         <button
           onClick={onBegin}
           style={{
@@ -215,19 +336,21 @@ function IntroStep({
           {hasProfile ? "Update ND profile" : "Open Context Builder first"}
         </button>
         {hasExisting && (
-          <button
-            onClick={() => {
-              if (window.confirm("Start a new process? Your current draft will be cleared.")) {
-                onStartFresh();
-              }
-            }}
-            className="btn-text"
-            style={{ fontSize: 12, color: "var(--ink-muted)" }}
-          >
+          <button onClick={onStartFresh} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
             Start fresh
           </button>
         )}
       </div>
+
+      {hasSavedProcesses && (
+        <SavedProcessesSection
+          artifacts={artifacts}
+          currentArtifactId={null}
+          onOpenArtifact={onOpenArtifact}
+          onRenameArtifact={onRenameArtifact}
+          onDeleteArtifact={onDeleteArtifact}
+        />
+      )}
     </div>
   );
 }
@@ -376,101 +499,109 @@ function BoundariesStep({
 }
 
 function DoneStep({
+  plan,
   markdown,
-  goal,
+  currentArtifactName,
+  copiedBrief,
+  onCopyBrief,
+  onDownload,
+  onSaveAsNew,
   onRestart,
   onBack,
+  artifacts,
+  currentArtifactId,
+  onOpenArtifact,
+  onRenameArtifact,
+  onDeleteArtifact,
 }: {
+  plan: ProcessPlan;
   markdown: string;
-  goal: string;
+  currentArtifactName: string;
+  copiedBrief: boolean;
+  onCopyBrief: () => void;
+  onDownload: () => void;
+  onSaveAsNew: () => void;
   onRestart: () => void;
   onBack: () => void;
+  artifacts: SavedProcessArtifact[];
+  currentArtifactId: string | null;
+  onOpenArtifact: (id: string) => void;
+  onRenameArtifact: (id: string, name: string) => void;
+  onDeleteArtifact: (id: string) => void;
 }) {
-  function downloadProcess() {
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `nd-process-${Date.now()}.md`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
-  }
-
-  const isEmpty = !goal.trim();
-
   return (
     <div>
-      {isEmpty ? (
-        <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-          You haven't filled anything in yet. Go back and complete at least the goal step to generate a useful process.
-        </p>
-      ) : (
-        <>
-          <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 24px", maxWidth: 560 }}>
-            Your process is ready. Download the file and paste it into any AI system prompt, Claude Project instructions, or agent context.
-            It includes the process itself plus the agent brief at the end.
-          </p>
+      <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: 600 }}>
+        Your process is ready. Read it here, then download the markdown or copy the agent brief. The process file is the handoff, the readable view is for you.
+      </p>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36, flexWrap: "wrap" }}>
-            <button
-              onClick={downloadProcess}
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--cream)",
-                background: "var(--teal)",
-                border: "1px solid var(--teal)",
-                padding: "9px 20px",
-                cursor: "pointer",
-                fontFamily: "var(--font-display)",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-              }}
-            >
-              <DownloadSimple size={14} />
-              Download process
-            </button>
-            <button onClick={onRestart} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-              Start over
-            </button>
-          </div>
-        </>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+        <button
+          onClick={onDownload}
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--cream)",
+            background: "var(--teal)",
+            border: "1px solid var(--teal)",
+            padding: "9px 20px",
+            cursor: "pointer",
+            fontFamily: "var(--font-display)",
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+          }}
+        >
+          <DownloadSimple size={14} />
+          Download process
+        </button>
+        <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>
+          {copiedBrief ? <Check size={12} /> : <Copy size={12} />}
+          {copiedBrief ? "Copied brief" : "Copy agent brief"}
+        </button>
+        <button onClick={onSaveAsNew} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+          Save as new
+        </button>
+        <button onClick={onRestart} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+          Start over
+        </button>
+      </div>
 
-      {!isEmpty && (
-        <div>
-          <p
-            style={{
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--ink-muted)",
-              margin: "0 0 12px",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Preview
-          </p>
-          <pre
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              lineHeight: 1.8,
-              color: "var(--ink-light)",
-              padding: "16px 18px",
-              border: "1px solid var(--rule)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              maxHeight: 480,
-              overflowY: "auto",
-              margin: 0,
-            }}
-          >
-            {markdown}
-          </pre>
-        </div>
-      )}
+      <div style={{ marginBottom: 32 }}>
+        <p style={metaLabelStyle}>Saved as</p>
+        <p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{currentArtifactName}</p>
+      </div>
+
+      <ReadableProcessView plan={plan} />
+
+      <div style={{ marginTop: 40 }}>
+        <p style={metaLabelStyle}>Markdown preview</p>
+        <pre
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            lineHeight: 1.8,
+            color: "var(--ink-light)",
+            padding: "16px 18px",
+            border: "1px solid var(--rule)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 420,
+            overflowY: "auto",
+            margin: 0,
+          }}
+        >
+          {markdown}
+        </pre>
+      </div>
+
+      <SavedProcessesSection
+        artifacts={artifacts}
+        currentArtifactId={currentArtifactId}
+        onOpenArtifact={onOpenArtifact}
+        onRenameArtifact={onRenameArtifact}
+        onDeleteArtifact={onDeleteArtifact}
+      />
 
       <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--rule)" }}>
         <button
@@ -483,6 +614,244 @@ function DoneStep({
         </button>
       </div>
     </div>
+  );
+}
+
+function ReadableProcessView({ plan }: { plan: ProcessPlan }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 28 }}>
+        <p style={metaLabelStyle}>Readable view</p>
+        <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em" }}>
+          {plan.goal}
+        </h3>
+        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, maxWidth: 680 }}>
+          {plan.thesis}
+        </p>
+      </div>
+
+      <ThreeColumnSummary
+        columns={[
+          { label: "What you're working with", items: plan.workingWith },
+          { label: "Protected conditions", items: plan.protectedConditions },
+          { label: "What you're not doing", items: plan.notDoing.length > 0 ? plan.notDoing : ["No explicit not-doing list saved yet."] },
+        ]}
+      />
+
+      <SectionBlock
+        title="Session start"
+        subtitle="Ask this first: What's actually available today?"
+      >
+        <div style={{ display: "grid", gap: 14 }}>
+          {plan.checkInModes.map((mode) => (
+            <div key={mode.label} style={simpleCardStyle}>
+              <p style={metaLabelStyle}>{mode.label}</p>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>{mode.guidance}</p>
+            </div>
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Move menu"
+        subtitle="Condition-based moves, not a timeline."
+      >
+        <div style={{ display: "grid", gap: 26 }}>
+          {plan.blocks.map((block, index) => (
+            <div key={block.id}>
+              <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12, marginBottom: 12 }}>
+                <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.1em", paddingTop: 2 }}>
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em" }}>
+                    {block.title}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 14 }}>
+                {block.moves.map((move) => (
+                  <MoveCard key={move.title} move={move} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Rescue moves"
+        subtitle="For re-entry, not correction."
+      >
+        <div style={{ display: "grid", gap: 14 }}>
+          {plan.rescueMoves.map((move) => (
+            <MoveCard key={move.title} move={move} />
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Measurement"
+        subtitle="Check whether the process helps you get going."
+      >
+        <div style={simpleCardStyle}>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {plan.measures.map((measure) => (
+              <li key={measure} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
+                {measure}
+              </li>
+            ))}
+          </ul>
+          <p style={{ margin: "14px 0 0", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>
+            Weekly check-in: {plan.weeklyQuestion}
+          </p>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Agent brief"
+        subtitle="Portable instructions for the agent helping you."
+      >
+        <pre
+          style={{
+            ...simpleCardStyle,
+            margin: 0,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            lineHeight: 1.8,
+            color: "var(--ink-light)",
+          }}
+        >
+          {plan.agentBrief}
+        </pre>
+      </SectionBlock>
+    </div>
+  );
+}
+
+function ThreeColumnSummary({
+  columns,
+}: {
+  columns: { label: string; items: string[] }[];
+}) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }} className="constraints-grid">
+      {columns.map((column) => (
+        <div key={column.label} style={simpleCardStyle}>
+          <p style={metaLabelStyle}>{column.label}</p>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {column.items.map((item) => (
+              <li key={item} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionBlock({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ marginTop: 34 }}>
+      <p style={metaLabelStyle}>{title}</p>
+      <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6 }}>{subtitle}</p>
+      {children}
+    </div>
+  );
+}
+
+function SavedProcessesSection({
+  artifacts,
+  currentArtifactId,
+  onOpenArtifact,
+  onRenameArtifact,
+  onDeleteArtifact,
+}: {
+  artifacts: SavedProcessArtifact[];
+  currentArtifactId: string | null;
+  onOpenArtifact: (id: string) => void;
+  onRenameArtifact: (id: string, name: string) => void;
+  onDeleteArtifact: (id: string) => void;
+}) {
+  if (artifacts.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 40 }}>
+      <p style={metaLabelStyle}>Saved processes</p>
+      <div style={{ display: "grid", gap: 12 }}>
+        {artifacts.map((artifact) => {
+          const isCurrent = artifact.id === currentArtifactId;
+          return (
+            <div key={artifact.id} style={{ border: "1px solid var(--rule)", padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ fontSize: 14, color: "var(--ink)", margin: "0 0 5px", lineHeight: 1.5 }}>
+                    {artifact.name}
+                    {isCurrent ? " (current)" : ""}
+                  </p>
+                  <p className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.6, margin: 0 }}>
+                    Updated {new Date(artifact.updatedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <button className="btn-text" onClick={() => onOpenArtifact(artifact.id)} style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                    Open
+                  </button>
+                  <button className="btn-text" onClick={() => onRenameArtifact(artifact.id, artifact.name)} style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                    <PencilSimple size={12} />
+                    Rename
+                  </button>
+                  <button className="btn-text" onClick={() => onDeleteArtifact(artifact.id)} style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                    <Trash size={12} />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MoveCard({ move }: { move: ProcessMove }) {
+  return (
+    <div style={simpleCardStyle}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+        <h5 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.015em", lineHeight: 1.25 }}>
+          {move.title}
+        </h5>
+        <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          {move.effort}
+        </span>
+      </div>
+      <MoveLine label="Trigger" value={move.trigger} />
+      <MoveLine label="Action" value={move.action} />
+      <MoveLine label="Done signal" value={move.doneSignal} />
+      <MoveLine label="Why this fits you" value={move.whyItFits} />
+    </div>
+  );
+}
+
+function MoveLine({ label, value }: { label: string; value: string }) {
+  return (
+    <p style={{ margin: "0 0 7px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>
+      <span style={{ color: "var(--ink)", fontWeight: 500 }}>{label}:</span> {value}
+    </p>
   );
 }
 
@@ -558,3 +927,18 @@ function StepNav({
     </div>
   );
 }
+
+const metaLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 500,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--ink-muted)",
+  margin: "0 0 10px",
+  fontFamily: "var(--font-mono)",
+};
+
+const simpleCardStyle: React.CSSProperties = {
+  border: "1px solid var(--rule)",
+  padding: "14px 16px",
+};

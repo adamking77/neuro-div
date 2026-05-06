@@ -8,10 +8,21 @@ import type {
 } from "../types";
 
 const PROCESS_DESIGNER_KEY = "nd-process-designer";
+const PROCESS_DESIGNER_ARTIFACTS_KEY = "nd-process-designer-artifacts";
+const PROCESS_DESIGNER_CURRENT_KEY = "nd-process-designer-current";
 
 interface SavedProcessDesignerDraft {
   inputs: ProcessDesignerInputs;
-  plan: ProcessPlan | null;
+  currentArtifactId: string | null;
+}
+
+export interface SavedProcessArtifact {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  inputs: ProcessDesignerInputs;
+  plan: ProcessPlan;
 }
 
 export function createEmptyProcessDesignerInputs(): ProcessDesignerInputs {
@@ -35,12 +46,130 @@ export function loadProcessDesignerDraft(): SavedProcessDesignerDraft | null {
   }
 }
 
-export function saveProcessDesignerDraft(inputs: ProcessDesignerInputs, plan: ProcessPlan | null): void {
-  localStorage.setItem(PROCESS_DESIGNER_KEY, JSON.stringify({ inputs, plan }));
+export function saveProcessDesignerDraft(inputs: ProcessDesignerInputs, currentArtifactId: string | null): void {
+  localStorage.setItem(PROCESS_DESIGNER_KEY, JSON.stringify({ inputs, currentArtifactId }));
 }
 
 export function clearProcessDesignerDraft(): void {
   localStorage.removeItem(PROCESS_DESIGNER_KEY);
+}
+
+function generateId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getDefaultProcessName(inputs: ProcessDesignerInputs): string {
+  if (inputs.goal.trim()) {
+    const slug = slugify(inputs.goal.slice(0, 48));
+    return slug || "Untitled process";
+  }
+  return "Untitled process";
+}
+
+function loadProcessArtifacts(): SavedProcessArtifact[] {
+  try {
+    const raw = localStorage.getItem(PROCESS_DESIGNER_ARTIFACTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as SavedProcessArtifact[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveProcessArtifacts(artifacts: SavedProcessArtifact[]): void {
+  try {
+    localStorage.setItem(PROCESS_DESIGNER_ARTIFACTS_KEY, JSON.stringify(artifacts));
+  } catch {
+    // localStorage full or disabled
+  }
+}
+
+export function listProcessArtifacts(): SavedProcessArtifact[] {
+  return loadProcessArtifacts().sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+export function loadProcessArtifact(id: string): SavedProcessArtifact | null {
+  return loadProcessArtifacts().find((artifact) => artifact.id === id) ?? null;
+}
+
+export function saveProcessArtifact(inputs: ProcessDesignerInputs, plan: ProcessPlan, id?: string | null): SavedProcessArtifact {
+  const artifacts = loadProcessArtifacts();
+  const now = new Date().toISOString();
+  const name = getDefaultProcessName(inputs);
+
+  const existingIndex = id ? artifacts.findIndex((artifact) => artifact.id === id) : -1;
+
+  if (existingIndex >= 0) {
+    const updated: SavedProcessArtifact = {
+      ...artifacts[existingIndex],
+      name: artifacts[existingIndex].name === "Untitled process" && inputs.goal.trim()
+        ? name
+        : artifacts[existingIndex].name,
+      updatedAt: now,
+      inputs,
+      plan,
+    };
+    artifacts[existingIndex] = updated;
+    saveProcessArtifacts(artifacts);
+    return updated;
+  }
+
+  const artifact: SavedProcessArtifact = {
+    id: id || generateId(),
+    name,
+    createdAt: now,
+    updatedAt: now,
+    inputs,
+    plan,
+  };
+  artifacts.push(artifact);
+  saveProcessArtifacts(artifacts);
+  return artifact;
+}
+
+export function deleteProcessArtifact(id: string): void {
+  const artifacts = loadProcessArtifacts().filter((artifact) => artifact.id !== id);
+  saveProcessArtifacts(artifacts);
+}
+
+export function renameProcessArtifact(id: string, name: string): void {
+  const artifacts = loadProcessArtifacts();
+  const index = artifacts.findIndex((artifact) => artifact.id === id);
+  if (index >= 0) {
+    artifacts[index] = { ...artifacts[index], name, updatedAt: new Date().toISOString() };
+    saveProcessArtifacts(artifacts);
+  }
+}
+
+export function saveCurrentProcessArtifactId(id: string | null): void {
+  try {
+    if (id) {
+      localStorage.setItem(PROCESS_DESIGNER_CURRENT_KEY, id);
+    } else {
+      localStorage.removeItem(PROCESS_DESIGNER_CURRENT_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function loadCurrentProcessArtifactId(): string | null {
+  try {
+    return localStorage.getItem(PROCESS_DESIGNER_CURRENT_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function buildProcessPlan(
