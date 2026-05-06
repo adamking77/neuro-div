@@ -595,11 +595,7 @@ export default function App() {
                 </span>
               )}
             </div>
-          ) : (
-            <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.6 }}>
-              {ndProfileContext ? "Profile loaded" : "No saved profile"}
-            </span>
-          )}
+          ) : null}
         </div>
       </div>
 

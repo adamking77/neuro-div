@@ -239,7 +239,7 @@ export function buildProcessPlan(
     workingWith: workingWith.length > 0
       ? workingWith
       : [
-          "Use one visible next move at a time.",
+          "Use one visible next step at a time.",
           "Prefer bounded work over open loops.",
           "Treat silence as neutral, not drift.",
         ],
@@ -292,7 +292,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
     lines.push(`- **${mode.label}** — ${mode.guidance}`);
   }
 
-  lines.push("", "## Move menu", "");
+  lines.push("", "## Step menu", "");
   for (const block of plan.blocks) {
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
@@ -305,7 +305,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
     }
   }
 
-  lines.push("## Rescue moves", "");
+  lines.push("## Rescue steps", "");
   for (const move of plan.rescueMoves) {
     lines.push(`### ${move.title}`, "");
     lines.push(`- **Trigger** — ${move.trigger}`);
@@ -329,7 +329,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
 
   lines.push("", "## Source notes", "");
   if (whyNow) lines.push(`- **Why now:** ${whyNow}`);
-  if (successSignal) lines.push(`- **What counts as movement:** ${successSignal}`);
+  if (successSignal) lines.push(`- **What counts as progress:** ${successSignal}`);
   if (existingAssets) lines.push(`- **Already available:** ${existingAssets}`);
   if (frictionPoints) lines.push(`- **Known sticking points:** ${frictionPoints}`);
 
@@ -349,7 +349,7 @@ function buildThesis(
     ? `protect against ${shutdownTriggers[0].toLowerCase()} and other known shutdown triggers`
     : "protect against open-ended demand pressure";
   const doneText = successSignal
-    ? `Use this signal for real movement: ${successSignal}.`
+    ? `Use this signal for real progress: ${successSignal}.`
     : "Keep the done signal visible enough that you do not have to guess when to stop.";
 
   return `Build ${goal} as a condition-based process, not a schedule. ${activationText}, ${protectionText}, and keep re-entry cheap. ${doneText}`;
@@ -388,8 +388,8 @@ function buildMoveBlocks({
         {
           title: "Reduce the edge",
           trigger: `When you want to work on ${goal} but the starting energy is low`,
-          action: `Open the smallest live artifact connected to ${goal}. Work from ${existingHint}. Make one clarifying move only: rename a section, list the open questions, cut the scope, or mark the real next edge.`,
-          doneSignal: "The artifact is clearer than it was, and the next move is easier to see.",
+          action: `Open the smallest live artifact connected to ${goal}. Work from ${existingHint}. Make one clarifying step only: rename a section, list the open questions, cut the scope, or mark the real next edge.`,
+          doneSignal: "The artifact is clearer than it was, and the next step is easier to see.",
           effort: "10-15 minutes",
           whyItFits: `This lowers blank-page pressure and uses ${lowStakesSupport} instead of demanding full activation.`,
         },
@@ -419,7 +419,7 @@ function buildMoveBlocks({
         {
           title: "Leave the runway visible",
           trigger: "Right before you stop a good session",
-          action: `Leave a short re-entry note: what moved, what is rough, and the exact next thing to touch when you come back to ${goal}.`,
+          action: `Leave a short re-entry note: what changed, what is rough, and the exact next thing to touch when you come back to ${goal}.`,
           doneSignal: "Future-you can re-enter without reconstructing the whole context.",
           effort: "5 minutes",
           whyItFits: "It preserves the benefit of a good window and shortens the next start.",
@@ -435,14 +435,14 @@ function buildMoveBlocks({
           title: "Name the actual blocker",
           trigger: `When ${goal} starts feeling impossible for reasons you cannot quite name`,
           action: `Write one sentence that starts with "This is stuck because..." and finish it plainly. If helpful, name ${frictionHint}. Then choose whether the real issue is scope, clarity, waiting, or emotional load.`,
-          doneSignal: "The blocker is named specifically enough to change the next move.",
+          doneSignal: "The blocker is named specifically enough to change the next step.",
           effort: "10 minutes",
           whyItFits: "Specific friction is easier to work with than a global sense of avoidance.",
         },
         {
           title: "Remove the dependency",
           trigger: "When you are waiting on someone else or on a perfect condition",
-          action: "Either make one async ask, create a temporary placeholder, or shrink the move so it no longer depends on that missing thing.",
+          action: "Either make one async ask, create a temporary placeholder, or shrink the step so it no longer depends on that missing thing.",
           doneSignal: "Progress no longer rests entirely on someone else responding.",
           effort: "10-20 minutes",
           whyItFits: `Waiting often turns into shutdown. This keeps the process moving without fighting ${shutdownHint}.`,
@@ -476,7 +476,7 @@ function buildMoveBlocks({
 }
 
 function buildRescueMoves(goal: string, shutdownTriggers: string[], successSignal: string): ProcessMove[] {
-  const successHint = successSignal || `one visible sign that ${goal} moved`;
+  const successHint = successSignal || `one visible sign that ${goal} progressed`;
   return [
     {
       title: "Not today",
@@ -489,16 +489,16 @@ function buildRescueMoves(goal: string, shutdownTriggers: string[], successSigna
     {
       title: "Restart after drift",
       trigger: "When you have been away from the process for a while",
-      action: `Re-read the goal, the success signal (${successHint}), and choose the smallest move from Low-friction re-entry. Do not attempt a full catch-up review.`,
+      action: `Re-read the goal, the success signal (${successHint}), and choose the smallest step from Low-friction re-entry. Do not attempt a full catch-up review.`,
       doneSignal: "You are back inside the work without reconstructing everything.",
       effort: "10 minutes",
-      whyItFits: "Re-entry fails when the first move becomes a backlog audit.",
+      whyItFits: "Re-entry fails when the first step becomes a backlog audit.",
     },
     {
       title: "Demand check",
       trigger: `When the process starts sounding like ${shutdownTriggers[0]?.toLowerCase() || "a demand"}`,
-      action: "Rewrite the move in invitation language. Reduce it to one option you could try, not a command you now have to obey.",
-      doneSignal: "The move feels optional enough to become available again.",
+      action: "Rewrite the step in invitation language. Reduce it to one option you could try, not a command you now have to obey.",
+      doneSignal: "The step feels optional enough to become available again.",
       effort: "5 minutes",
       whyItFits: "Framing changes whether a task stays workable or turns into a wall.",
     },
@@ -509,7 +509,7 @@ function buildCheckInModes(goal: string): ProcessCheckInMode[] {
   return [
     {
       label: "Thinking",
-      guidance: `Surface one move that helps you understand or shape ${goal} without asking for commitment yet.`,
+      guidance: `Surface one step that helps you understand or shape ${goal} without asking for commitment yet.`,
     },
     {
       label: "Deciding",
@@ -517,7 +517,7 @@ function buildCheckInModes(goal: string): ProcessCheckInMode[] {
     },
     {
       label: "Executing",
-      guidance: `Surface one bounded move from the menu below and nothing else until it is closed or declined.`,
+      guidance: `Surface one bounded step from the menu below and nothing else until it is closed or declined.`,
     },
     {
       label: "Not today",
@@ -550,13 +550,13 @@ function buildAgentBrief({
   checkInModes: ProcessCheckInMode[];
 }): string {
   const lines: string[] = [
-    `You are helping this person move ${goal}.`,
+    `You are helping this person with ${goal}.`,
     "",
     "## Operating rules",
     "",
     "- Start every interaction with the question: \"What's actually available today?\"",
     "- Use the four valid modes: Thinking, Deciding, Executing, Not today.",
-    "- Offer one relevant move only. Wait for it to be closed, declined, or reshaped before surfacing another.",
+    "- Offer one relevant step only. Wait for it to be closed, declined, or reshaped before surfacing another.",
     "- Do not use streaks, catch-up language, passive accountability, or anything that implies they are behind.",
     "- Treat silence as neutral unless the user tells you something changed.",
   ];
@@ -566,7 +566,7 @@ function buildAgentBrief({
   }
 
   if (successSignal) {
-    lines.push("", "## What counts as real movement", "", successSignal);
+    lines.push("", "## What counts as real progress", "", successSignal);
   }
 
   if (existingAssets) {
@@ -590,7 +590,7 @@ function buildAgentBrief({
     lines.push(`- **${mode.label}** — ${mode.guidance}`);
   }
 
-  lines.push("", "## Move menu", "");
+  lines.push("", "## Step menu", "");
   for (const block of blocks) {
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
@@ -599,7 +599,7 @@ function buildAgentBrief({
     lines.push("");
   }
 
-  lines.push("## Rescue moves", "");
+  lines.push("## Rescue steps", "");
   for (const move of rescueMoves) {
     lines.push(`- **${move.title}** — ${move.action}`);
   }

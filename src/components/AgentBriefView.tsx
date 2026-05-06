@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy } from "@phosphor-icons/react";
+import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -13,6 +13,16 @@ export function AgentBriefView({ markdown }: Props) {
     await navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `agent-brief-${Date.now()}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!markdown) {
@@ -85,51 +95,7 @@ export function AgentBriefView({ markdown }: Props) {
             Copy and paste into Claude Code, Cursor, or any AI agent
           </p>
         </div>
-        <button
-          onClick={handleCopy}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "8px 16px",
-            borderRadius: 999,
-            border: "1px solid var(--rule)",
-            background: copied ? "var(--teal)" : "transparent",
-            color: copied ? "#fff" : "var(--ink-muted)",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            transition: "background 0.15s, color 0.15s, border-color 0.15s",
-            flexShrink: 0,
-          }}
-        >
-          <AnimatePresence mode="wait">
-            {copied ? (
-              <motion.span
-                key="check"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                style={{ display: "inline-flex" }}
-              >
-                <Check size={13} weight="bold" />
-              </motion.span>
-            ) : (
-              <motion.span
-                key="copy"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                style={{ display: "inline-flex" }}
-              >
-                <Copy size={13} />
-              </motion.span>
-            )}
-          </AnimatePresence>
-          {copied ? "Copied" : "Copy markdown"}
-        </button>
+        <ActionButtons copied={copied} onCopy={handleCopy} onDownload={handleDownload} />
       </div>
 
       {/* Rendered sections */}
@@ -138,6 +104,98 @@ export function AgentBriefView({ markdown }: Props) {
           <AgentBriefSection key={i} section={section} />
         ))}
       </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          marginTop: 28,
+          paddingTop: 18,
+          borderTop: "1px solid var(--rule)",
+          flexWrap: "wrap",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--ink-muted)",
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          Ready to hand off. Copy the brief or download it as markdown.
+        </p>
+        <ActionButtons copied={copied} onCopy={handleCopy} onDownload={handleDownload} />
+      </div>
+    </div>
+  );
+}
+
+function ActionButtons({
+  copied,
+  onCopy,
+  onDownload,
+}: {
+  copied: boolean;
+  onCopy: () => void;
+  onDownload: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap" }}>
+      <button
+        onClick={onDownload}
+        className="btn-text"
+        style={{ fontSize: 12, color: "var(--ink-muted)" }}
+      >
+        <DownloadSimple size={13} />
+        Download .md
+      </button>
+      <button
+        onClick={onCopy}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "8px 16px",
+          borderRadius: 999,
+          border: "1px solid var(--rule)",
+          background: copied ? "var(--teal)" : "transparent",
+          color: copied ? "#fff" : "var(--ink-muted)",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          transition: "background 0.15s, color 0.15s, border-color 0.15s",
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {copied ? (
+            <motion.span
+              key="check"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              style={{ display: "inline-flex" }}
+            >
+              <Check size={13} weight="bold" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="copy"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              style={{ display: "inline-flex" }}
+            >
+              <Copy size={13} />
+            </motion.span>
+          )}
+        </AnimatePresence>
+        {copied ? "Copied" : "Copy agent brief"}
+      </button>
     </div>
   );
 }

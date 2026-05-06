@@ -271,7 +271,6 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
       {step === "done" && (
         <DoneStep
           plan={plan}
-          markdown={markdown}
           currentArtifactName={currentArtifactName}
           copiedBrief={copiedBrief}
           onCopyBrief={handleCopyBrief}
@@ -380,11 +379,11 @@ function GoalStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        Start with the actual thing you're trying to move. Keep it plain. No optimization language, no fake ambition.
+        Start with the actual thing you're trying to make happen. Keep it plain. No optimization language, no fake ambition.
       </p>
 
       <Field>
-        <FieldLabel>What are you trying to move?</FieldLabel>
+        <FieldLabel>What are you trying to make happen?</FieldLabel>
         <textarea
           value={inputs.goal}
           onChange={(e) => onChange({ goal: e.target.value })}
@@ -395,7 +394,7 @@ function GoalStep({
       </Field>
 
       <Field>
-        <FieldLabel>What would count as real movement?</FieldLabel>
+        <FieldLabel>What would count as real progress?</FieldLabel>
         <textarea
           value={inputs.successSignal}
           onChange={(e) => onChange({ successSignal: e.target.value })}
@@ -511,7 +510,6 @@ function BoundariesStep({
 
 function DoneStep({
   plan,
-  markdown,
   currentArtifactName,
   copiedBrief,
   onCopyBrief,
@@ -526,7 +524,6 @@ function DoneStep({
   onDeleteArtifact,
 }: {
   plan: ProcessPlan;
-  markdown: string;
   currentArtifactName: string;
   copiedBrief: boolean;
   onCopyBrief: () => void;
@@ -571,28 +568,7 @@ function DoneStep({
         <p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{currentArtifactName}</p>
       </div>
 
-      <ReadableProcessView plan={plan} />
-
-      <div style={{ marginTop: 40 }}>
-        <p style={metaLabelStyle}>Markdown preview</p>
-        <pre
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            lineHeight: 1.8,
-            color: "var(--ink-light)",
-            padding: "16px 18px",
-            border: "1px solid var(--rule)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            maxHeight: 420,
-            overflowY: "auto",
-            margin: 0,
-          }}
-        >
-          {markdown}
-        </pre>
-      </div>
+      <ReadableProcessView plan={plan} copiedBrief={copiedBrief} onCopyBrief={onCopyBrief} onDownload={onDownload} />
 
       <SavedProcessesSection
         artifacts={artifacts}
@@ -616,7 +592,17 @@ function DoneStep({
   );
 }
 
-function ReadableProcessView({ plan }: { plan: ProcessPlan }) {
+function ReadableProcessView({
+  plan,
+  copiedBrief,
+  onCopyBrief,
+  onDownload,
+}: {
+  plan: ProcessPlan;
+  copiedBrief: boolean;
+  onCopyBrief: () => void;
+  onDownload: () => void;
+}) {
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
@@ -652,8 +638,8 @@ function ReadableProcessView({ plan }: { plan: ProcessPlan }) {
       </SectionBlock>
 
       <SectionBlock
-        title="Move menu"
-        subtitle="Condition-based moves, not a timeline."
+        title="Step menu"
+        subtitle="Condition-based steps, not a timeline."
       >
         <div style={{ display: "grid", gap: 26 }}>
           {plan.blocks.map((block, index) => (
@@ -680,7 +666,7 @@ function ReadableProcessView({ plan }: { plan: ProcessPlan }) {
       </SectionBlock>
 
       <SectionBlock
-        title="Rescue moves"
+        title="Rescue steps"
         subtitle="For re-entry, not correction."
       >
         <div style={{ display: "grid", gap: 14 }}>
@@ -711,6 +697,18 @@ function ReadableProcessView({ plan }: { plan: ProcessPlan }) {
       <SectionBlock
         title="Agent brief"
         subtitle="Portable instructions for the agent helping you."
+        headerActions={(
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>
+              {copiedBrief ? <Check size={12} /> : <Copy size={12} />}
+              {copiedBrief ? "Copied brief" : "Copy agent brief"}
+            </button>
+            <button onClick={onDownload} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+              <DownloadSimple size={12} />
+              Download process
+            </button>
+          </div>
+        )}
       >
         <pre
           style={{
@@ -757,15 +755,20 @@ function ThreeColumnSummary({
 function SectionBlock({
   title,
   subtitle,
+  headerActions,
   children,
 }: {
   title: string;
   subtitle: string;
+  headerActions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div style={{ marginTop: 34 }}>
-      <p style={metaLabelStyle}>{title}</p>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
+        <p style={{ ...metaLabelStyle, margin: 0 }}>{title}</p>
+        {headerActions}
+      </div>
       <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6 }}>{subtitle}</p>
       {children}
     </div>
