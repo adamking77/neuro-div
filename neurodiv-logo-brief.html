@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroDiv OS — Logo Directions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+      font-weight: 400 700;
+      font-display: swap;
+    }
+
+    @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+
+    :root {
+      --cream: #FDFBF7;
+      --ink: #1A1A18;
+      --teal: #5B8A8A;
+      --terracotta: #C4725A;
+      --teal-60: rgba(91, 138, 138, 0.6);
+      --teal-30: rgba(91, 138, 138, 0.3);
+      --ink-10: rgba(26, 26, 24, 0.1);
+      --ink-50: rgba(26, 26, 24, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography */
+    .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-50);
+    }
+
+    .dir-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 40px;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 80px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--ink-10);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-50);
+    }
+
+    /* Source Grammar Section */
+    .source-section {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .source-mark {
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--ink-10);
+    }
+
+    .source-mark svg {
+      width: 80px;
+      height: 80px;
+    }
+
+    .source-details {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .source-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .source-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-50);
+      line-height: 1.8;
+    }
+
+    .grammar-note {
+      font-size: 13px;
+      color: var(--ink-50);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    /* Divider */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 64px 0 48px;
+    }
+
+    .section-divider::before {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--ink-10);
+    }
+
+    .section-divider .label {
+      flex-shrink: 0;
+    }
+
+    /* Grid */
+    .directions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--ink-10);
+      border: 1px solid var(--ink-10);
+    }
+
+    .direction {
+      background: var(--cream);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .dir-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .dir-name {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    /* Lockup */
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 0;
+      border-top: 1px solid var(--ink-10);
+      border-bottom: 1px solid var(--ink-10);
+    }
+
+    .lockup svg {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .lockup-text {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    /* Large Preview */
+    .preview-large {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--ink-10);
+      background: linear-gradient(135deg, var(--cream) 0%, rgba(91, 138, 138, 0.04) 100%);
+    }
+
+    .preview-large svg {
+      width: 60%;
+      height: 60%;
+    }
+
+    /* Size Tests */
+    .size-tests {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+    }
+
+    .size-test {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .size-test svg {
+      display: block;
+    }
+
+    .size-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--ink-50);
+    }
+
+    /* Rationale */
+    .rationale {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--ink-50);
+      max-width: 320px;
+    }
+
+    .rationale strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .directions-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .source-section {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      
+      .source-mark {
+        width: 100px;
+        height: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-top">
+        <h1>NeuroDiv OS<br>Logo Directions</h1>
+        <span class="date">2026-05-06</span>
+      </div>
+    </header>
+
+    <!-- Source Grammar -->
+    <section class="source-section">
+      <div class="source-mark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="9" cy="16" r="7" fill="none" stroke="#5B8A8A" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="7" fill="none" stroke="#5B8A8A" stroke-width="1.5" opacity="0.8"/>
+          <circle cx="23" cy="16" r="7" fill="none" stroke="#5B8A8A" stroke-width="1.5" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="source-details">
+        <div class="source-title">Category Scout — Source Grammar</div>
+        <div class="source-meta">
+          Three overlapping stroke rings<br>
+          Horizontal axis · Equal spacing<br>
+          Opacity cascade: 1.0 → 0.8 → 0.6
+        </div>
+        <p class="grammar-note">
+          The NeuroDiv OS marks below all derive from this grammar: circular forms, 
+          stroke logic, and systematic overlap — but each direction translates the 
+          grammar into a distinct personality suited to an operating system for 
+          neurodivergent cognition.
+        </p>
+      </div>
+    </section>
+
+    <!-- Directions Divider -->
+    <div class="section-divider">
+      <span class="label">Four Directions</span>
+    </div>
+
+    <!-- Directions Grid -->
+    <div class="directions-grid">
+      
+      <!-- Direction A: Orbit -->
+      <article class="direction">
+        <div class="dir-header">
+          <span class="dir-label">Direction A</span>
+          <span class="dir-name">Orbit</span>
+        </div>
+        
+        <div class="lockup">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="12" fill="none" stroke="#5B8A8A" stroke-width="1.5"/>
+            <circle cx="16" cy="16" r="8" fill="none" stroke="#5B8A8A" stroke-width="1.5" opacity="0.7"/>
+            <circle cx="16" cy="16" r="4" fill="#5B8A8A" opacity="0.5"/>
+          </svg>
+          <span class="lockup-text">NeuroDiv OS</span>
+        </div>
+
+        <div class="preview-large">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="28" fill="none" stroke="#5B8A8A" stroke-width="2"/>
+            <circle cx="32" cy="32" r="18" fill="none" stroke="#5B8A8A" stroke-width="2" opacity="0.7"/>
+            <circle cx="32" cy="32" r="8" fill="#5B8A8A" opacity="0.4"/>
+          </svg>
+        </div>
+
+        <div class="size-tests">
+          <div class="size-test">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5B8A8A" stroke-width="2" opacity="0.7"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.4"/></svg>
+            <span class="size-label">16px</span>
+          </div>
+          <div class="size-test">
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5B8A8A" stroke-width="2" opacity="0.7"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.4"/></svg>
+            <span class="size-label">24px</span>
+          </div>
+          <div class="size-test">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5B8A8A" stroke-width="2" opacity="0.7"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.4"/></svg>
+            <span class="size-label">32px</span>
+          </div>
+          <div class="size-test">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5B8A8A" stroke-width="2" opacity="0.7"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.4"/></svg>
+            <span class="size-label">48px</span>
+          </div>
+        </div>
+
+        <p class="rationale">
+          <strong>Concentric discipline.</strong> The three rings collapse into a single 
+          center, suggesting a core OS with layered capacities. Reads as target, 
+          node, and system all at once. Strongest at small sizes.
+        </p>
+      </article>
+
+      <!-- Direction B: Venn -->
+      <article class="direction">
+        <div class="dir-header">
+          <span class="dir-label">Direction B</span>
+          <span class="dir-name">Venn</span>
+        </div>
+        
+        <div class="lockup">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="16" r="9" fill="none" stroke="#5B8A8A" stroke-width="1.5"/>
+            <circle cx="20" cy="16" r="9" fill="none" stroke="#C4725A" stroke-width="1.5" opacity="0.8"/>
+            <path d="M16 10.2A9 9 0 0 1 16 21.8A9 9 0 0 1 16 10.2Z" fill="none" stroke="#5B8A8A" stroke-width="1.5" opacity="0.4"/>
+          </svg>
+          <span class="lockup-text">NeuroDiv OS</span>
+        </div>
+
+        <div class="preview-large">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="32" r="20" fill="none" stroke="#5B8A8A" stroke-width="2"/>
+            <circle cx="40" cy="32" r="20" fill="none" stroke="#C4725A" stroke-width="2" opacity="0.8"/>
+            <path d="M32 16.5A20 20 0 0 1 32 47.5A20 20 0 0 1 32 16.5Z" fill="none" stroke="#5B8A8A" stroke-width="2" opacity="0.4"/>
+          </svg>
+        </div>
+
+        <div class="size-tests">
+          <div class="size-test">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><circle cx="12" cy="16" r="9" stroke="#5B8A8A" stroke-width="2"/><circle cx="20" cy="16" r="9" stroke="#C4725A" stroke-width="2" opacity="0.8"/><path d="M16 10.5A9 9 0 0 1 16 21.5A9 9 0 0 1 16 10.5Z" fill="#5B8A8A" opacity="0.3"/></svg>
+            <span class="size-label">16px</span>
+          </div>
+          <div class="size-test">
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="12" cy="16" r="9" stroke="#5B8A8A" stroke-width="2"/><circle cx="20" cy="16" r="9" stroke="#C4725A" stroke-width="2" opacity="0.8"/><path d="M16 10.5A9 9 0 0 1 16 21.5A9 9 0 0 1 16 10.5Z" fill="#5B8A8A" opacity="0.3"/></svg>
+            <span class="size-label">24px</span>
+          </div>
+          <div class="size-test">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="12" cy="16" r="9" stroke="#5B8A8A" stroke-width="2"/><circle cx="20" cy="16" r="9" stroke="#C4725A" stroke-width="2" opacity="0.8"/><path d="M16 10.5A9 9 0 0 1 16 21.5A9 9 0 0 1 16 10.5Z" fill="#5B8A8A" opacity="0.3"/></svg>
+            <span class="size-label">32px</span>
+          </div>
+          <div class="size-test">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><circle cx="12" cy="16" r="9" stroke="#5B8A8A" stroke-width="2"/><circle cx="20" cy="16" r="9" stroke="#C4725A" stroke-width="2" opacity="0.8"/><path d="M16 10.5A9 9 0 0 1 16 21.5A9 9 0 0 1 16 10.5Z" fill="#5B8A8A" opacity="0.3"/></svg>
+            <span class="size-label">48px</span>
+          </div>
+        </div>
+
+        <p class="rationale">
+          <strong>Intersection as feature.</strong> Two overlapping circles with the 
+          overlap emphasized — where human cognition and systematic support meet. 
+          The terracotta second ring introduces warmth without breaking discipline.
+        </p>
+      </article>
+
+      <!-- Direction C: Node -->
+      <article class="direction">
+        <div class="dir-header">
+          <span class="dir-label">Direction C</span>
+          <span class="dir-name">Node</span>
+        </div>
+        
+        <div class="lockup">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="12" fill="none" stroke="#5B8A8A" stroke-width="1.5"/>
+            <rect x="13" y="13" width="6" height="6" fill="#1A1A18"/>
+          </svg>
+          <span class="lockup-text">NeuroDiv OS</span>
+        </div>
+
+        <div class="preview-large">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="28" fill="none" stroke="#5B8A8A" stroke-width="2"/>
+            <rect x="26" y="26" width="12" height="12" fill="#1A1A18"/>
+            <circle cx="32" cy="32" r="3" fill="#FDFBF7"/>
+          </svg>
+        </div>
+
+        <div class="size-tests">
+          <div class="size-test">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><rect x="13" y="13" width="6" height="6" fill="#1A1A18"/></svg>
+            <span class="size-label">16px</span>
+          </div>
+          <div class="size-test">
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><rect x="13" y="13" width="6" height="6" fill="#1A1A18"/></svg>
+            <span class="size-label">24px</span>
+          </div>
+          <div class="size-test">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><rect x="13" y="13" width="6" height="6" fill="#1A1A18"/></svg>
+            <span class="size-label">32px</span>
+          </div>
+          <div class="size-test">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#5B8A8A" stroke-width="2"/><rect x="13" y="13" width="6" height="6" fill="#1A1A18"/></svg>
+            <span class="size-label">48px</span>
+          </div>
+        </div>
+
+        <p class="rationale">
+          <strong>Processing unit.</strong> A ring containing a solid square — 
+          the geometry of computation. Most direct "OS" reading. The square 
+          suggests structure and memory; the ring suggests the personal boundary 
+          around it. Maximum legibility at favicon scale.
+        </p>
+      </article>
+
+      <!-- Direction D: Arc -->
+      <article class="direction">
+        <div class="dir-header">
+          <span class="dir-label">Direction D</span>
+          <span class="dir-name">Arc</span>
+        </div>
+        
+        <div class="lockup">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 4A12 12 0 1 1 7.03 10" stroke="#5B8A8A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.6"/>
+          </svg>
+          <span class="lockup-text">NeuroDiv OS</span>
+        </div>
+
+        <div class="preview-large">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 6A26 26 0 1 1 12.4 20.7" stroke="#5B8A8A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="5" fill="#5B8A8A" opacity="0.5"/>
+            <circle cx="32" cy="32" r="2" fill="#1A1A18"/>
+          </svg>
+        </div>
+
+        <div class="size-tests">
+          <div class="size-test">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M16 4A12 12 0 1 1 7.03 10" stroke="#5B8A8A" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.6"/></svg>
+            <span class="size-label">16px</span>
+          </div>
+          <div class="size-test">
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M16 4A12 12 0 1 1 7.03 10" stroke="#5B8A8A" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.6"/></svg>
+            <span class="size-label">24px</span>
+          </div>
+          <div class="size-test">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 4A12 12 0 1 1 7.03 10" stroke="#5B8A8A" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.6"/></svg>
+            <span class="size-label">32px</span>
+          </div>
+          <div class="size-test">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><path d="M16 4A12 12 0 1 1 7.03 10" stroke="#5B8A8A" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="#5B8A8A" opacity="0.6"/></svg>
+            <span class="size-label">48px</span>
+          </div>
+        </div>
+
+        <p class="rationale">
+          <strong>Open process.</strong> An incomplete ring with a central pulse — 
+          suggesting ongoing cognition, non-linear thinking, and systems that 
+          adapt rather than close. The break is intentional: neurodivergent 
+          minds do not loop the same way twice.
+        </p>
+      </article>
+
+    </div>
+  </div>
+</body>
+</html>

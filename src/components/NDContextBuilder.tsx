@@ -275,13 +275,13 @@ function IntroStep({ onBegin, hasExisting }: { onBegin: () => void; hasExisting:
   return (
     <div style={{ maxWidth: 600 }}>
       <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px" }}>
-        This builds your ND profile — a document you can hand to any AI assistant so it actually knows how to work with you.
+        Most AI tools respond the same way to everyone. This makes yours respond to you.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 20px" }}>
-        It covers which neurodivergent traits apply to you, what activates your brain, what causes avoidance, how you prefer to work, and what you've tried before.
+        You answer a few questions about how your brain actually works — what activates you, what causes shutdown, how you prefer to receive information, what you've tried before. The output is a profile document you drop into any AI as context. It changes how the AI behaves with you, not just what it says.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 36px" }}>
-        Takes about 10–15 minutes. You can stop at any point and come back — progress is saved automatically. Nothing is required.
+        10–15 minutes. Stop whenever. Nothing is required.
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <button
@@ -902,51 +902,52 @@ export function NDContextBuilder() {
 
   return (
     <div>
-      {/* Step header */}
-      <div style={{ marginBottom: 36 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-          <h2 style={{
-            fontSize: 18,
-            fontWeight: 500,
-            color: "var(--ink)",
-            letterSpacing: "-0.02em",
-            margin: 0,
-            lineHeight: 1.2,
-          }}>
-            {STEP_LABELS[step]}
-          </h2>
-          {isFormStep && formStepIndex !== null && (
-            <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
-              {formStepIndex} of {formStepCount}
-            </span>
+      {step !== "intro" && (
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+            <h2 style={{
+              fontSize: 18,
+              fontWeight: 500,
+              color: "var(--ink)",
+              letterSpacing: "-0.02em",
+              margin: 0,
+              lineHeight: 1.2,
+            }}>
+              {STEP_LABELS[step]}
+            </h2>
+            {isFormStep && formStepIndex !== null && (
+              <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
+                {formStepIndex} of {formStepCount}
+              </span>
+            )}
+          </div>
+          {step !== "done" && (
+            <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+              {STEP_ORDER.slice(1, -1).map((s) => {
+                const idx = STEP_ORDER.indexOf(s);
+                const currentIdx = stepIndex;
+                const isDone = idx < currentIdx;
+                const isCurrent = idx === currentIdx;
+                return (
+                  <div
+                    key={s}
+                    style={{
+                      height: 2,
+                      flex: 1,
+                      background: isDone
+                        ? "var(--teal)"
+                        : isCurrent
+                        ? "rgba(91, 138, 138, 0.4)"
+                        : "var(--rule)",
+                      transition: "background 0.2s",
+                    }}
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
-        {step !== "intro" && step !== "done" && (
-          <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
-            {STEP_ORDER.slice(1, -1).map((s) => {
-              const idx = STEP_ORDER.indexOf(s);
-              const currentIdx = stepIndex;
-              const isDone = idx < currentIdx;
-              const isCurrent = idx === currentIdx;
-              return (
-                <div
-                  key={s}
-                  style={{
-                    height: 2,
-                    flex: 1,
-                    background: isDone
-                      ? "var(--teal)"
-                      : isCurrent
-                      ? "rgba(91, 138, 138, 0.4)"
-                      : "var(--rule)",
-                    transition: "background 0.2s",
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
       {step === "intro" && (
         <IntroStep onBegin={() => goToStep("traits")} hasExisting={hasExisting} />

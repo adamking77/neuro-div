@@ -194,48 +194,50 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
 
   return (
     <div>
-      <div style={{ marginBottom: 36 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-          <h2
-            style={{
-              fontSize: 18,
-              fontWeight: 500,
-              color: "var(--ink)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            {STEP_LABELS[step]}
-          </h2>
-          {isFormStep && formStepIndex !== null && (
-            <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
-              {formStepIndex} of {formStepCount}
-            </span>
+      {step !== "intro" && (
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 500,
+                color: "var(--ink)",
+                letterSpacing: "-0.02em",
+                margin: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              {STEP_LABELS[step]}
+            </h2>
+            {isFormStep && formStepIndex !== null && (
+              <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
+                {formStepIndex} of {formStepCount}
+              </span>
+            )}
+          </div>
+          {step !== "done" && (
+            <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+              {STEP_ORDER.slice(1, -1).map((s) => {
+                const idx = STEP_ORDER.indexOf(s);
+                const currentIdx = stepIndex;
+                const isDone = idx < currentIdx;
+                const isCurrent = idx === currentIdx;
+                return (
+                  <div
+                    key={s}
+                    style={{
+                      height: 2,
+                      flex: 1,
+                      background: isDone ? "var(--teal)" : isCurrent ? "rgba(91, 138, 138, 0.4)" : "var(--rule)",
+                      transition: "background 0.2s",
+                    }}
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
-        {step !== "intro" && step !== "done" && (
-          <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
-            {STEP_ORDER.slice(1, -1).map((s) => {
-              const idx = STEP_ORDER.indexOf(s);
-              const currentIdx = stepIndex;
-              const isDone = idx < currentIdx;
-              const isCurrent = idx === currentIdx;
-              return (
-                <div
-                  key={s}
-                  style={{
-                    height: 2,
-                    flex: 1,
-                    background: isDone ? "var(--teal)" : isCurrent ? "rgba(91, 138, 138, 0.4)" : "var(--rule)",
-                    transition: "background 0.2s",
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
       {step === "intro" && (
         <IntroStep
@@ -321,18 +323,18 @@ function IntroStep({
   return (
     <div style={{ maxWidth: 680 }}>
       <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px" }}>
-        This builds a process document you can hand to any AI assistant so it knows how to help you move a goal without turning it into pressure.
+        Most planning systems assume you'll execute tomorrow what you decided today. That's not how most ND brains work.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 20px" }}>
-        It turns one goal plus your ND profile into a trigger-based move menu, a not-doing list, a session-start check-in, and an agent brief.
+        This takes one goal and turns it into a menu of moves organized around the conditions that actually activate you — not a schedule, not a task list. Your ND profile shapes it to how you specifically operate. The output is a document any AI agent can run from.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 12px" }}>
-        Takes about 5 minutes. You can stop at any point and come back, progress is saved automatically. Nothing is required.
+        About 5 minutes. Stop whenever.
       </p>
       <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: "0 0 36px" }}>
         {hasProfile
-          ? "A saved ND profile is loaded and will shape the process automatically."
-          : "No saved ND profile is loaded. You can still continue, or open ND Context Builder first if you want this to be more personalized."}
+          ? "Your ND profile is loaded — the process will be shaped around how you specifically work."
+          : "No ND profile found. This will still work — it'll ask a few extra questions to fill the gap. Build your profile first if you want the process fully personalized from the start."}
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: hasSavedProcesses ? 40 : 0 }}>
         <button

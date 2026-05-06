@@ -96,7 +96,7 @@ function applyProfileToSession(session: SessionState): SessionState {
 }
 
 export default function App() {
-  const [activeTool, setActiveTool] = useState<ActiveTool>("category-scout");
+  const [activeTool, setActiveTool] = useState<ActiveTool>("context-builder");
   const [ndProfileContext, setNdProfileContext] = useState<NDProfileContext | null>(() => getLiveNDProfileContext());
   const [session, setSession] = useState<SessionState>(() => createEmptySession());
   const [promptCopied, setPromptCopied] = useState(false);
@@ -586,23 +586,10 @@ export default function App() {
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 14, position: "relative", flexShrink: 0 }}>
-              {[0, 8, 16].map((offset, index) => (
-                <div
-                  key={index}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: offset,
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    border: "1.5px solid var(--teal)",
-                    opacity: 1 - index * 0.2,
-                  }}
-                />
-              ))}
-            </div>
+            <svg width="28" height="20" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="16" r="10" stroke="var(--teal)" strokeWidth="2" fill="none"/>
+              <circle cx="20" cy="16" r="10" stroke="var(--terracotta)" strokeWidth="2" fill="none" opacity="0.85"/>
+            </svg>
             <span style={{ fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
               NeuroDiv OS
             </span>
@@ -655,6 +642,12 @@ export default function App() {
         onEditNameChange={setEditName}
       />
 
+      {/* Suite intro */}
+      <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 28px", maxWidth: 560 }}>
+        A suite of tools built for ND founders and creators. Most AI tools assume consistent, schedule-driven execution. ND brains don't work that way. You get a profile of how your brain actually works, and a set of tools that read from it.{" "}
+        Start with <button onClick={() => setActiveTool("context-builder")} className="btn-text" style={{ fontSize: 13, color: "var(--ink-light)", textDecoration: "underline", textDecorationColor: "var(--rule)", textUnderlineOffset: 3 }}>ND Context Builder</button>.
+      </p>
+
       {/* Tool navigation */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
         <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
@@ -699,29 +692,37 @@ export default function App() {
       <hr className="rule" />
 
       {activeTool === "context-builder" && (
-        <div style={{ paddingTop: 40 }}>
+        <ToolSection
+          label="ND Context Builder"
+          description="A portable profile of how your brain actually works — what activates you, what causes shutdown, how you take in information. Drop it into any AI as context and it changes how the AI responds to you, not just what it says."
+        >
           <NDContextBuilder />
-        </div>
+        </ToolSection>
       )}
 
       {activeTool === "process-designer" && (
-        <div style={{ paddingTop: 40 }}>
+        <ToolSection
+          label="ND Process Designer"
+          description="Takes one goal and your ND profile and builds a trigger-based process around how you actually activate. Not a schedule or a task list — a menu of moves organized around the conditions that produce action for your specific brain."
+        >
           <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
-        </div>
+        </ToolSection>
       )}
 
       {activeTool === "skills" && (
-        <div style={{ paddingTop: 40 }}>
+        <ToolSection
+          label="Skill Suite"
+          description="If you already work inside Claude Projects, Codex, or another AI environment, you shouldn't have to leave it to use this methodology. These skills bring the same ND-aware workflows there. Install one and that AI runs the same process as the web tools, with outputs that work in both directions."
+        >
           <SkillsLibrary />
-        </div>
+        </ToolSection>
       )}
 
       {activeTool === "category-scout" && (
       <>
       <ToolSection
-        number="01"
         label="Category Scout"
-        description="Before you commit to a direction, know what you're getting into. Runs six searches across customer pain, competitor gaps, market shape, and whether people are already looking for this."
+        description="You have an idea — but you don't yet know if the market exists, who's already in it, or what language buyers actually use. Category Scout runs six research angles in parallel: customer pain, competitor gaps, market shape, search demand, and more. You get evidence to work with before you commit to a direction."
         statusChip={
           phaseRunning ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -749,7 +750,7 @@ export default function App() {
         }
       >
         <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65, margin: "0 0 28px", maxWidth: 560 }}>
-          Enter the problem. Hit run. Review what comes back across six angles — read the excerpts, export the file, or hand it to an agent.
+          Describe the customer problem below. Run the research. Six angles come back — read the excerpts directly, export the full dossier, or hand it to Distribution Strategy for the next step.
         </p>
 
         <div className="input-grid" style={{ marginBottom: 30 }}>
@@ -902,9 +903,8 @@ export default function App() {
       {activeTool === "distribution-strategy" && (
       <>
       <ToolSection
-        number="01"
         label="Distribution Strategy"
-        description="Takes the research and turns it into an ND-aware distribution plan, intelligence brief, and receiving-agent handoff."
+        description="Once you have research, this turns it into a distribution plan built around how you actually work. It reads your ND profile, your constraints, and the research dossier — then writes a strategy you can act on, an intelligence brief on the competitive landscape, and a handoff document for any agent continuing the work."
         statusChip={
           (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
            session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
@@ -929,7 +929,7 @@ export default function App() {
         {!hasAnyResults && (
           <div style={{ marginBottom: 28, maxWidth: 600 }}>
             <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: "0 0 10px" }}>
-              This surface expects a research dossier first. Run the research in `Category Scout`, then come back here for synthesis.
+              This tool reads from a research dossier. Run Category Scout first, then come back here — your results will be waiting.
             </p>
             <button
               className="btn-text"
@@ -1032,7 +1032,7 @@ function ToolSection({
   headerActions,
   children,
 }: {
-  number: string;
+  number?: string;
   label: string;
   description: string;
   statusChip?: React.ReactNode;
@@ -1052,12 +1052,14 @@ function ToolSection({
             textAlign: "left",
           }}
         >
-          <span
-            className="mono"
-            style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-muted)", flexShrink: 0, paddingTop: 5 }}
-          >
-            {number}
-          </span>
+          {number && (
+            <span
+              className="mono"
+              style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-muted)", flexShrink: 0, paddingTop: 5 }}
+            >
+              {number}
+            </span>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
               <span
