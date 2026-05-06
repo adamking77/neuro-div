@@ -380,7 +380,7 @@ function ConfigDrawer({
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <MiniPill label={inputs.teamSize === "solo" ? "Solo" : "Small team"} />
             <MiniPill label={OUTREACH_LABELS[inputs.outreachTolerance] ?? inputs.outreachTolerance} />
-            {ndProfileContext && <MiniPill label="ND profile" />}
+            {ndProfileContext && <MiniPill label="Profile" />}
             {inputs.peerCollaborationOk && <MiniPill label="Peer collaboration" />}
             {inputs.contentMode.length > 0 && !inputs.contentMode.includes("none") && (
               <MiniPill label={inputs.contentMode.map((m) => CONTENT_LABELS[m] ?? m).join(", ")} />

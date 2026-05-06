@@ -597,7 +597,7 @@ export default function App() {
             </div>
           ) : (
             <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.6 }}>
-              {ndProfileContext ? "ND profile loaded" : "No saved ND profile"}
+              {ndProfileContext ? "Profile loaded" : "No saved profile"}
             </span>
           )}
         </div>
@@ -640,8 +640,8 @@ export default function App() {
         <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
         {(
           [
-            { id: "context-builder" as ActiveTool, label: "ND Context Builder" },
-            { id: "process-designer" as ActiveTool, label: "ND Process Designer" },
+            { id: "context-builder" as ActiveTool, label: "Context Builder" },
+            { id: "process-designer" as ActiveTool, label: "Process Designer" },
             { id: "category-scout" as ActiveTool, label: "Category Scout" },
             { id: "distribution-strategy" as ActiveTool, label: "Distribution Strategy" },
             { id: "skills" as ActiveTool, label: "Skills" },
@@ -680,8 +680,8 @@ export default function App() {
 
       {activeTool === "context-builder" && (
         <ToolSection
-          label="ND Context Builder"
-          description="Build a profile of how your brain works. The other tools on this site read from it automatically."
+          label="Context Builder"
+          description="Your AI doesn't know how your brain works. Build a profile that teaches it. The other tools read from it automatically."
         >
           <NDContextBuilder />
         </ToolSection>
@@ -689,8 +689,8 @@ export default function App() {
 
       {activeTool === "process-designer" && (
         <ToolSection
-          label="ND Process Designer"
-          description="Give it one goal and your profile. It builds a plan with options you can choose from based on how you feel. No fixed schedule. No guilt."
+          label="Process Designer"
+          description="Fixed schedules fail when energy shifts. This gives you a menu of moves."
         >
           <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
         </ToolSection>
@@ -699,7 +699,7 @@ export default function App() {
       {activeTool === "skills" && (
         <ToolSection
           label="Skill Suite"
-          description="Use these tools inside any AI that accepts instructions. The same process, the same outputs, in the environment you already work in."
+          description="Your AI doesn't know about these tools. Paste a skill into it. It runs the same process."
         >
           <SkillsLibrary />
         </ToolSection>
@@ -709,7 +709,7 @@ export default function App() {
       <>
       <ToolSection
         label="Category Scout"
-        description="You have an idea and need to know if the market exists, who is already in it, and what language buyers use. Category Scout searches six angles and gives you evidence before you commit to a direction."
+        description="You see patterns other people miss. Before you go all-in, check if the market agrees. Category Scout validates your idea against six angles of real evidence."
         statusChip={
           phaseRunning ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -736,7 +736,7 @@ export default function App() {
           ) : undefined
         }
       >
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65, margin: "0 0 28px", maxWidth: 560 }}>
+        <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
           Describe the customer problem below. Run the research. Read the excerpts directly, export the full file, or hand it to Distribution Strategy for the next step.
         </p>
 
@@ -891,7 +891,7 @@ export default function App() {
       <>
       <ToolSection
         label="Distribution Strategy"
-        description="Turn your research into a plan for getting your work seen. It reads your profile and your constraints, then writes a strategy you can actually follow. You also get a brief on the competitive landscape and a document you can hand off to any AI continuing the work."
+        description="You built something good but typical marketing will burn you out. This builds outreach that fits your energy and avoids the tactics that drain you."
         statusChip={
           (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
            session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
@@ -915,8 +915,8 @@ export default function App() {
       >
         {!hasAnyResults && (
           <div style={{ marginBottom: 28, maxWidth: 600 }}>
-            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: 0 }}>
-              Category Scout research is optional here. You can generate from your audience lens, constraints, and ND profile alone. If you add research first, the draft gets more grounded and specific.
+            <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
+              Category Scout research is optional here. You can generate from your audience lens, constraints, and profile alone. If you add research first, the draft gets more grounded and specific.
             </p>
           </div>
         )}

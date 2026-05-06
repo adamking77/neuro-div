@@ -33,7 +33,7 @@ type StepId = "intro" | "traits" | "activation" | "shutdown" | "time" | "history
 const STEP_ORDER: StepId[] = ["intro", "traits", "activation", "shutdown", "time", "history", "info", "done"];
 
 const STEP_LABELS: Record<StepId, string> = {
-  intro: "ND Context Builder",
+  intro: "Context Builder",
   traits: "Your profile",
   activation: "What activates you",
   shutdown: "What to avoid",
@@ -605,7 +605,7 @@ function HistoryStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        Most ND people have tried a lot of systems. The history is useful. It stops anything new from recommending something that's already failed.
+        Most neurodivergent people have tried a lot of systems. The history is useful. It stops anything new from recommending something that's already failed.
       </p>
 
       <Field>
@@ -763,7 +763,7 @@ function DoneStep({
       ) : (
         <>
           <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 24px", maxWidth: 560 }}>
-            Your ND profile is ready. Download the file and paste it into any AI system prompt, Claude Project instructions, or agent context. The "For Any Agent Working With Me" section at the bottom is written directly to the AI.
+            Your profile is ready. Download the file and paste it into any AI system prompt, Claude Project instructions, or agent context. The "For Any Agent Working With Me" section at the bottom is written directly to the AI.
           </p>
 
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>

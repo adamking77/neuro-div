@@ -25,7 +25,7 @@ type StepId = "intro" | "goal" | "context" | "boundaries" | "done";
 const STEP_ORDER: StepId[] = ["intro", "goal", "context", "boundaries", "done"];
 
 const STEP_LABELS: Record<StepId, string> = {
-  intro: "ND Process Designer",
+  intro: "Process Designer",
   goal: "The goal",
   context: "What you're working with",
   boundaries: "What to protect",
@@ -344,7 +344,7 @@ function IntroStep({
           {hasExisting ? "Continue where I left off" : "Begin"}
         </button>
         <button onClick={onOpenContextBuilder} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          {hasProfile ? "Update ND profile" : "Open Context Builder first"}
+          {hasProfile ? "Update profile" : "Open Context Builder first"}
         </button>
         {hasExisting && (
           <button onClick={onStartFresh} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
@@ -443,7 +443,7 @@ function ContextStep({
 
       {profileContext && (
         <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: "0 0 28px", maxWidth: 560 }}>
-          Your saved ND profile is already loaded. This step is just the project-specific layer on top of it.
+          Your saved profile is already loaded. This step is just the project-specific layer on top of it.
         </p>
       )}
 

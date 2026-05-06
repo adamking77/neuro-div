@@ -39,7 +39,7 @@ const SHARED_FILES = [
 
 const SKILLS: SkillPackage[] = [
   {
-    name: "ND Context Builder",
+    name: "Context Builder",
     slug: "nd-context-builder",
     status: "Available",
 
@@ -49,7 +49,7 @@ const SKILLS: SkillPackage[] = [
     openAiYaml: ndContextOpenAi,
   },
   {
-    name: "ND Process Designer",
+    name: "Process Designer",
     slug: "nd-process-designer",
     status: "Available",
 
@@ -79,7 +79,7 @@ const SKILLS: SkillPackage[] = [
     openAiYaml: distributionStrategyOpenAi,
   },
   {
-    name: "ND Session Loop",
+    name: "Session Loop",
     slug: "nd-session-loop",
     status: "Available",
 
@@ -111,10 +111,10 @@ export function SkillsLibrary() {
   return (
     <div>
       <div style={{ maxWidth: 600, marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid var(--rule)" }}>
-        <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.75 }}>
+        <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.75 }}>
           Each skill is a set of instructions you paste into an AI you already use. Once pasted, that AI runs the same process as these web tools.
         </p>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>
+        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.65 }}>
           Copy or download a skill below, then paste it into your system prompt or project instructions.
         </p>
       </div>
@@ -132,7 +132,7 @@ export function SkillsLibrary() {
                   <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
                     {skill.name}
                   </h3>
-                  <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.7 }}>
+                  <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
                     {skill.summary}
                   </p>
                   <div style={{ marginBottom: 16 }}>
