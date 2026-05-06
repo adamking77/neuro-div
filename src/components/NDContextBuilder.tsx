@@ -33,7 +33,7 @@ type StepId = "intro" | "traits" | "activation" | "shutdown" | "time" | "history
 const STEP_ORDER: StepId[] = ["intro", "traits", "activation", "shutdown", "time", "history", "info", "done"];
 
 const STEP_LABELS: Record<StepId, string> = {
-  intro: "Welcome",
+  intro: "ND Context Builder",
   traits: "Your profile",
   activation: "What activates you",
   shutdown: "What to avoid",

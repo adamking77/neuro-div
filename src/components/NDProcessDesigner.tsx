@@ -25,7 +25,7 @@ type StepId = "intro" | "goal" | "context" | "boundaries" | "done";
 const STEP_ORDER: StepId[] = ["intro", "goal", "context", "boundaries", "done"];
 
 const STEP_LABELS: Record<StepId, string> = {
-  intro: "Welcome",
+  intro: "ND Process Designer",
   goal: "The goal",
   context: "What you're working with",
   boundaries: "What to protect",
