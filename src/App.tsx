@@ -42,8 +42,6 @@ import "./index.css";
 
 type ActiveTool = "category-scout" | "distribution-strategy" | "context-builder" | "process-designer" | "skills";
 
-type OpenSection = "research" | "strategy" | null;
-
 interface StrategyDraftErrorResponse {
   error?: string;
 }
@@ -101,7 +99,6 @@ export default function App() {
   const [activeTool, setActiveTool] = useState<ActiveTool>("category-scout");
   const [ndProfileContext, setNdProfileContext] = useState<NDProfileContext | null>(() => getLiveNDProfileContext());
   const [session, setSession] = useState<SessionState>(() => createEmptySession());
-  const [openSection, setOpenSection] = useState<OpenSection>("research");
   const [promptCopied, setPromptCopied] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -181,13 +178,12 @@ export default function App() {
     const empty = createEmptySession();
     setSession(empty);
     setDraftHistory([]);
-    setOpenSection(activeTool === "distribution-strategy" ? "strategy" : "research");
     const saved = saveProject(empty, []);
     setProjectId(saved.id);
     saveCurrentProjectId(saved.id);
     setLastSavedAt(saved.updatedAt);
     refreshProjects();
-  }, [activeTool, refreshProjects]);
+  }, [refreshProjects]);
 
   const switchProject = useCallback((id: string) => {
     const project = loadProject(id);
@@ -195,11 +191,10 @@ export default function App() {
     setProjectId(project.id);
     setSession(syncStrategyDirtyState(applyProfileToSession(project.session), ndProfileContext));
     setDraftHistory(project.draftHistory);
-    setOpenSection(activeTool === "distribution-strategy" ? "strategy" : "research");
     saveCurrentProjectId(project.id);
     setLastSavedAt(project.updatedAt);
     setProjectDrawerOpen(false);
-  }, [activeTool, ndProfileContext]);
+  }, [ndProfileContext]);
 
   const handleDeleteProject = useCallback((id: string) => {
     if (!window.confirm("Delete this project? This can't be undone.")) return;
@@ -487,7 +482,6 @@ export default function App() {
       }));
 
       setDraftHistory((prev) => [...prev, finalDraft]);
-      setOpenSection("strategy");
     } catch (error) {
       mutateSession((current) => ({
         ...current,
@@ -570,8 +564,6 @@ export default function App() {
         intelligenceStatus: "done",
         intelligenceError: undefined,
       }));
-
-      setOpenSection("strategy");
     } catch (error) {
       mutateSession((current) => ({
         ...current,
@@ -587,22 +579,13 @@ export default function App() {
   const canRun = !!session.problem.trim() && !phaseRunning;
   const donePhaseCount = Object.values(session.phases).filter((p) => p.status === "done").length;
   const totalResultCount = Object.values(session.phases).reduce((sum, p) => sum + p.results.length, 0);
-  const toolTitle = activeTool === "category-scout"
-    ? "Category Scout"
-    : activeTool === "distribution-strategy"
-      ? "Distribution Strategy"
-    : activeTool === "context-builder"
-      ? "ND Context Builder"
-      : activeTool === "process-designer"
-        ? "ND Process Designer"
-        : "Skills";
   const usesProjectShell = activeTool === "category-scout" || activeTool === "distribution-strategy";
 
   return (
     <div className="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 28, height: 14, position: "relative", flexShrink: 0 }}>
               {[0, 8, 16].map((offset, index) => (
                 <div
@@ -620,8 +603,8 @@ export default function App() {
                 />
               ))}
             </div>
-            <span style={{ fontSize: 22, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-              {toolTitle}
+            <span style={{ fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              NeuroDiv OS
             </span>
           </div>
           {usesProjectShell ? (
@@ -673,13 +656,14 @@ export default function App() {
       />
 
       {/* Tool navigation */}
-      <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
+        <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
         {(
           [
-            { id: "category-scout" as ActiveTool, label: "Category Scout" },
-            { id: "distribution-strategy" as ActiveTool, label: "Distribution Strategy" },
             { id: "context-builder" as ActiveTool, label: "ND Context Builder" },
             { id: "process-designer" as ActiveTool, label: "ND Process Designer" },
+            { id: "category-scout" as ActiveTool, label: "Category Scout" },
+            { id: "distribution-strategy" as ActiveTool, label: "Distribution Strategy" },
             { id: "skills" as ActiveTool, label: "Skills" },
           ] as { id: ActiveTool; label: string; disabled?: boolean }[]
         ).map(({ id, label, disabled }) => {
@@ -688,24 +672,28 @@ export default function App() {
             <button
               key={id}
               onClick={() => !disabled && setActiveTool(id)}
-              className="btn-text"
               disabled={disabled}
               style={{
                 fontSize: 12,
-                fontWeight: isActive ? 500 : 400,
-                color: disabled ? "var(--ink-muted)" : isActive ? "var(--ink)" : "var(--ink-muted)",
+                fontWeight: isActive ? 600 : 500,
+                color: disabled ? "var(--ink-muted)" : isActive ? "#fff" : "var(--ink-muted)",
                 opacity: disabled ? 0.35 : 1,
-                padding: "6px 14px",
-                borderBottom: `2px solid ${isActive ? "var(--teal)" : "transparent"}`,
+                background: isActive ? "var(--teal)" : "transparent",
+                border: "none",
+                borderRadius: 999,
+                padding: "5px 14px",
                 cursor: disabled ? "default" : "pointer",
-                transition: "color 0.12s, border-color 0.12s",
-                marginLeft: 0,
+                transition: "background 0.15s, color 0.15s",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "0.02em",
+                lineHeight: 1,
               }}
             >
               {label}
             </button>
           );
         })}
+        </div>
       </div>
 
       <hr className="rule" />
@@ -759,8 +747,6 @@ export default function App() {
             </button>
           ) : undefined
         }
-        isOpen={openSection === "research"}
-        onToggle={() => setOpenSection(openSection === "research" ? null : "research")}
       >
         <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65, margin: "0 0 28px", maxWidth: 560 }}>
           Enter the problem. Hit run. Review what comes back across six angles — read the excerpts, export the file, or hand it to an agent.
@@ -939,8 +925,6 @@ export default function App() {
             </span>
           ) : undefined
         }
-        isOpen
-        onToggle={() => setOpenSection("strategy")}
       >
         {!hasAnyResults && (
           <div style={{ marginBottom: 28, maxWidth: 600 }}>
@@ -1046,8 +1030,6 @@ function ToolSection({
   description,
   statusChip,
   headerActions,
-  isOpen,
-  onToggle,
   children,
 }: {
   number: string;
@@ -1055,17 +1037,12 @@ function ToolSection({
   description: string;
   statusChip?: React.ReactNode;
   headerActions?: React.ReactNode;
-  isOpen: boolean;
-  onToggle: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <button
-          className="btn-text"
-          onClick={onToggle}
-          aria-expanded={isOpen}
+        <div
           style={{
             flex: 1,
             display: "flex",
@@ -1095,39 +1072,20 @@ function ToolSection({
                 {label}
               </span>
               {statusChip && <span style={{ flexShrink: 0 }}>{statusChip}</span>}
-              <motion.span
-                animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                style={{ display: "inline-flex", color: "var(--ink-muted)", flexShrink: 0 }}
-              >
-                <CaretDown size={13} />
-              </motion.span>
             </div>
             <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: 0 }}>
               {description}
             </p>
           </div>
-        </button>
+        </div>
         {headerActions && (
           <span style={{ flexShrink: 0, paddingTop: 28 }}>{headerActions}</span>
         )}
       </div>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 280, damping: 30 }}
-            style={{ overflow: "hidden" }}
-          >
-            <div style={{ paddingBottom: 56 }}>
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div style={{ paddingBottom: 56 }}>
+        {children}
+      </div>
 
       <hr className="rule" />
     </div>
