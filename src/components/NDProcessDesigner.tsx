@@ -32,6 +32,24 @@ const STEP_LABELS: Record<StepId, string> = {
   done: "Your process is ready",
 };
 
+const primaryActionButtonStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontSize: 15,
+  fontWeight: 600,
+  letterSpacing: "0.01em",
+  padding: "10px 52px",
+  border: "none",
+  borderRadius: 999,
+  cursor: "pointer",
+  background: "var(--teal)",
+  color: "#fff",
+  transition: "background 0.15s",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  userSelect: "none",
+};
+
 export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuilder: () => void }) {
   const savedDraft = loadProcessDesignerDraft();
   const initialArtifactId = loadCurrentProcessArtifactId() ?? savedDraft?.currentArtifactId ?? null;
@@ -319,16 +337,7 @@ function IntroStep({
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: hasSavedProcesses ? 40 : 0 }}>
         <button
           onClick={onBegin}
-          style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--cream)",
-            background: "var(--teal)",
-            border: "1px solid var(--teal)",
-            padding: "10px 24px",
-            cursor: "pointer",
-            fontFamily: "var(--font-display)",
-          }}
+          style={primaryActionButtonStyle}
         >
           {hasExisting ? "Continue where I left off" : "Begin"}
         </button>
@@ -538,19 +547,7 @@ function DoneStep({
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
         <button
           onClick={onDownload}
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--cream)",
-            background: "var(--teal)",
-            border: "1px solid var(--teal)",
-            padding: "9px 20px",
-            cursor: "pointer",
-            fontFamily: "var(--font-display)",
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-          }}
+          style={primaryActionButtonStyle}
         >
           <DownloadSimple size={14} />
           Download process
@@ -909,17 +906,7 @@ function StepNav({
       {onContinue && (
         <button
           onClick={onContinue}
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--cream)",
-            background: "var(--teal)",
-            border: "1px solid var(--teal)",
-            padding: "9px 20px",
-            cursor: "pointer",
-            transition: "all 0.12s",
-            fontFamily: "var(--font-display)",
-          }}
+          style={primaryActionButtonStyle}
         >
           {continueLabel}
         </button>

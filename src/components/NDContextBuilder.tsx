@@ -43,6 +43,30 @@ const STEP_LABELS: Record<StepId, string> = {
   done: "Your profile is ready",
 };
 
+const primaryActionButtonStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontSize: 15,
+  fontWeight: 600,
+  letterSpacing: "0.01em",
+  padding: "10px 52px",
+  border: "none",
+  borderRadius: 999,
+  cursor: "pointer",
+  background: "var(--teal)",
+  color: "#fff",
+  transition: "background 0.15s",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  userSelect: "none",
+};
+
+const disabledPrimaryActionButtonStyle: React.CSSProperties = {
+  ...primaryActionButtonStyle,
+  cursor: "not-allowed",
+  background: "rgba(91, 138, 138, 0.4)",
+};
+
 // Reusable checkbox group
 function CheckGroup<T extends string>({
   options,
@@ -237,17 +261,7 @@ function StepNav({
         <button
           onClick={onContinue}
           disabled={continueDisabled}
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: continueDisabled ? "var(--ink-muted)" : "var(--cream)",
-            background: continueDisabled ? "transparent" : "var(--teal)",
-            border: `1px solid ${continueDisabled ? "var(--rule)" : "var(--teal)"}`,
-            padding: "9px 20px",
-            cursor: continueDisabled ? "default" : "pointer",
-            transition: "all 0.12s",
-            fontFamily: "var(--font-display)",
-          }}
+          style={continueDisabled ? disabledPrimaryActionButtonStyle : primaryActionButtonStyle}
         >
           {continueLabel}
         </button>
@@ -272,16 +286,7 @@ function IntroStep({ onBegin, hasExisting }: { onBegin: () => void; hasExisting:
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <button
           onClick={onBegin}
-          style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--cream)",
-            background: "var(--teal)",
-            border: "1px solid var(--teal)",
-            padding: "10px 24px",
-            cursor: "pointer",
-            fontFamily: "var(--font-display)",
-          }}
+          style={primaryActionButtonStyle}
         >
           {hasExisting ? "Continue where I left off" : "Begin"}
         </button>
@@ -764,19 +769,7 @@ function DoneStep({
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>
             <button
               onClick={downloadProfile}
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--cream)",
-                background: "var(--teal)",
-                border: "1px solid var(--teal)",
-                padding: "9px 20px",
-                cursor: "pointer",
-                fontFamily: "var(--font-display)",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-              }}
+              style={primaryActionButtonStyle}
             >
               <DownloadSimple size={14} />
               Download profile

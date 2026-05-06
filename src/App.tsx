@@ -656,7 +656,8 @@ export default function App() {
       />
 
       {/* Tool navigation */}
-      <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
+        <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
         {(
           [
             { id: "context-builder" as ActiveTool, label: "ND Context Builder" },
@@ -671,24 +672,28 @@ export default function App() {
             <button
               key={id}
               onClick={() => !disabled && setActiveTool(id)}
-              className="btn-text"
               disabled={disabled}
               style={{
                 fontSize: 12,
-                fontWeight: isActive ? 500 : 400,
-                color: disabled ? "var(--ink-muted)" : isActive ? "var(--ink)" : "var(--ink-muted)",
+                fontWeight: isActive ? 600 : 500,
+                color: disabled ? "var(--ink-muted)" : isActive ? "#fff" : "var(--ink-muted)",
                 opacity: disabled ? 0.35 : 1,
-                padding: "6px 14px",
-                borderBottom: `2px solid ${isActive ? "var(--teal)" : "transparent"}`,
+                background: isActive ? "var(--teal)" : "transparent",
+                border: "none",
+                borderRadius: 999,
+                padding: "5px 14px",
                 cursor: disabled ? "default" : "pointer",
-                transition: "color 0.12s, border-color 0.12s",
-                marginLeft: 0,
+                transition: "background 0.15s, color 0.15s",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "0.02em",
+                lineHeight: 1,
               }}
             >
               {label}
             </button>
           );
         })}
+        </div>
       </div>
 
       <hr className="rule" />
