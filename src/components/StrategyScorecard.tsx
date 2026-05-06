@@ -1,7 +1,7 @@
-import type { IntelligenceScorecardMetric } from "../types";
+import type { StrategyScorecard as StrategyScorecardType } from "../types";
 
 interface Props {
-  metrics: IntelligenceScorecardMetric[];
+  scorecard: StrategyScorecardType;
 }
 
 const GRADE_STYLES: Record<string, { border: string; bg: string; pill: string; text: string }> = {
@@ -25,10 +25,10 @@ const GRADE_STYLES: Record<string, { border: string; bg: string; pill: string; t
   },
 };
 
-export function IntelligenceScorecard({ metrics }: Props) {
+export function StrategyScorecard({ scorecard }: Props) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-      {metrics.map((metric) => {
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+      {scorecard.metrics.map((metric) => {
         const s = GRADE_STYLES[metric.grade] ?? GRADE_STYLES.medium;
         return (
           <div

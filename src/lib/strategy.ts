@@ -1,14 +1,33 @@
 import { PHASES } from "../phases";
+import { SHUTDOWN_LABELS } from "./nd-profile";
 import type {
   CondensedPhaseResearch,
   ExaResult,
   FounderConstraints,
+  NDProfile,
+  NDProfileContext,
   PhaseResult,
   SessionState,
   StrategyInputs,
   StrategyDraft,
   StrategySectionKey,
+  StrategySections,
+  StrategySectionsStructured,
+  StrategySectionContent,
 } from "../types";
+
+export function isStructuredSections(s: StrategySections): s is StrategySectionsStructured {
+  const first = s.positioning;
+  return typeof first === "object" && first !== null && "summary" in first;
+}
+
+function extractSectionText(val: string | StrategySectionContent): string {
+  if (typeof val === "string") return val;
+  const recs = val.recommendations
+    .map((r) => `- ${r.text}${r.why ? `\n  _${r.why}_` : ""}`)
+    .join("\n");
+  return val.summary + (recs ? "\n\n" + recs : "");
+}
 
 export const STRATEGY_SECTIONS: Array<{
   key: StrategySectionKey;
@@ -60,6 +79,10 @@ export function createEmptyStrategyInputs(): StrategyInputs {
     contentMode: ["writing"],
     contentModeOther: "",
     existingAssets: [{ name: "", url: "", description: "" }],
+    previousAttempts: "",
+    avoidanceTasks: "",
+    activationWindows: "",
+    unavailablePeriods: "",
   };
 }
 
@@ -69,19 +92,22 @@ export function getCompletedResearchCount(phases: Record<number, PhaseResult>): 
 
 export function getStrategyReadiness(phases: Record<number, PhaseResult>) {
   const doneCount = getCompletedResearchCount(phases);
-  const requiredPhaseIds = [1, 3, 5];
-  const missingRequired = requiredPhaseIds.filter((phaseId) => {
-    const phase = phases[phaseId];
+
+  const SUGGESTED_PHASES = [
+    { id: 1, label: "Problem Cartography", rationale: "Raw customer language — messaging won't sound right without this" },
+    { id: 3, label: "Solution Landscape", rationale: "White space context — positioning is guesswork without this" },
+    { id: 5, label: "Evidence Mining", rationale: "Proof the problem is real — strengthens every section" },
+  ];
+
+  const missingSuggested = SUGGESTED_PHASES.filter((p) => {
+    const phase = phases[p.id];
     return phase?.status !== "done" || phase.results.length === 0;
   });
 
-  const ready = doneCount >= 4 && missingRequired.length === 0;
+  const canGenerate = doneCount >= 2;
+  const confidence: "partial" | "strong" = doneCount >= 4 && missingSuggested.length === 0 ? "strong" : "partial";
 
-  return {
-    ready,
-    doneCount,
-    missingRequired,
-  };
+  return { canGenerate, doneCount, missingSuggested, confidence };
 }
 
 export function condensePhaseResearch(
@@ -116,11 +142,13 @@ export function getStrategyFingerprint(args: {
   knownPlayers: string;
   phases: Record<number, PhaseResult>;
   strategyInputs: StrategyInputs;
+  ndProfileContext?: NDProfileContext | null;
 }): string {
   return JSON.stringify({
     problem: args.problem.trim(),
     knownPlayers: args.knownPlayers.trim(),
     strategyInputs: normalizeStrategyInputs(args.strategyInputs),
+    ndProfileContext: args.ndProfileContext ?? null,
     phaseResearch: condensePhaseResearch(args.phases),
   });
 }
@@ -161,7 +189,8 @@ export function buildStrategyMarkdown(session: SessionState): string {
   }
 
   for (const section of STRATEGY_SECTIONS) {
-    lines.push(`## ${section.label}`, "", strategyDraft.sections[section.key] || "_Not yet written_", "");
+    const val = strategyDraft.sections[section.key];
+    lines.push(`## ${section.label}`, "", extractSectionText(val as string | StrategySectionContent) || "_Not yet written_", "");
   }
 
   if (strategyDraft.citations.length > 0) {
@@ -177,7 +206,7 @@ export function buildStrategyMarkdown(session: SessionState): string {
   return lines.filter(Boolean).join("\n");
 }
 
-export function syncStrategyDirtyState(session: SessionState): SessionState {
+export function syncStrategyDirtyState(session: SessionState, ndProfileContext?: NDProfileContext | null): SessionState {
   if (!hasCompleteStrategyDraft(session.strategyDraft) || !session.strategySourceFingerprint) {
     return {
       ...session,
@@ -190,6 +219,7 @@ export function syncStrategyDirtyState(session: SessionState): SessionState {
     knownPlayers: session.knownPlayers,
     phases: session.phases,
     strategyInputs: session.strategyInputs,
+    ndProfileContext,
   });
 
   return {
@@ -198,14 +228,56 @@ export function syncStrategyDirtyState(session: SessionState): SessionState {
   };
 }
 
+export function applyNDProfileDefaults(inputs: StrategyInputs, profile: NDProfile | null): StrategyInputs {
+  if (!profile) {
+    return inputs;
+  }
+
+  const shutdownTriggers = [
+    ...profile.shutdown.triggers
+      .filter((trigger) => trigger !== "other")
+      .map((trigger) => SHUTDOWN_LABELS[trigger]),
+    ...(profile.shutdown.triggerOther.trim() ? [profile.shutdown.triggerOther.trim()] : []),
+  ];
+
+  const channelAvoidanceHints = shutdownTriggers.filter((trigger) =>
+    ["Cold outreach", "Live calls", "Posting on social media"].some((label) => trigger.startsWith(label)),
+  );
+
+  const previousAttemptParts = [
+    profile.history.triedSystems.trim() ? `Tried: ${profile.history.triedSystems.trim()}` : "",
+    profile.history.whatWorked.trim() ? `Worked: ${profile.history.whatWorked.trim()}` : "",
+    profile.history.whatFailed.trim() ? `Fell apart: ${profile.history.whatFailed.trim()}` : "",
+  ].filter(Boolean);
+
+  const avoidanceParts = [
+    shutdownTriggers.length > 0 ? `Known triggers: ${shutdownTriggers.join("; ")}` : "",
+    profile.shutdown.shutdownDescription.trim()
+      ? `What shutdown looks like: ${profile.shutdown.shutdownDescription.trim()}`
+      : "",
+  ].filter(Boolean);
+
+  return {
+    ...inputs,
+    channelAvoidances: inputs.channelAvoidances.trim() || channelAvoidanceHints.join(", "),
+    previousAttempts: inputs.previousAttempts?.trim() || previousAttemptParts.join(" "),
+    avoidanceTasks: inputs.avoidanceTasks?.trim() || avoidanceParts.join(" "),
+    activationWindows: inputs.activationWindows?.trim() || profile.timeEnergy.activationWindows.trim(),
+    unavailablePeriods: inputs.unavailablePeriods?.trim() || profile.timeEnergy.unavailablePeriods.trim(),
+  };
+}
+
 export function hasCompleteStrategyDraft(draft: StrategyDraft | null | undefined): draft is StrategyDraft {
   if (!draft) {
     return false;
   }
 
-  return STRATEGY_SECTIONS.every((section) =>
-    typeof draft.sections?.[section.key] === "string" && draft.sections[section.key].trim().length > 0,
-  );
+  return STRATEGY_SECTIONS.every((section) => {
+    const val = draft.sections?.[section.key];
+    if (typeof val === "string") return val.trim().length > 0;
+    if (typeof val === "object" && val !== null) return typeof (val as StrategySectionContent).summary === "string" && (val as StrategySectionContent).summary.trim().length > 0;
+    return false;
+  });
 }
 
 export function summarizeResultSource(result: ExaResult): string {
@@ -228,6 +300,10 @@ export function normalizeFounderConstraints(constraints: FounderConstraints): Fo
     contentMode: constraints.contentMode,
     contentModeOther: constraints.contentModeOther.trim(),
     existingAssets: normalizeExistingAssets(constraints.existingAssets),
+    previousAttempts: constraints.previousAttempts?.trim() ?? "",
+    avoidanceTasks: constraints.avoidanceTasks?.trim() ?? "",
+    activationWindows: constraints.activationWindows?.trim() ?? "",
+    unavailablePeriods: constraints.unavailablePeriods?.trim() ?? "",
   };
 }
 
@@ -267,11 +343,11 @@ Key expectations of the receiving agent:
 
 **Session check-in — ask at the start of every session, before surfacing anything:**
 
-1. What's your capacity today? (not the weekly average — what's actually available right now?)
-2. What mode are you in? Thinking (exploring options), deciding (ready to choose), or executing (ready to act)?
+1. What's actually available today? (not the weekly average — what's genuinely here right now?)
+2. What mode are you in? Thinking (exploring options), deciding (ready to choose), executing (ready to act), or Not today (rest is planned, not failure)?
 3. What changed since last time? (anything completed, dropped, or shifted?)
 
-Match what you surface to the mode. Thinking → explore one option and its tradeoffs. Deciding → present the single choice that opens the next phase. Executing → surface the one next action. Nothing else until that move is closed.`;
+Match what you surface to the mode. Thinking → explore one option and its tradeoffs. Deciding → present the single choice that opens the next phase. Executing → surface the one next action. Not today → close the session without pressure. Nothing else until the current move is closed.`;
 
 const AGENT_BRIEF_HARD_CONSTRAINTS = `- Low-contact is a hard constraint, not a preference. Do not propose high-touch outreach regardless of perceived opportunity.
 - Create-once over do-again. Favor assets that compound without maintenance over recurring tasks.
@@ -285,7 +361,9 @@ const AGENT_BRIEF_EXECUTION_SHAPE = `How this strategy wants to be *paced*, inde
 - **Invitation register.** All surfacing language should be optional ("there's an X queued — want to start it?"), not imperative.
 - **One thing visible at a time.** When the founder is actively engaged with the strategy, show a single move, not a list. The next move comes after the current one is closed (completed, dropped, or deferred).
 
-Map this shape onto the founder's existing operating rhythm. Do not impose a specific cadence.`;
+Map this shape onto the founder's existing operating rhythm. Do not impose a specific cadence.
+
+If the founder doesn't return for a session or more, treat silence as planned rest — not drift or abandonment. Don't resume with pressure or status checks. Resume where you left off when they return.`;
 
 const AGENT_BRIEF_EVOLUTION_PROTOCOL = `When the founder engages with this strategy:
 
@@ -295,7 +373,7 @@ const AGENT_BRIEF_EVOLUTION_PROTOCOL = `When the founder engages with this strat
 
 const AGENT_BRIEF_FIRST_SESSION_PROTOCOL = `This brief contains the strategy layer generated by Category Scout. It has not yet been confirmed by the founder.
 
-**Before the first session, audit what you already know.** Check your memory, conversation history, and any prior context you have on this person. The Operating Rhythm and Founder Voice sections below may already be fillable from existing context — fill them before the session starts if you can. Only surface questions for genuine gaps.
+**Before the first session, audit what you already know.** Check your memory, conversation history, and any prior context you have on this person. The Operating Rhythm and Founder Voice sections below may already be fillable from existing context — fill them before the session starts if you can. Only surface questions for genuine gaps. If you can't determine what's in place, ask the user — one question at a time, not a list.
 
 Then run the activation with the founder:
 
@@ -323,6 +401,7 @@ export function renderAgentBrief(
   draft: StrategyDraft | null,
   inputs: StrategyInputs,
   problemStatement: string,
+  ndProfileContext?: NDProfileContext | null,
 ): string {
   if (!hasCompleteStrategyDraft(draft)) {
     return "";
@@ -364,9 +443,28 @@ export function renderAgentBrief(
     inputs.peerCollaborationOk ? "- **Peer collaboration:** Open to content swaps, podcast guesting, cross-promotion" : "",
     `- **Content formats:** ${formatContentModes(inputs)}`,
     inputs.channelAvoidances ? `- **Channel avoidances:** ${inputs.channelAvoidances}` : "",
+    ndProfileContext?.infoDensity ? `- **Preferred information density:** ${ndProfileContext.infoDensity}` : "",
+    ndProfileContext?.infoFormats.length ? `- **Preferred formats:** ${ndProfileContext.infoFormats.join(", ")}` : "",
     "",
     "---",
     "",
+    ...(ndProfileContext
+      ? [
+        "## Persistent ND context",
+        "",
+        ndProfileContext.summary || "No persistent ND profile summary available.",
+        "",
+        ndProfileContext.activationPatterns.length ? `**Known activation patterns:**\n${ndProfileContext.activationPatterns.map((item) => `- ${item}`).join("\n")}` : "",
+        ndProfileContext.goodDayDescription ? `**What a good working session feels like:**\n${ndProfileContext.goodDayDescription}` : "",
+        ndProfileContext.shutdownTriggers.length ? `**Known shutdown or avoidance triggers:**\n${ndProfileContext.shutdownTriggers.map((item) => `- ${item}`).join("\n")}` : "",
+        ndProfileContext.shutdownDescription ? `**What shutdown looks like:**\n${ndProfileContext.shutdownDescription}` : "",
+        ndProfileContext.supportConditions.length ? `**Support conditions that help:**\n${ndProfileContext.supportConditions.map((item) => `- ${item}`).join("\n")}` : "",
+        ndProfileContext.agentGuidance ? `**Agent guidance from persistent profile:**\n${ndProfileContext.agentGuidance}` : "",
+        "",
+        "---",
+        "",
+      ].filter(Boolean)
+      : []),
     "## Operating rhythm",
     "",
     AGENT_BRIEF_OPERATING_RHYTHM,
@@ -394,7 +492,8 @@ export function renderAgentBrief(
   ];
 
   for (const section of STRATEGY_SECTIONS) {
-    lines.push(`## ${section.label}`, "", draft.sections[section.key], "");
+    const val = draft.sections[section.key];
+    lines.push(`## ${section.label}`, "", extractSectionText(val as string | StrategySectionContent), "");
   }
 
   if (draft.citations.length > 0) {

@@ -30,18 +30,6 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
         <p style={{ fontSize: 14, color: "var(--ink-muted)", fontFamily: "var(--font-display)", margin: 0 }}>
           Enter a problem above and hit Run.
         </p>
-        <p
-          style={{
-            fontSize: 14,
-            color: "var(--ink-muted)",
-            margin: 0,
-            letterSpacing: "0.03em",
-            textAlign: "right",
-            fontFamily: "var(--font-display)",
-          }}
-        >
-          © 2026 a GoKart Studio production
-        </p>
       </div>
     </div>
   );
@@ -92,7 +80,7 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
         {/* Phase header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ fontSize: 17, fontWeight: 600, color: "var(--ink)", letterSpacing: "-0.01em" }}>
+            <span style={{ fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.01em" }}>
               {name}
             </span>
             {result.status === "running" && <span className="dot dot-running" />}

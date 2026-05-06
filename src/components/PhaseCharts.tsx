@@ -192,9 +192,11 @@ export function ScoreDistribution({ results }: ScoreProps) {
               <div style={{ height: 5, background: "rgba(26,26,24,0.06)", borderRadius: 2, overflow: "hidden" }}>
                 <div style={{
                   height: "100%", borderRadius: 2,
-                  width: count === 0 ? "0%" : `${(count / maxTier) * 100}%`,
+                  width: "100%",
                   background: count === 0 ? "transparent" : color,
-                  transition: "width 0.4s ease",
+                  transformOrigin: "left",
+                  transform: `scaleX(${count === 0 ? 0 : count / maxTier})`,
+                  transition: "transform 0.4s ease",
                 }} />
               </div>
             </div>

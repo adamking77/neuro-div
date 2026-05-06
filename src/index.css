@@ -91,8 +91,8 @@ select:focus-visible {
   box-shadow: 0 0 0 2px rgba(91, 138, 138, 0.15);
 }
 
-/* Prevent HeroUI from dimming plain buttons */
-button:disabled { opacity: 1 !important; }
+/* Prevent HeroUI from dimming non-HeroUI disabled buttons; HeroUI handles its own disabled states */
+button:disabled:not([class*="heroui"]):not([data-slot]) { opacity: 1 !important; }
 
 /* Responsive layout */
 @media (max-width: 640px) {

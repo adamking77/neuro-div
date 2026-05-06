@@ -45,7 +45,6 @@ export function IntelligenceRiskMatrix({ risks }: Props) {
             style={{
               background: s.bg,
               border: `1px solid ${s.border}`,
-              borderLeft: `3px solid ${s.dot}`,
               padding: "14px 16px",
             }}
           >

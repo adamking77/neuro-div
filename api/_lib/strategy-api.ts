@@ -1,10 +1,16 @@
 import type {
   FounderConstraints,
+  NDProfileContext,
   StrategyCitation,
   StrategyDraftRequestPayload,
   StrategyDraftResponse,
   StrategySectionKey,
   StrategySections,
+  StrategySectionsStructured,
+  StrategySectionContent,
+  StrategyRecommendation,
+  StrategyCallout,
+  StrategyScorecard,
 } from "../../src/types";
 
 const SECTION_KEYS: StrategySectionKey[] = [
@@ -173,6 +179,7 @@ export function validateStrategyDraftRequest(input: unknown): StrategyDraftReque
   const knownPlayers = expectOptionalString(body.knownPlayers);
   const audienceLens = expectNonEmptyString(body.audienceLens, "audienceLens is required");
   const founderConstraints = validateFounderConstraints(body.founderConstraints);
+  const ndProfileContext = validateNDProfileContext(body.ndProfileContext);
   const phaseResearch = validatePhaseResearch(body.phaseResearch);
 
   if (phaseResearch.length === 0) {
@@ -184,6 +191,7 @@ export function validateStrategyDraftRequest(input: unknown): StrategyDraftReque
     knownPlayers,
     audienceLens,
     founderConstraints,
+    ndProfileContext,
     phaseResearch,
   };
 }
@@ -219,6 +227,7 @@ export function buildStrategyDraftPrompt(
     "Flag any recommended tactic that requires ongoing social maintenance, outreach cadence, or relationship energy as a warning.",
     "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
+    "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
     "Only cite URLs that appear in the provided evidence packs.",
     "Return JSON only with this exact shape, with every section populated with substantive draft text:",
     "{\"sections\":{\"positioning\":\"draft text\",\"channelPlan\":\"draft text\",\"messageAngles\":\"draft text\",\"assetIdeas\":\"draft text\",\"experiments\":\"draft text\",\"thirtyDaySequence\":\"draft text\"},\"warnings\":[\"warning text\"],\"citations\":[{\"section\":\"positioning\",\"title\":\"source title\",\"url\":\"source URL\",\"note\":\"why it supports the section\"}]}",
@@ -252,6 +261,7 @@ export function buildStrategyDraftPrompt(
       problem: payload.problem,
       knownPlayers: payload.knownPlayers,
       founderConstraints,
+      ndProfileContext: payload.ndProfileContext,
       phaseResearch: payload.phaseResearch,
       exaResearch,
     },
@@ -455,13 +465,14 @@ export function mergeStrategyWarnings(warnings: string[], exaDossier: ExaResearc
 }
 
 export type StrategyDraftPart1 = {
-  sections: Pick<StrategySections, "positioning" | "channelPlan" | "messageAngles">;
+  sections: Pick<StrategySectionsStructured, "positioning" | "channelPlan" | "messageAngles">;
   warnings: string[];
   citations: StrategyCitation[];
+  scorecard?: StrategyScorecard;
 };
 
 export type StrategyDraftPart2 = {
-  sections: Pick<StrategySections, "assetIdeas" | "experiments" | "thirtyDaySequence">;
+  sections: Pick<StrategySectionsStructured, "assetIdeas" | "experiments" | "thirtyDaySequence">;
   citations: StrategyCitation[];
 };
 
@@ -479,11 +490,13 @@ export function buildStrategyDraftPromptPart1(
     "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
     "Only cite URLs that appear in the provided evidence packs.",
-    'Return JSON only with this exact shape: {"sections":{"positioning":"draft text","channelPlan":"draft text","messageAngles":"draft text"},"warnings":["warning text"],"citations":[{"section":"positioning","title":"source title","url":"source URL","note":"why it supports the section"}]}',
-    "Section guidance — positioning: who this is for, what tension matters, how to frame the wedge, drawn from problem language and white space in the research.",
-    "channelPlan: specific async and pull channels with evidence of fit; include inline cautions for channels requiring ongoing maintenance directly in the section text; shape recommendations around the founder's outreach tolerance and content mode.",
-    "messageAngles: hooks and language patterns drawn directly from the research vocabulary and evidence; prioritize language the audience already uses before they know a solution exists.",
-    "Each section should be concise but specific, use markdown bulleting or short paragraphs where helpful, and ground recommendations in the provided research.",
+    "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
+    "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
+    '{"scorecard":{"metrics":[{"label":"Channel Fit","grade":"high|medium|low","rationale":"1-2 sentences grounded in constraints and research"},{"label":"Message Clarity","grade":"high|medium|low","rationale":"..."},{"label":"Asset Leverage","grade":"high|medium|low","rationale":"..."},{"label":"Execution Realism","grade":"high|medium|low","rationale":"..."}]},"sections":{"positioning":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"channelPlan":{...same shape...},"messageAngles":{...same shape...}},"warnings":["..."],"citations":[{"section":"positioning","title":"...","url":"...","note":"..."}]}',
+    "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Examples: 'Based on your stated avoidance of [X]...', 'The Phase 01 research shows audiences are already using language around...', 'Given that you have previously tried [previouslyTried]...'. Generic rationale such as 'this channel works well for founders' is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
+    "Section guidance — positioning: draw the wedge from Phase 01 problem language and Phase 03 white space. The summary is the single-sentence positioning statement. Recommendations are differentiated wedge options, each with rationale citing the research phase that supports it.",
+    "channelPlan: match channels to the founder's outreach tolerance, content mode, and avoidanceTasks. Effort reflects realistic cost given their working windows. Flag anything requiring social maintenance as a warning callout.",
+    "messageAngles: draw from Phase 01 and Phase 06 vocabulary. Recommendations are specific hooks or angles, not abstract advice. The 'why' references specific audience language found in research.",
     "Citations must point to source URLs from the evidence pack. Include only citations you actually used.",
   ].join(" ");
 
@@ -497,6 +510,10 @@ export function buildStrategyDraftPromptPart1(
     existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
     existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
     audienceLens: payload.audienceLens,
+    ...(payload.founderConstraints.previousAttempts ? { previouslyTried: `${payload.founderConstraints.previousAttempts} — do not recommend these approaches again unless there is compelling new evidence.` } : {}),
+    ...(payload.founderConstraints.avoidanceTasks ? { avoidanceTasks: payload.founderConstraints.avoidanceTasks } : {}),
+    ...(payload.founderConstraints.activationWindows ? { naturalWorkingWindows: payload.founderConstraints.activationWindows } : {}),
+    ...(payload.founderConstraints.unavailablePeriods ? { protectedRestPeriods: `${payload.founderConstraints.unavailablePeriods} — treat these as planned rest, not gaps to fill.` } : {}),
   };
 
   const user = JSON.stringify(
@@ -505,6 +522,7 @@ export function buildStrategyDraftPromptPart1(
       problem: payload.problem,
       knownPlayers: payload.knownPlayers,
       founderConstraints,
+      ndProfileContext: payload.ndProfileContext,
       phaseResearch: payload.phaseResearch,
       exaResearch,
     },
@@ -528,11 +546,13 @@ export function buildStrategyDraftPromptPart2(
     "The research below comes from six category design phases. Use each phase's distinct signal type — Phase 01 Problem Cartography: raw customer language before branding, use for messaging and positioning language; Phase 02 Enemy Identification: incumbent approaches being displaced, use for differentiation and old-way framing; Phase 03 Solution Landscape: adjacent players and what is already named, use for white space and positioning; Phase 04 Category Audit: category maturity signals, use for timing and naming decisions; Phase 05 Evidence Mining: proof the problem is real and growing, use for message angles and credibility claims; Phase 06 Language Mining: vocabulary people reach for before knowing a solution exists, use for hooks, asset titles, and SEO terms.",
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
     "Only cite URLs that appear in the provided evidence packs.",
-    'Return JSON only with this exact shape: {"sections":{"assetIdeas":"draft text","experiments":"draft text","thirtyDaySequence":"draft text"},"citations":[{"section":"assetIdeas","title":"source title","url":"source URL","note":"why it supports the section"}]}',
-    "Section guidance — assetIdeas: create-once assets — templates, tools, teardowns, guides, diagnostics — that compound over time without a posting cadence; match format to the founder's content creation mode.",
-    "experiments: single, bounded, async tests — one at a time, clear success signal, low energy cost, no ongoing commitment required; include an inline success signal for each experiment in the section text.",
-    "thirtyDaySequence: a map of phases with no implied timing — write each phase opening as 'when you're ready to [action]', never as 'Week N: [action]'; Phase 1 is the one decision that opens everything else (choose wedge and surface); Phase 2 builds the asset around the strongest problem language; Phase 3 places the asset on one low-contact channel with only necessary distribution touches; Phase 4 reads qualified signals and decides whether to iterate, pause, or run the next bounded test.",
-    "Each section should be concise but specific, use markdown bulleting or short paragraphs where helpful, and ground recommendations in the provided research.",
+    "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
+    "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
+    '{"sections":{"assetIdeas":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"experiments":{...same shape...},"thirtyDaySequence":{...same shape...}},"citations":[{"section":"assetIdeas","title":"...","url":"...","note":"..."}]}',
+    "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Generic rationale is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
+    "Section guidance — assetIdeas: match asset format to contentMode. Recommendations are specific asset concepts, not categories. The 'why' references both the audience recognition moment and the founder's capacity.",
+    "experiments: single bounded experiments only. Effort must be 'low' — if it's medium or high it's not an experiment, it's a project. The 'why' explains what specific signal this test will produce.",
+    "thirtyDaySequence: sequence moves by activationWindows pattern, not calendar. Protect unavailablePeriods. Frame as 'when conditions are right' not 'week 1, week 2'. The summary is the overall sprint shape.",
     "Citations must point to source URLs from the evidence pack. Include only citations you actually used.",
   ].join(" ");
 
@@ -546,6 +566,10 @@ export function buildStrategyDraftPromptPart2(
     existingAssets: payload.founderConstraints.existingAssets.filter((asset) => asset.name.trim().length > 0),
     existingWorkAndAssets: buildExistingAssetLines(payload.founderConstraints.existingAssets) || undefined,
     audienceLens: payload.audienceLens,
+    ...(payload.founderConstraints.previousAttempts ? { previouslyTried: `${payload.founderConstraints.previousAttempts} — do not recommend these approaches again unless there is compelling new evidence.` } : {}),
+    ...(payload.founderConstraints.avoidanceTasks ? { avoidanceTasks: payload.founderConstraints.avoidanceTasks } : {}),
+    ...(payload.founderConstraints.activationWindows ? { naturalWorkingWindows: payload.founderConstraints.activationWindows } : {}),
+    ...(payload.founderConstraints.unavailablePeriods ? { protectedRestPeriods: `${payload.founderConstraints.unavailablePeriods} — treat these as planned rest, not gaps to fill.` } : {}),
   };
 
   const user = JSON.stringify(
@@ -554,6 +578,7 @@ export function buildStrategyDraftPromptPart2(
       problem: payload.problem,
       knownPlayers: payload.knownPlayers,
       founderConstraints,
+      ndProfileContext: payload.ndProfileContext,
       phaseResearch: payload.phaseResearch,
       exaResearch,
     },
@@ -566,20 +591,107 @@ export function buildStrategyDraftPromptPart2(
 
 export function parseStrategyDraftPart1Text(text: string): StrategyDraftPart1 {
   const parsed = JSON.parse(extractJsonObject(text)) as unknown;
-  return parseStrategyDraftPart1Input(parsed);
+  return parseStrategyDraftPart1Structured(parsed);
 }
 
 export function parseStrategyDraftPart2Text(text: string): StrategyDraftPart2 {
   const parsed = JSON.parse(extractJsonObject(text)) as unknown;
-  return parseStrategyDraftPart2Input(parsed);
+  return parseStrategyDraftPart2Structured(parsed);
+}
+
+export function parseStrategyDraftPart1Structured(input: unknown): StrategyDraftPart1 {
+  const parsed = parseMaybeJson(input);
+  const body = expectRecord(parsed, "Model output must be a JSON object");
+  const sectionsInput = body.sections ?? body;
+  const sectionsRecord = expectRecord(sectionsInput, "sections must be an object");
+
+  return {
+    sections: {
+      positioning: parseSectionContent(sectionsRecord, "positioning"),
+      channelPlan: parseSectionContent(sectionsRecord, "channelPlan"),
+      messageAngles: parseSectionContent(sectionsRecord, "messageAngles"),
+    },
+    warnings: coerceStringArray(body.warnings),
+    citations: validateStrategyCitations(body.citations),
+    scorecard: parseStrategyScorecard(body.scorecard),
+  };
+}
+
+export function parseStrategyDraftPart2Structured(input: unknown): StrategyDraftPart2 {
+  const parsed = parseMaybeJson(input);
+  const body = expectRecord(parsed, "Model output must be a JSON object");
+  const sectionsInput = body.sections ?? body;
+  const sectionsRecord = expectRecord(sectionsInput, "sections must be an object");
+
+  return {
+    sections: {
+      assetIdeas: parseSectionContent(sectionsRecord, "assetIdeas"),
+      experiments: parseSectionContent(sectionsRecord, "experiments"),
+      thirtyDaySequence: parseSectionContent(sectionsRecord, "thirtyDaySequence"),
+    },
+    citations: validateStrategyCitations(body.citations),
+  };
+}
+
+function parseSectionContent(sectionsRecord: Record<string, unknown>, key: string): StrategySectionContent {
+  const raw = sectionsRecord[key];
+  if (typeof raw === "string") {
+    return { summary: raw, recommendations: [], callouts: [] };
+  }
+  const obj = expectRecord(raw ?? {}, `sections.${key} must be an object`);
+  const summary = typeof obj.summary === "string" ? obj.summary : String(obj.summary ?? "");
+  const recommendations = parseRecommendations(obj.recommendations);
+  const callouts = parseCallouts(obj.callouts);
+  return { summary, recommendations, callouts };
+}
+
+function parseRecommendations(input: unknown): StrategyRecommendation[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((item) => {
+    if (typeof item === "string") {
+      return [{ text: item, why: "", effort: "medium" as const, actionable: true }];
+    }
+    if (typeof item !== "object" || item === null) return [];
+    const obj = item as Record<string, unknown>;
+    return [{
+      text: String(obj.text ?? ""),
+      why: String(obj.why ?? ""),
+      effort: (["low", "medium", "high"].includes(String(obj.effort)) ? obj.effort : "medium") as "low" | "medium" | "high",
+      actionable: obj.actionable !== false,
+    }];
+  }).filter((r) => r.text.trim().length > 0);
+}
+
+function parseCallouts(input: unknown): StrategyCallout[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const obj = item as Record<string, unknown>;
+    const type = (["insight", "warning", "opportunity"].includes(String(obj.type)) ? obj.type : "insight") as "insight" | "warning" | "opportunity";
+    return [{ type, text: String(obj.text ?? "") }];
+  }).filter((c) => c.text.trim().length > 0);
+}
+
+function parseStrategyScorecard(input: unknown): StrategyScorecard | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const obj = input as Record<string, unknown>;
+  if (!Array.isArray(obj.metrics)) return undefined;
+  const metrics = obj.metrics.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const m = item as Record<string, unknown>;
+    const grade = (["high", "medium", "low"].includes(String(m.grade)) ? m.grade : "medium") as "high" | "medium" | "low";
+    return [{ label: String(m.label ?? ""), grade, rationale: String(m.rationale ?? "") }];
+  });
+  return metrics.length > 0 ? { metrics } : undefined;
 }
 
 export function mergeStrategyDraftParts(part1: StrategyDraftPart1, part2: StrategyDraftPart2): StrategyDraftResponse {
   return {
-    sections: { ...part1.sections, ...part2.sections },
+    sections: { ...part1.sections, ...part2.sections } as StrategySectionsStructured,
     warnings: part1.warnings,
     citations: [...part1.citations, ...part2.citations],
     generatedAt: new Date().toISOString(),
+    scorecard: part1.scorecard,
   };
 }
 
@@ -615,22 +727,26 @@ export function buildFallbackStrategyDraftPart1(
     `Lead with the audience's existing language about ${problem}, then contrast that with a lower-contact path to progress.`,
   ]);
 
+  const makeSection = (summary: string, bullets: string[]): StrategySectionContent => ({
+    summary,
+    recommendations: bullets.map((b) => ({ text: b, why: "Based on available research", effort: "medium" as const, actionable: true })),
+    callouts: [],
+  });
+
   return {
     sections: {
-      positioning: [
+      positioning: makeSection(
         `For ${audience}, position the offer around the concrete problem: ${problem}.`,
-        "Use a wedge that promises progress without ongoing social maintenance, cold outreach, or another relationship-heavy advisory loop.",
-        ...positioningEdges,
-        ...audienceSignals.slice(0, 2),
-      ].join("\n- "),
-      channelPlan: [
-        "Prioritize async discovery channels that keep working after the initial build. Start with the surfaces that match existing buyer intent and avoid channels that need daily presence.",
-        ...channels,
-      ].join("\n- "),
-      messageAngles: [
-        "Anchor messages in the words buyers already use before they know the category or solution name. The strongest angles should name the operational pain, the failed old way, and the low-contact alternative.",
-        ...messagePatterns,
-      ].join("\n- "),
+        ["Use a wedge that promises progress without ongoing social maintenance, cold outreach, or another relationship-heavy advisory loop.", ...positioningEdges, ...audienceSignals.slice(0, 2)],
+      ),
+      channelPlan: makeSection(
+        "Prioritize async discovery channels that keep working after the initial build.",
+        ["Start with the surfaces that match existing buyer intent and avoid channels that need daily presence.", ...channels],
+      ),
+      messageAngles: makeSection(
+        "Anchor messages in the words buyers already use before they know the category or solution name.",
+        ["The strongest angles should name the operational pain, the failed old way, and the low-contact alternative.", ...messagePatterns],
+      ),
     },
     warnings: dossier.risks,
     citations: [],
@@ -654,59 +770,36 @@ export function buildFallbackStrategyDraftPart2(
       "Publish one searchable diagnostic page and measure qualified inbound replies, saves, or demo-start clicks over 30 days.",
     ];
 
+  const makeSection = (summary: string, bullets: string[]): StrategySectionContent => ({
+    summary,
+    recommendations: bullets.map((b) => ({ text: b, why: "Based on available research", effort: "medium" as const, actionable: true })),
+    callouts: [],
+  });
+
   return {
     sections: {
-      assetIdeas: [
-        "Build create-once assets that do discovery and qualification before a conversation happens. Match the format to the founder's preferred creation mode and keep maintenance light.",
-        ...assets,
-      ].join("\n- "),
-      experiments: [
-        "Run one bounded test at a time. Each experiment should have a clear async signal and no implied commitment to an ongoing content or outreach cadence.",
-        ...experiments,
-      ].join("\n- "),
-      thirtyDaySequence: [
-        "Phase 1 — Choose: when you're ready to choose, pick one audience wedge, one primary search or partner surface, and one asset format.",
-        "Phase 2 — Build: when you're ready to build, draft the asset around the strongest problem language and add a simple conversion path.",
-        "Phase 3 — Place: when you're ready to place, publish the asset on one low-contact channel and make only necessary distribution touches.",
-        "Phase 4 — Read: when you're ready to review, check the qualified signals, capture objections, and decide whether to iterate, pause, or run the next bounded test.",
-      ].join("\n- "),
+      assetIdeas: makeSection(
+        "Build create-once assets that do discovery and qualification before a conversation happens.",
+        ["Match the format to the founder's preferred creation mode and keep maintenance light.", ...assets],
+      ),
+      experiments: makeSection(
+        "Run one bounded test at a time with a clear async signal.",
+        ["No implied commitment to an ongoing content or outreach cadence.", ...experiments],
+      ),
+      thirtyDaySequence: makeSection(
+        "Four phases sequenced by readiness, not calendar weeks.",
+        [
+          "Phase 1 — Choose: when you're ready to choose, pick one audience wedge, one primary search or partner surface, and one asset format.",
+          "Phase 2 — Build: when you're ready to build, draft the asset around the strongest problem language and add a simple conversion path.",
+          "Phase 3 — Place: when you're ready to place, publish the asset on one low-contact channel and make only necessary distribution touches.",
+          "Phase 4 — Read: when you're ready to review, check the qualified signals, capture objections, and decide whether to iterate, pause, or run the next bounded test.",
+        ],
+      ),
     },
     citations: [],
   };
 }
 
-function parseStrategyDraftPart1Input(input: unknown): StrategyDraftPart1 {
-  const parsed = parseMaybeJson(input);
-  const body = expectRecord(parsed, "Model output must be a JSON object");
-  const sectionsInput = body.sections ?? body.strategyDraft ?? body.draft ?? body;
-  const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
-
-  return {
-    sections: {
-      positioning: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "positioning"), "Model output missing positioning section"),
-      channelPlan: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "channelPlan"), "Model output missing channelPlan section"),
-      messageAngles: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "messageAngles"), "Model output missing messageAngles section"),
-    },
-    warnings: coerceStringArray(body.warnings),
-    citations: validateStrategyCitations(body.citations),
-  };
-}
-
-function parseStrategyDraftPart2Input(input: unknown): StrategyDraftPart2 {
-  const parsed = parseMaybeJson(input);
-  const body = expectRecord(parsed, "Model output must be a JSON object");
-  const sectionsInput = body.sections ?? body.strategyDraft ?? body.draft ?? body;
-  const sectionsRecord = normalizeStrategySectionsInput(sectionsInput);
-
-  return {
-    sections: {
-      assetIdeas: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "assetIdeas"), "Model output missing assetIdeas section"),
-      experiments: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "experiments"), "Model output missing experiments section"),
-      thirtyDaySequence: expectNonEmptyString(readStrategySectionValue(sectionsRecord, "thirtyDaySequence"), "Model output missing thirtyDaySequence section"),
-    },
-    citations: validateStrategyCitations(body.citations),
-  };
-}
 
 function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): string {
   const contentLabel: Record<string, string> = {
@@ -749,6 +842,19 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     payload.founderConstraints.channelAvoidances
       ? `Avoid these channels or tactics when possible: ${payload.founderConstraints.channelAvoidances}.`
       : "",
+    payload.founderConstraints.previousAttempts
+      ? `Previously tried: ${payload.founderConstraints.previousAttempts}. Avoid recommending these again unless there is strong new evidence they would work differently.`
+      : "",
+    payload.founderConstraints.avoidanceTasks
+      ? `Tasks that cause avoidance for this person: ${payload.founderConstraints.avoidanceTasks}. Prioritize approaches that bypass these entirely.`
+      : "",
+    payload.founderConstraints.activationWindows
+      ? `Natural working windows: ${payload.founderConstraints.activationWindows}. Sequence moves to fit these windows, not a calendar.`
+      : "",
+    payload.founderConstraints.unavailablePeriods
+      ? `Protected unavailable periods: ${payload.founderConstraints.unavailablePeriods}. Treat these as genuine rest — not gaps to fill.`
+      : "",
+    payload.ndProfileContext ? `Persistent ND profile context: ${formatNDProfileContext(payload.ndProfileContext)}` : "",
   ].filter(Boolean).join(" ");
 
   const seedContext = buildSeedContext(payload);
@@ -876,6 +982,10 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
   );
   const contentModeOther = expectOptionalString(body.contentModeOther);
   const existingAssets = validateExistingAssets(body.existingAssets);
+  const previousAttempts = expectOptionalString(body.previousAttempts);
+  const avoidanceTasks = expectOptionalString(body.avoidanceTasks);
+  const activationWindows = expectOptionalString(body.activationWindows);
+  const unavailablePeriods = expectOptionalString(body.unavailablePeriods);
 
   return {
     teamSize,
@@ -888,7 +998,53 @@ function validateFounderConstraints(input: unknown): FounderConstraints {
     contentMode,
     contentModeOther,
     existingAssets,
+    previousAttempts,
+    avoidanceTasks,
+    activationWindows,
+    unavailablePeriods,
   };
+}
+
+function validateNDProfileContext(input: unknown): NDProfileContext | undefined {
+  if (!input) return undefined;
+
+  const body = expectRecord(input, "ndProfileContext must be an object");
+
+  return {
+    summary: expectOptionalString(body.summary),
+    traitLabels: coerceStringArray(body.traitLabels),
+    manifestationLabels: coerceStringArray(body.manifestationLabels),
+    activationPatterns: coerceStringArray(body.activationPatterns),
+    goodDayDescription: expectOptionalString(body.goodDayDescription),
+    shutdownTriggers: coerceStringArray(body.shutdownTriggers),
+    shutdownDescription: expectOptionalString(body.shutdownDescription),
+    activationWindows: expectOptionalString(body.activationWindows),
+    unavailablePeriods: expectOptionalString(body.unavailablePeriods),
+    triedSystems: expectOptionalString(body.triedSystems),
+    whatWorked: expectOptionalString(body.whatWorked),
+    whatFailed: expectOptionalString(body.whatFailed),
+    infoDensity: expectOptionalString(body.infoDensity),
+    infoFormats: coerceStringArray(body.infoFormats),
+    supportConditions: coerceStringArray(body.supportConditions),
+    agentGuidance: expectOptionalString(body.agentGuidance),
+  };
+}
+
+function formatNDProfileContext(context: NDProfileContext): string {
+  const parts = [
+    context.summary,
+    context.activationPatterns.length > 0 ? `Activation patterns: ${context.activationPatterns.join("; ")}.` : "",
+    context.shutdownTriggers.length > 0 ? `Shutdown or avoidance triggers: ${context.shutdownTriggers.join("; ")}.` : "",
+    context.activationWindows ? `Natural working windows: ${context.activationWindows}.` : "",
+    context.unavailablePeriods ? `Protected unavailable periods: ${context.unavailablePeriods}.` : "",
+    context.infoDensity ? `Preferred information density: ${context.infoDensity}.` : "",
+    context.infoFormats.length > 0 ? `Preferred formats: ${context.infoFormats.join(", ")}.` : "",
+    context.supportConditions.length > 0 ? `Support conditions that help: ${context.supportConditions.join("; ")}.` : "",
+    context.whatWorked ? `What has worked before: ${context.whatWorked}.` : "",
+    context.whatFailed ? `What has failed before: ${context.whatFailed}.` : "",
+  ].filter(Boolean);
+
+  return trimText(parts.join(" "), 1200);
 }
 
 function validateExistingAssets(input: unknown): FounderConstraints["existingAssets"] {

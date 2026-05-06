@@ -1,27 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton, Spinner } from "@heroui/react";
-import { ArrowClockwise, CaretDown, Check, DownloadSimple, PencilSimple, WarningCircle, X } from "@phosphor-icons/react";
+import { ArrowClockwise, CaretDown, Check, DownloadSimple, WarningCircle, X } from "@phosphor-icons/react";
 import {
   STRATEGY_SECTIONS,
   getCompletedResearchCount,
   getStrategyReadiness,
   hasCompleteStrategyDraft,
+  isStructuredSections,
   renderAgentBrief,
 } from "../lib/strategy";
 import type {
+  NDProfileContext,
   SessionState,
   StrategyCitation,
   StrategyDraft,
   ExistingAsset,
   StrategyInputs,
   StrategySectionKey,
+  StrategySectionContent,
 } from "../types";
 import { IntelligenceView } from "./IntelligenceView";
 import { AgentBriefView } from "./AgentBriefView";
+import { StrategyScorecard } from "./StrategyScorecard";
+import { StrategySectionCard } from "./StrategySectionCard";
 
 interface Props {
   session: SessionState;
+  ndProfileContext: NDProfileContext | null;
   researchRunning: boolean;
   onInputChange: <K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => void;
   onSectionChange: (key: StrategySectionKey, value: string) => void;
@@ -32,11 +38,6 @@ interface Props {
   draftHistory: StrategyDraft[];
 }
 
-const REQUIRED_PHASES: Array<{ id: number; label: string }> = [
-  { id: 1, label: "Problem Cartography" },
-  { id: 3, label: "Solution Landscape" },
-  { id: 5, label: "Evidence Mining" },
-];
 
 const SKELETON_ROWS = [
   [75, 90, 65, 80],
@@ -68,6 +69,7 @@ type StrategyTab = "draft" | "intelligence" | "agent";
 
 export function StrategyView({
   session,
+  ndProfileContext,
   researchRunning,
   onInputChange,
   onSectionChange,
@@ -75,8 +77,6 @@ export function StrategyView({
   onGenerateIntelligence,
   onExport,
   onExportIntelligence,
-
-  draftHistory,
 }: Props) {
   const draft = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft : null;
   const hasDraft = !!draft;
@@ -103,7 +103,7 @@ export function StrategyView({
   const isRunning = activeTab === "intelligence"
     ? intelligenceRunning
     : strategyRunning;
-  const canGenerate = readiness.ready && audienceReady && !researchRunning && !isRunning;
+  const canGenerate = readiness.canGenerate && audienceReady && !researchRunning && !isRunning;
 
   const draftButtonLabel =
     session.strategyStatus === "researching"
@@ -129,7 +129,19 @@ export function StrategyView({
     ? intelligenceButtonLabel
     : draftButtonLabel;
 
+  const armTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [isArmed, setIsArmed] = useState(false);
+
   const handleGenerate = () => {
+    const alreadyHasDraft = activeTab === "intelligence" ? !!session.intelligenceBrief : hasDraft;
+    if (alreadyHasDraft && !isArmed) {
+      setIsArmed(true);
+      clearTimeout(armTimerRef.current);
+      armTimerRef.current = setTimeout(() => setIsArmed(false), 5000);
+      return;
+    }
+    clearTimeout(armTimerRef.current);
+    setIsArmed(false);
     if (activeTab === "intelligence") {
       onGenerateIntelligence();
     } else {
@@ -151,32 +163,20 @@ export function StrategyView({
         <div>
           <p
             style={{
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
+              fontSize: 13,
               color: "var(--ink-muted)",
-              margin: "0 0 6px",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Distribution Strategy
-          </p>
-          <p
-            style={{
-              fontSize: 14,
-              color: "var(--ink-light)",
-              lineHeight: 1.7,
-              maxWidth: 600,
+              lineHeight: 1.65,
+              maxWidth: 580,
               margin: 0,
             }}
           >
             {activeTab === "draft"
-              ? "The research is in. Now build the plan — one that works with how you actually operate, not against it. Set your constraints, generate the draft, edit what needs editing."
+              ? completedResearch > 0
+                ? "Research is attached. Set what you can and can't do — the draft uses all of it."
+                : "Strategy starts once at least 2 research phases are complete. More signal gives you a stronger draft, but you don't need a full six-phase run."
               : activeTab === "intelligence"
-                ? "A comprehensive market analysis synthesizing all research into actionable intelligence — scorecards, competitive positioning, risk assessment, and roadmap."
-                : "PDA-aware execution instructions for AI agents. Copy this brief and paste it into Claude Code, Cursor, or any agentic workflow to delegate strategy execution."}
-          </p>
+                ? "A structured read of what the research found — where you stand, who you're up against, where to show up, and what the next 90 days could look like."
+                : "Instructions for your agent — not a task list. Sets up a session check-in, surfaces one move at a time matched to what you actually have available, and includes hard limits the agent can't override. Paste it in. Invitations, not assignments."}</p>
         </div>
 
         {activeTab === "draft" && hasDraft && (
@@ -204,11 +204,6 @@ export function StrategyView({
           </div>
         )}
 
-        {draftHistory.length > 0 && (
-          <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
-            {draftHistory.length} draft{draftHistory.length > 1 ? "s" : ""}
-          </span>
-        )}
       </div>
 
       {/* Tab Toggle */}
@@ -220,14 +215,18 @@ export function StrategyView({
         </div>
         {session.intelligenceBrief && activeTab === "intelligence" && (
           <span
+            title="Generated by Kimi K2.6"
             style={{
               fontSize: 9,
               fontFamily: "var(--font-mono)",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
               color: "var(--ink-muted)",
               opacity: 0.5,
+              cursor: "default",
             }}
           >
-            Kimi
+            K2.6
           </span>
         )}
       </div>
@@ -236,6 +235,7 @@ export function StrategyView({
 
       <ConfigDrawer
         inputs={session.strategyInputs}
+        ndProfileContext={ndProfileContext}
         readiness={readiness}
         completedResearch={completedResearch}
         audienceReady={audienceReady}
@@ -246,7 +246,8 @@ export function StrategyView({
         researchRunning={researchRunning}
         error={activeTab === "draft" ? session.strategyError : session.intelligenceError}
         canGenerate={canGenerate}
-        buttonLabel={buttonLabel}
+        buttonLabel={isArmed ? "Replace — confirm?" : buttonLabel}
+        isArmed={isArmed}
         isOpen={drawerOpen}
         onToggle={() => setDrawerOpen((o) => !o)}
         onInputChange={onInputChange}
@@ -274,7 +275,7 @@ export function StrategyView({
       )}
       {activeTab === "agent" && (
         <AgentBriefView
-          markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem)}
+          markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem, ndProfileContext)}
         />
       )}
     </div>
@@ -283,6 +284,7 @@ export function StrategyView({
 
 function ConfigDrawer({
   inputs,
+  ndProfileContext,
   readiness,
   completedResearch,
   audienceReady,
@@ -294,12 +296,14 @@ function ConfigDrawer({
   error,
   canGenerate,
   buttonLabel,
+  isArmed,
   isOpen,
   onToggle,
   onInputChange,
   onGenerate,
 }: {
   inputs: StrategyInputs;
+  ndProfileContext: NDProfileContext | null;
   readiness: ReturnType<typeof getStrategyReadiness>;
   completedResearch: number;
   audienceReady: boolean;
@@ -311,6 +315,7 @@ function ConfigDrawer({
   error?: string;
   canGenerate: boolean;
   buttonLabel: string;
+  isArmed?: boolean;
   isOpen: boolean;
   onToggle: () => void;
   onInputChange: <K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => void;
@@ -335,17 +340,20 @@ function ConfigDrawer({
           flexWrap: "wrap",
         }}
       >
-        <ReadinessIndicators readiness={readiness} completedResearch={completedResearch} />
-
-        <span
-          style={{
-            display: "inline-block",
-            width: 1,
-            height: 14,
-            background: "var(--rule)",
-            flexShrink: 0,
-          }}
-        />
+        {completedResearch > 0 && (
+          <>
+            <ReadinessIndicators readiness={readiness} completedResearch={completedResearch} />
+            <span
+              style={{
+                display: "inline-block",
+                width: 1,
+                height: 14,
+                background: "var(--rule)",
+                flexShrink: 0,
+              }}
+            />
+          </>
+        )}
 
         {audienceReady ? (
           <span
@@ -372,6 +380,7 @@ function ConfigDrawer({
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <MiniPill label={inputs.teamSize === "solo" ? "Solo" : "Small team"} />
             <MiniPill label={OUTREACH_LABELS[inputs.outreachTolerance] ?? inputs.outreachTolerance} />
+            {ndProfileContext && <MiniPill label="ND profile" />}
             {inputs.peerCollaborationOk && <MiniPill label="Peer collaboration" />}
             {inputs.contentMode.length > 0 && !inputs.contentMode.includes("none") && (
               <MiniPill label={inputs.contentMode.map((m) => CONTENT_LABELS[m] ?? m).join(", ")} />
@@ -399,6 +408,7 @@ function ConfigDrawer({
           <GenerateButton
             canGenerate={canGenerate}
             buttonLabel={buttonLabel}
+            isArmed={isArmed}
             strategyRunning={strategyRunning}
             onGenerate={onGenerate}
           />
@@ -428,6 +438,18 @@ function ConfigDrawer({
           }}
         >
           Research is still running. Wait for it to settle before drafting.
+        </p>
+      )}
+      {!readiness.canGenerate && !researchRunning && (
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--ink-muted)",
+            margin: "0 0 6px",
+            lineHeight: 1.5,
+          }}
+        >
+          Complete at least 2 research phases to generate. 4+ phases including Problem Cartography, Solution Landscape, and Evidence Mining gives stronger output.
         </p>
       )}
       {error && (
@@ -480,50 +502,43 @@ function ReadinessIndicators({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
-      {REQUIRED_PHASES.map(({ id, label }) => {
-        const done = !readiness.missingRequired.includes(id);
-        return (
-          <div
-            key={id}
+      {readiness.missingSuggested.map(({ id, label }) => (
+        <div
+          key={id}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "2px 7px",
+            borderRadius: 999,
+            border: "1px solid var(--rule)",
+            background: "transparent",
+          }}
+        >
+          <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "2px 7px",
-              borderRadius: 999,
-              border: `1px solid ${done ? "var(--teal)" : "var(--rule)"}`,
-              background: done ? "rgba(91, 138, 138, 0.08)" : "transparent",
+              display: "inline-block",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              border: "1px solid var(--ink-muted)",
+              opacity: 0.3,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 10,
+              fontFamily: "var(--font-display)",
+              color: "var(--ink-muted)",
+              opacity: 0.5,
+              whiteSpace: "nowrap",
             }}
           >
-            {done ? (
-              <Check size={9} weight="bold" style={{ color: "var(--teal)", flexShrink: 0 }} />
-            ) : (
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  border: "1px solid var(--ink-muted)",
-                  opacity: 0.3,
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-display)",
-                color: done ? "var(--teal-deep)" : "var(--ink-muted)",
-                opacity: done ? 1 : 0.5,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {label}
-            </span>
-          </div>
-        );
-      })}
+            {label}
+          </span>
+        </div>
+      ))}
       <span
         style={{
           display: "inline-block",
@@ -535,6 +550,20 @@ function ReadinessIndicators({
       />
       <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>
         {completedResearch}/6 phases
+      </span>
+      <span
+        style={{
+          fontSize: 10,
+          fontFamily: "var(--font-mono)",
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+          padding: "2px 7px",
+          borderRadius: 999,
+          background: readiness.confidence === "strong" ? "rgba(91, 138, 138, 0.12)" : "rgba(196, 164, 132, 0.14)",
+          color: readiness.confidence === "strong" ? "var(--teal)" : "#966f00",
+        }}
+      >
+        {readiness.confidence}
       </span>
     </div>
   );
@@ -562,11 +591,13 @@ function MiniPill({ label }: { label: string }) {
 function GenerateButton({
   canGenerate,
   buttonLabel,
+  isArmed,
   strategyRunning,
   onGenerate,
 }: {
   canGenerate: boolean;
   buttonLabel: string;
+  isArmed?: boolean;
   strategyRunning: boolean;
   onGenerate: () => void;
 }) {
@@ -583,7 +614,11 @@ function GenerateButton({
         border: "none",
         borderRadius: 999,
         cursor: canGenerate ? "pointer" : "not-allowed",
-        background: canGenerate ? "var(--teal)" : "rgba(91, 138, 138, 0.4)",
+        background: !canGenerate
+          ? "rgba(91, 138, 138, 0.4)"
+          : isArmed
+            ? "var(--ink-light)"
+            : "var(--teal)",
         color: "#fff",
         transition: "background 0.15s",
         display: "inline-flex",
@@ -692,13 +727,13 @@ function InputForm({
     <div style={{ padding: "10px 0 38px" }}>
       <div style={{ marginBottom: 42 }}>
         <GroupLabel label="Audience" />
-        <FieldLabel label="Who you're building for" required />
+        <FieldLabel label="Who are you trying to reach, and what's going on for them when they find you?" required />
         <textarea
           className="strategy-input"
           value={inputs.audienceLens}
           onChange={(e) => onInputChange("audienceLens", e.target.value)}
           rows={3}
-          placeholder="E.g. solo operators who find tools through search, not conferences. Avoid networking-heavy channels."
+          placeholder="What problem are they living with? What have they already tried? What makes them ready to pay attention?"
         />
       </div>
 
@@ -840,15 +875,59 @@ function InputForm({
         />
       </div>
 
-      <div>
-        <div>
-          <FieldLabel label="Channel Avoidances" />
-          <textarea
-            value={inputs.channelAvoidances}
-            onChange={(e) => onInputChange("channelAvoidances", e.target.value)}
-            rows={3}
-            placeholder="What you won't do. E.g. LinkedIn, live events, cold calls."
-          />
+      <div style={{ marginBottom: 38 }}>
+        <FieldLabel label="Channel Avoidances" />
+        <textarea
+          value={inputs.channelAvoidances}
+          onChange={(e) => onInputChange("channelAvoidances", e.target.value)}
+          rows={3}
+          placeholder="What you won't do. E.g. LinkedIn, live events, cold calls."
+        />
+      </div>
+
+      <div style={{ marginBottom: 38 }}>
+        <GroupLabel label="How you work" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          <div>
+            <FieldLabel label="What have you already tried to get your work out there?" />
+            <textarea
+              className="strategy-input"
+              value={inputs.previousAttempts ?? ""}
+              onChange={(e) => onInputChange("previousAttempts", e.target.value)}
+              rows={3}
+              placeholder="What happened? What made you stop? Even partial attempts count."
+            />
+          </div>
+          <div>
+            <FieldLabel label="What kinds of tasks make you want to disappear?" />
+            <textarea
+              className="strategy-input"
+              value={inputs.avoidanceTasks ?? ""}
+              onChange={(e) => onInputChange("avoidanceTasks", e.target.value)}
+              rows={2}
+              placeholder="Replying to people? Being 'on' for extended periods? Formatting things?"
+            />
+          </div>
+          <div>
+            <FieldLabel label="When do you actually feel like working on this?" />
+            <textarea
+              className="strategy-input"
+              value={inputs.activationWindows ?? ""}
+              onChange={(e) => onInputChange("activationWindows", e.target.value)}
+              rows={2}
+              placeholder="Not when you think you should — when you actually sit down and go."
+            />
+          </div>
+          <div>
+            <FieldLabel label="When do you know you'll be unavailable?" />
+            <textarea
+              className="strategy-input"
+              value={inputs.unavailablePeriods ?? ""}
+              onChange={(e) => onInputChange("unavailablePeriods", e.target.value)}
+              rows={2}
+              placeholder="Recovery days, burnout periods, times when nothing gets done."
+            />
+          </div>
         </div>
       </div>
 
@@ -1093,21 +1172,22 @@ function StrategyContent({
   };
 
   const draft = hasCompleteStrategyDraft(session.strategyDraft) ? session.strategyDraft : null;
+  const structured = draft ? isStructuredSections(draft.sections) : false;
 
   if (!draft && strategyRunning) {
     return <StrategyLoadingState />;
   }
 
-  if (!draft && !readiness.ready) {
+  if (!draft && !readiness.canGenerate) {
     return (
       <EmptyStrategyState
-        title="Complete enough research to unlock the draft."
-        body="Finish at least four phases — including Problem Cartography (01), Solution Landscape (03), and Evidence Mining (05) — then come back here."
+        title="Complete at least 2 research phases to generate a draft."
+        body="Problem Cartography, Solution Landscape, and Evidence Mining produce the strongest output — but you can start from what you have."
       />
     );
   }
 
-  if (!draft && readiness.ready) {
+  if (!draft && readiness.canGenerate) {
     return (
       <EmptyStrategyState
         title={session.strategyDraft ? "Draft needs to be rebuilt." : "Research is ready."}
@@ -1126,12 +1206,15 @@ function StrategyContent({
 
   return (
     <div>
+      {draft.scorecard && <StrategyScorecard scorecard={draft.scorecard} />}
+
       {draft.warnings.length > 0 && (
         <div
           style={{
             marginBottom: 32,
-            borderLeft: "3px solid rgba(196, 114, 90, 0.4)",
-            paddingLeft: 14,
+            background: "rgba(180, 107, 88, 0.04)",
+            border: "1px solid rgba(180, 107, 88, 0.18)",
+            padding: "14px 16px",
           }}
         >
           <p
@@ -1163,21 +1246,33 @@ function StrategyContent({
         </div>
       )}
 
-      {STRATEGY_SECTIONS.map((section, index) => (
-        <div key={section.key}>
-          <SectionCard
-            section={section}
-            index={index}
-            value={draft.sections[section.key]}
-            citations={draft.citations.filter((c) => c.section === section.key)}
-            isEdited={editedSections.has(section.key)}
-            onEdit={(value) => handleSectionChange(section.key, value)}
-          />
-          {index < STRATEGY_SECTIONS.length - 1 && (
-            <hr className="rule" style={{ margin: "36px 0" }} />
-          )}
-        </div>
-      ))}
+      {STRATEGY_SECTIONS.map((section, index) => {
+        const sectionCitations = draft.citations.filter((c) => c.section === section.key);
+        return (
+          <div key={section.key}>
+            {structured ? (
+              <StrategySectionCard
+                section={section}
+                index={index}
+                content={draft.sections[section.key] as StrategySectionContent}
+                citations={sectionCitations}
+              />
+            ) : (
+              <SectionCard
+                section={section}
+                index={index}
+                value={draft.sections[section.key] as string}
+                citations={sectionCitations}
+                isEdited={editedSections.has(section.key)}
+                onEdit={(value) => handleSectionChange(section.key, value)}
+              />
+            )}
+            {index < STRATEGY_SECTIONS.length - 1 && (
+              <hr className="rule" style={{ margin: "36px 0" }} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1198,17 +1293,11 @@ function StrategyLoadingState() {
 }
 
 function StrategySkeletonCard({ index, widths }: { index: number; widths: number[] }) {
-  const isAnchor = index === 0;
-  const isOutput = index === STRATEGY_SECTIONS.length - 1;
-  const accentColor = isAnchor ? "var(--teal)" : isOutput ? "var(--terracotta)" : null;
-
   return (
     <div style={{ opacity: 1 - index * 0.07 }}>
       <div
         style={{
           marginBottom: 14,
-          paddingLeft: accentColor ? 14 : 0,
-          borderLeft: accentColor ? `3px solid ${accentColor}` : "none",
         }}
       >
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
@@ -1248,8 +1337,8 @@ function SectionCard({
 }) {
   const isAnchor = index === 0;
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
-  const [isEditing, setIsEditing] = useState(false);
-  const accentColor = isAnchor ? "var(--teal)" : isOutput ? "var(--terracotta)" : null;
+  void isEdited;
+  void onEdit;
 
   return (
     <motion.div
@@ -1265,8 +1354,6 @@ function SectionCard({
           justifyContent: "space-between",
           gap: 12,
           marginBottom: 16,
-          paddingLeft: accentColor ? 14 : 0,
-          borderLeft: accentColor ? `3px solid ${accentColor}` : "none",
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -1280,30 +1367,14 @@ function SectionCard({
             <span
               style={{
                 fontSize: isAnchor ? 16 : 14,
-                fontWeight: isAnchor ? 700 : 600,
+                fontWeight: isAnchor ? 500 : 400,
                 color: "var(--ink)",
                 letterSpacing: isAnchor ? "-0.02em" : "-0.01em",
               }}
             >
               {section.label}
             </span>
-            {isEdited && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontFamily: "var(--font-mono)",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--ink-muted)",
-                  border: "1px solid var(--rule)",
-                  padding: "1px 5px",
-                  borderRadius: 999,
-                }}
-              >
-                edited
-              </span>
-            )}
-            {isOutput && !isEdited && (
+            {isOutput && (
               <span
                 style={{
                   fontSize: 9,
@@ -1322,39 +1393,10 @@ function SectionCard({
             {section.hint}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <CitationChip citations={citations} />
-          <button
-            className="btn-text"
-            onClick={() => setIsEditing((current) => !current)}
-            aria-label={isEditing ? `Done editing ${section.label}` : `Edit ${section.label}`}
-            style={{
-              color: isEditing ? "var(--teal-deep)" : "var(--ink-muted)",
-              border: "1px solid var(--rule)",
-              borderRadius: 999,
-              width: 26,
-              height: 26,
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            {isEditing ? <Check size={13} weight="bold" /> : <PencilSimple size={13} />}
-          </button>
-        </div>
+        <CitationChip citations={citations} />
       </div>
 
-      {/* Content */}
-      {isEditing ? (
-        <textarea
-          className="strategy-input"
-          value={value}
-          onChange={(e) => onEdit(e.target.value)}
-          rows={12}
-        />
-      ) : (
-        <FormattedStrategySection value={value} />
-      )}
-
+      <FormattedStrategySection value={value} />
       <SectionCitations citations={citations} />
     </motion.div>
   );
@@ -1606,7 +1648,7 @@ function EmptyStrategyState({
 }) {
   return (
     <div style={{ padding: "48px 0" }}>
-      <p style={{ fontSize: 15, color: "var(--ink)", margin: "0 0 6px", fontWeight: 600 }}>
+      <p style={{ fontSize: 15, color: "var(--ink)", margin: "0 0 6px", fontWeight: 500 }}>
         {title}
       </p>
       <p
@@ -1638,9 +1680,9 @@ function GroupLabel({ label }: { label: string }) {
   return (
     <p
       style={{
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: 500,
-        letterSpacing: "0.14em",
+        letterSpacing: "0.12em",
         textTransform: "uppercase",
         color: "var(--ink-muted)",
         fontFamily: "var(--font-mono)",
@@ -1696,5 +1738,3 @@ function TabPill({ label, active, onClick }: { label: string; active: boolean; o
     </button>
   );
 }
-
-

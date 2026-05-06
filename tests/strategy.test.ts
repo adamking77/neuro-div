@@ -20,6 +20,7 @@ import {
   hasCompleteStrategyDraft,
   renderAgentBrief,
 } from "../src/lib/strategy";
+import { buildNDProfileContext, createEmptyNDProfile } from "../src/lib/nd-profile";
 import type { PhaseResult } from "../src/types";
 
 function createPhases(overrides: Partial<Record<number, PhaseResult>> = {}) {
@@ -32,7 +33,32 @@ function createPhases(overrides: Partial<Record<number, PhaseResult>> = {}) {
 }
 
 describe("strategy readiness", () => {
-  it("requires four completed phases and phases 1, 3, and 5 with results", () => {
+  it("allows generation after two completed phases and marks missing suggested phases as partial confidence", () => {
+    const twoPhases = createPhases({
+      1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
+      2: { status: "done", results: [{ id: "2", url: "https://b.com", highlights: ["b"] }] },
+    });
+
+    expect(getStrategyReadiness(twoPhases)).toEqual({
+      canGenerate: true,
+      doneCount: 2,
+      missingSuggested: [
+        {
+          id: 3,
+          label: "Solution Landscape",
+          rationale: "White space context — positioning is guesswork without this",
+        },
+        {
+          id: 5,
+          label: "Evidence Mining",
+          rationale: "Proof the problem is real — strengthens every section",
+        },
+      ],
+      confidence: "partial",
+    });
+  });
+
+  it("keeps confidence partial when one suggested phase is missing", () => {
     const phases = createPhases({
       1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
       2: { status: "done", results: [{ id: "2", url: "https://b.com", highlights: ["b"] }] },
@@ -41,9 +67,32 @@ describe("strategy readiness", () => {
     });
 
     expect(getStrategyReadiness(phases)).toEqual({
-      ready: false,
+      canGenerate: true,
       doneCount: 4,
-      missingRequired: [5],
+      missingSuggested: [
+        {
+          id: 5,
+          label: "Evidence Mining",
+          rationale: "Proof the problem is real — strengthens every section",
+        },
+      ],
+      confidence: "partial",
+    });
+  });
+
+  it("marks confidence strong when four phases are complete and all suggested phases are present", () => {
+    const phases = createPhases({
+      1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
+      3: { status: "done", results: [{ id: "3", url: "https://c.com", highlights: ["c"] }] },
+      5: { status: "done", results: [{ id: "5", url: "https://e.com", highlights: ["e"] }] },
+      6: { status: "done", results: [{ id: "6", url: "https://f.com", highlights: ["f"] }] },
+    });
+
+    expect(getStrategyReadiness(phases)).toEqual({
+      canGenerate: true,
+      doneCount: 4,
+      missingSuggested: [],
+      confidence: "strong",
     });
   });
 });
@@ -148,6 +197,11 @@ describe("strategy API helpers", () => {
   });
 
   it("builds Exa research and Kimi prompts with low-contact guidance", () => {
+    const ndProfile = createEmptyNDProfile();
+    ndProfile.activation.patterns = ["deep-interest", "challenge"];
+    ndProfile.shutdown.triggers = ["cold-outreach", "social-posting"];
+    ndProfile.timeEnergy.unavailablePeriods = "burnout recovery weeks";
+
     const payload = {
       problem: "manual reporting wastes time",
       knownPlayers: "",
@@ -170,6 +224,7 @@ describe("strategy API helpers", () => {
           },
         ],
       },
+      ndProfileContext: buildNDProfileContext(ndProfile),
       phaseResearch: [
         {
           phaseId: 1,
@@ -230,6 +285,8 @@ describe("strategy API helpers", () => {
     expect(prompt.user).toContain("warm introductions only");
     expect(prompt.user).not.toContain("peer collaboration");
     expect(prompt.user).not.toContain("Existing Work and Assets");
+    expect(prompt.user).toContain("Deep interest or passion");
+    expect(prompt.user).toContain("burnout recovery weeks");
 
     const liveCallsPrompt = buildStrategyDraftPrompt({
       ...payload,
@@ -724,6 +781,36 @@ describe("renderAgentBrief", () => {
     const inputs = { ...baseInputs, peerCollaborationOk: true };
     const brief = renderAgentBrief(baseDraft, inputs, "test");
     expect(brief).toContain("Peer collaboration");
+  });
+
+  it("includes persistent ND profile context when provided", () => {
+    const inputs = createEmptyStrategyInputs();
+    inputs.audienceLens = "founders with low tolerance for marketing overhead";
+
+    const ndProfile = createEmptyNDProfile();
+    ndProfile.traits.selected = ["adhd", "pda"];
+    ndProfile.activation.patterns = ["deep-interest", "challenge"];
+    ndProfile.shutdown.triggers = ["cold-outreach"];
+    ndProfile.infoConditions.density = "brief";
+
+    const markdown = renderAgentBrief({
+      sections: {
+        positioning: "Positioning",
+        channelPlan: "Channels",
+        messageAngles: "Angles",
+        assetIdeas: "Assets",
+        experiments: "Experiments",
+        thirtyDaySequence: "Sequence",
+      },
+      warnings: [],
+      citations: [],
+      generatedAt: "2026-04-24T00:00:00.000Z",
+    }, inputs, "Problem statement", buildNDProfileContext(ndProfile));
+
+    expect(markdown).toContain("## Persistent ND context");
+    expect(markdown).toContain("ADHD");
+    expect(markdown).toContain("Cold outreach");
+    expect(markdown).toContain("Brief");
   });
 
   it("returns empty string for incomplete draft", () => {

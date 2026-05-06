@@ -48,7 +48,7 @@ Output: a dossier with per-phase results (title, source, publication date, relev
 Takes research output + founder constraints, runs a two-phase pipeline:
 
 1. **Exa deep-reasoning** — builds a grounded dossier from the research + constraints (audience signals, positioning edges, low-contact channels with fit/evidence/caution, message patterns, asset directions, experiment levers, risks)
-2. **Claude Sonnet 4 (tool use)** — drafts a six-section distribution strategy against the grounded dossier
+2. **Kimi K2.6** — drafts a six-section distribution strategy against the grounded dossier
 
 Six sections:
 
@@ -69,7 +69,7 @@ Plus: warnings (PDA guardrails surfaced by the model), citations (per-section ev
 2. **Create-once over do-again.** Strategies favor one-shot assets that compound over recurring effort.
 3. **Grounded, not generic.** Every section cites real sources. The model cannot freestyle advice untethered from research.
 4. **Edit, don't overwrite.** Fingerprint-based dirty-state tracking protects user edits from regeneration clobber.
-5. **Neurotype-aware prompt design.** Claude's system prompt explicitly encodes PDA founder realities — unifocus, demand avoidance, craft-over-sales orientation, create-once patterns.
+5. **Neurotype-aware prompt design.** The synthesis prompt explicitly encodes PDA founder realities — unifocus, demand avoidance, craft-over-sales orientation, create-once patterns.
 
 ---
 
@@ -78,7 +78,7 @@ Plus: warnings (PDA guardrails surfaced by the model), citations (per-section ev
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind v4, HeroUI components, Framer Motion animations, Phosphor icons
 - **Hosting:** Vercel (serverless functions for API routes)
 - **Search:** Exa neural search + deep-reasoning mode
-- **LLM:** Anthropic Claude Sonnet 4 via structured tool-use
+- **LLM:** Kimi K2.6 via split structured prompts
 - **Persistence:** none today — in-session React state only; markdown download is the only export mechanism
 - **Tests:** Vitest suite covering readiness logic, fingerprinting, prompt building, output parsing
 
@@ -105,12 +105,12 @@ Views are toggled in `App.tsx` (single-page app; no router).
 ## Status
 
 - Live on Vercel
-- `ANTHROPIC_API_KEY` and Exa credentials configured in Vercel env
+- `KIMI_API_KEY` and Exa credentials configured in Vercel env
 - Stable enough to use end-to-end
 
 ### Open threads
 
-- Live test: run a real strategy generation end-to-end on Vercel; validate Exa Research API + Anthropic produce useful output for an actual problem statement
+- Live test: run a real strategy generation end-to-end on Vercel; validate Exa Search + Kimi produce useful output for an actual problem statement
 - Exa Research timeout behavior: 80 polls × 2.5s = ~3.3min max — watch for this on long-running strategies
 
 ---

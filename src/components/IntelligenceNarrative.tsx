@@ -38,10 +38,9 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
               <div
                 key={i}
                 style={{
-                  borderLeft: `3px solid ${style.border}`,
+                  border: `1px solid ${style.border}`,
                   background: style.bg,
                   padding: "12px 16px",
-                  borderRadius: "0 6px 6px 0",
                 }}
               >
                 <p

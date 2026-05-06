@@ -43,6 +43,7 @@ type BriefPart2 = Pick<IntelligenceBrief, "positioning" | "channels" | "risks" |
 const CORE_SYSTEM_INSTRUCTIONS = [
   "You are a strategic intelligence analyst synthesizing research into a comprehensive intelligence brief.",
   "You analyze for neurodivergent founders with PDA (Persistent Demand Avoidance) — deep strategic thinkers who find ongoing social maintenance and direct outreach genuinely aversive. This is a hard constraint.",
+  "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to interpret founder fit, pacing risk, and channel realism.",
   "Be analytical and evidence-based, not prescriptive. Describe what the situation is, not what to do.",
   "Be honest and direct. Do not sugarcoat risks or inflate opportunities.",
   "Ground every claim in the provided research. Name real competitors and channels where evidence supports it. Write for sophisticated founders.",
@@ -90,6 +91,18 @@ function buildIntelligenceBriefUserMessage(
       : "",
     payload.founderConstraints.channelAvoidances
       ? `Channel avoidances: ${payload.founderConstraints.channelAvoidances}.`
+      : "",
+    payload.ndProfileContext?.summary
+      ? `Persistent ND profile context: ${payload.ndProfileContext.summary}`
+      : "",
+    payload.ndProfileContext?.activationPatterns.length
+      ? `Activation patterns: ${payload.ndProfileContext.activationPatterns.join("; ")}.`
+      : "",
+    payload.ndProfileContext?.shutdownTriggers.length
+      ? `Shutdown or avoidance triggers: ${payload.ndProfileContext.shutdownTriggers.join("; ")}.`
+      : "",
+    payload.ndProfileContext?.unavailablePeriods
+      ? `Protected unavailable periods: ${payload.ndProfileContext.unavailablePeriods}.`
       : "",
   ].filter(Boolean).join(" ");
 

@@ -4,11 +4,16 @@ import { ArrowCounterClockwise, DownloadSimple, Copy, Check, CaretDown, Plus, Pe
 import { PHASES } from "./phases";
 import { ReportView } from "./components/ReportView";
 import { StrategyView } from "./components/StrategyView";
+import { NDContextBuilder } from "./components/NDContextBuilder";
+import { NDProcessDesigner } from "./components/NDProcessDesigner";
+import { buildNDProfileContext, loadNDProfile } from "./lib/nd-profile";
 import {
+  applyNDProfileDefaults,
   buildStrategyMarkdown,
   condensePhaseResearch,
   createEmptyStrategyInputs,
   getStrategyFingerprint,
+  getStrategyReadiness,
   hasCompleteStrategyDraft,
   syncStrategyDirtyState,
 } from "./lib/strategy";
@@ -25,6 +30,7 @@ import {
 import type {
   ExaResult,
   IntelligenceBrief,
+  NDProfileContext,
   PhaseResult,
   SessionState,
   StrategyDraft,
@@ -33,7 +39,9 @@ import type {
 } from "./types";
 import "./index.css";
 
-type ActiveView = "research" | "strategy";
+type ActiveTool = "category-scout" | "context-builder" | "process-designer";
+
+type OpenSection = "research" | "strategy" | null;
 
 interface StrategyDraftErrorResponse {
   error?: string;
@@ -65,7 +73,7 @@ const createEmptySession = (): SessionState => ({
   problem: "",
   knownPlayers: "",
   phases: emptyPhases(),
-  strategyInputs: createEmptyStrategyInputs(),
+  strategyInputs: applyNDProfileDefaults(createEmptyStrategyInputs(), loadNDProfile()),
   strategyDraft: null,
   strategyStatus: "idle",
   strategyError: undefined,
@@ -76,9 +84,23 @@ const createEmptySession = (): SessionState => ({
   intelligenceError: undefined,
 });
 
+function getLiveNDProfileContext(): NDProfileContext | null {
+  const profile = loadNDProfile();
+  return profile ? buildNDProfileContext(profile) : null;
+}
+
+function applyProfileToSession(session: SessionState): SessionState {
+  return {
+    ...session,
+    strategyInputs: applyNDProfileDefaults(session.strategyInputs, loadNDProfile()),
+  };
+}
+
 export default function App() {
-  const [session, setSession] = useState<SessionState>(createEmptySession);
-  const [activeView, setActiveView] = useState<ActiveView>("research");
+  const [activeTool, setActiveTool] = useState<ActiveTool>("category-scout");
+  const [ndProfileContext, setNdProfileContext] = useState<NDProfileContext | null>(() => getLiveNDProfileContext());
+  const [session, setSession] = useState<SessionState>(() => createEmptySession());
+  const [openSection, setOpenSection] = useState<OpenSection>("research");
   const [promptCopied, setPromptCopied] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -91,17 +113,34 @@ export default function App() {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   const mutateSession = useCallback((updater: (current: SessionState) => SessionState) => {
-    setSession((current) => syncStrategyDirtyState(updater(current)));
+    setSession((current) => syncStrategyDirtyState(updater(current), ndProfileContext));
+  }, [ndProfileContext]);
+
+  useEffect(() => {
+    const refreshProfileContext = () => setNdProfileContext(getLiveNDProfileContext());
+
+    refreshProfileContext();
+    window.addEventListener("focus", refreshProfileContext);
+    return () => window.removeEventListener("focus", refreshProfileContext);
   }, []);
+
+  useEffect(() => {
+    if (activeTool === "category-scout") {
+      const nextContext = getLiveNDProfileContext();
+      setNdProfileContext(nextContext);
+      setSession((current) => syncStrategyDirtyState(applyProfileToSession(current), nextContext));
+    }
+  }, [activeTool]);
 
   // Load last project on mount
   useEffect(() => {
+    const profileContext = getLiveNDProfileContext();
     const currentId = loadCurrentProjectId();
     if (currentId) {
       const project = loadProject(currentId);
       if (project) {
         setProjectId(project.id);
-        setSession(project.session);
+        setSession(syncStrategyDirtyState(applyProfileToSession(project.session), profileContext));
         setDraftHistory(project.draftHistory);
         setLastSavedAt(project.updatedAt);
         return;
@@ -141,7 +180,7 @@ export default function App() {
     const empty = createEmptySession();
     setSession(empty);
     setDraftHistory([]);
-    setActiveView("research");
+    setOpenSection("research");
     const saved = saveProject(empty, []);
     setProjectId(saved.id);
     saveCurrentProjectId(saved.id);
@@ -153,15 +192,16 @@ export default function App() {
     const project = loadProject(id);
     if (!project) return;
     setProjectId(project.id);
-    setSession(project.session);
+    setSession(syncStrategyDirtyState(applyProfileToSession(project.session), ndProfileContext));
     setDraftHistory(project.draftHistory);
-    setActiveView("research");
+    setOpenSection("research");
     saveCurrentProjectId(project.id);
     setLastSavedAt(project.updatedAt);
     setProjectDrawerOpen(false);
-  }, []);
+  }, [ndProfileContext]);
 
   const handleDeleteProject = useCallback((id: string) => {
+    if (!window.confirm("Delete this project? This can't be undone.")) return;
     deleteProject(id);
     refreshProjects();
     if (id === projectId) {
@@ -275,6 +315,7 @@ export default function App() {
   }, [runPhase, session.problem]);
 
   const reset = useCallback(() => {
+    if (!window.confirm("Start fresh? Your current research and drafts will be cleared.")) return;
     createNewProject();
   }, [createNewProject]);
 
@@ -358,10 +399,13 @@ export default function App() {
   const generateStrategy = useCallback(async () => {
     if (!session.problem.trim()) return;
     if (!session.strategyInputs.audienceLens.trim()) return;
-
-    if (hasCompleteStrategyDraft(session.strategyDraft)) {
-      const shouldReplace = window.confirm("Regenerating will replace the current strategy draft. Continue?");
-      if (!shouldReplace) return;
+    if (!getStrategyReadiness(session.phases).canGenerate) {
+      mutateSession((current) => ({
+        ...current,
+        strategyStatus: "error",
+        strategyError: "Complete at least 2 research phases before generating a strategy draft.",
+      }));
+      return;
     }
 
     mutateSession((current) => ({
@@ -386,7 +430,12 @@ export default function App() {
           contentMode: session.strategyInputs.contentMode,
           contentModeOther: session.strategyInputs.contentModeOther,
           existingAssets: session.strategyInputs.existingAssets,
+          previousAttempts: session.strategyInputs.previousAttempts ?? "",
+          avoidanceTasks: session.strategyInputs.avoidanceTasks ?? "",
+          activationWindows: session.strategyInputs.activationWindows ?? "",
+          unavailablePeriods: session.strategyInputs.unavailablePeriods ?? "",
         },
+        ndProfileContext: ndProfileContext ?? undefined,
         phaseResearch: condensePhaseResearch(session.phases),
       };
 
@@ -410,7 +459,7 @@ export default function App() {
         throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Strategy draft failed");
       }
 
-      // Exa search is complete — show the Claude drafting phase briefly before applying the result.
+      // Exa search is complete — show the synthesis phase briefly before applying the result.
       mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
       await new Promise((resolve) => setTimeout(resolve, 700));
 
@@ -424,6 +473,7 @@ export default function App() {
         knownPlayers: session.knownPlayers,
         phases: session.phases,
         strategyInputs: session.strategyInputs,
+        ndProfileContext,
       });
 
       mutateSession((current) => ({
@@ -436,7 +486,7 @@ export default function App() {
       }));
 
       setDraftHistory((prev) => [...prev, finalDraft]);
-      setActiveView("strategy");
+      setOpenSection("strategy");
     } catch (error) {
       mutateSession((current) => ({
         ...current,
@@ -445,15 +495,18 @@ export default function App() {
         strategyError: error instanceof Error ? error.message : "Strategy draft failed",
       }));
     }
-  }, [mutateSession, session]);
+  }, [mutateSession, ndProfileContext, session]);
 
   const generateIntelligenceBrief = useCallback(async () => {
     if (!session.problem.trim()) return;
     if (!session.strategyInputs.audienceLens.trim()) return;
-
-    if (session.intelligenceBrief) {
-      const shouldReplace = window.confirm("Regenerating will replace the current intelligence brief. Continue?");
-      if (!shouldReplace) return;
+    if (!getStrategyReadiness(session.phases).canGenerate) {
+      mutateSession((current) => ({
+        ...current,
+        intelligenceStatus: "error",
+        intelligenceError: "Complete at least 2 research phases before generating an intelligence brief.",
+      }));
+      return;
     }
 
     mutateSession((current) => ({
@@ -478,7 +531,12 @@ export default function App() {
           contentMode: session.strategyInputs.contentMode,
           contentModeOther: session.strategyInputs.contentModeOther,
           existingAssets: session.strategyInputs.existingAssets,
+          previousAttempts: session.strategyInputs.previousAttempts ?? "",
+          avoidanceTasks: session.strategyInputs.avoidanceTasks ?? "",
+          activationWindows: session.strategyInputs.activationWindows ?? "",
+          unavailablePeriods: session.strategyInputs.unavailablePeriods ?? "",
         },
+        ndProfileContext: ndProfileContext ?? undefined,
         phaseResearch: condensePhaseResearch(session.phases),
       };
 
@@ -512,7 +570,7 @@ export default function App() {
         intelligenceError: undefined,
       }));
 
-      setActiveView("strategy");
+      setOpenSection("strategy");
     } catch (error) {
       mutateSession((current) => ({
         ...current,
@@ -521,11 +579,18 @@ export default function App() {
         intelligenceError: error instanceof Error ? error.message : "Intelligence brief failed",
       }));
     }
-  }, [mutateSession, session]);
+  }, [mutateSession, ndProfileContext, session]);
 
   const phaseRunning = Object.values(session.phases).some((phase) => phase.status === "running");
   const hasAnyResults = Object.values(session.phases).some((phase) => phase.results.length > 0);
   const canRun = !!session.problem.trim() && !phaseRunning;
+  const donePhaseCount = Object.values(session.phases).filter((p) => p.status === "done").length;
+  const totalResultCount = Object.values(session.phases).reduce((sum, p) => sum + p.results.length, 0);
+  const toolTitle = activeTool === "category-scout"
+    ? "Category Scout"
+    : activeTool === "context-builder"
+      ? "ND Context Builder"
+      : "ND Process Designer";
 
   return (
     <div className="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>
@@ -549,33 +614,34 @@ export default function App() {
                 />
               ))}
             </div>
-            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-              Category Scout
+            <span style={{ fontSize: 22, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              {toolTitle}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button
-              className="btn-text"
-              onClick={() => {
-                refreshProjects();
-                setProjectDrawerOpen(true);
-              }}
-              style={{ fontSize: 12, color: "var(--ink-muted)" }}
-            >
-              {session.problem ? session.problem.slice(0, 30) + (session.problem.length > 30 ? "…" : "") : "Projects"}
-            </button>
-            {lastSavedAt && (
-              <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
-                Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-          </div>
+          {activeTool === "category-scout" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                className="btn-text"
+                onClick={() => {
+                  refreshProjects();
+                  setProjectDrawerOpen(true);
+                }}
+                style={{ fontSize: 12, color: "var(--ink-muted)" }}
+              >
+                {session.problem ? session.problem.slice(0, 30) + (session.problem.length > 30 ? "…" : "") : "Projects"}
+              </button>
+              {lastSavedAt && (
+                <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.5 }}>
+                  Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", opacity: 0.6 }}>
+              {ndProfileContext ? "ND profile loaded" : "No saved ND profile"}
+            </span>
+          )}
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, maxWidth: 560, margin: 0 }}>
-          Six research phases in parallel — who has the pain, who's solving it,
-          how the market is structured, and how people talk about it.
-          Now with a strategy layer for turning evidence into a low-contact distribution plan.
-        </p>
       </div>
 
       <ProjectDrawer
@@ -600,170 +666,251 @@ export default function App() {
         onEditNameChange={setEditName}
       />
 
-      <hr className="rule" style={{ marginBottom: 36 }} />
-
-      <div className="input-grid" style={{ marginBottom: 30 }}>
-        <label htmlFor="problem-input" style={{
-          display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-          textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
-          fontFamily: "var(--font-mono)",
-        }}>
-          Problem Statement
-        </label>
-        <textarea
-          id="problem-input"
-          value={session.problem}
-          onChange={(event) => mutateSession((current) => ({ ...current, problem: event.target.value }))}
-          placeholder="Describe the customer problem in plain language…"
-          rows={4}
-          style={{ marginBottom: 8 }}
-        />
-
-        <label htmlFor="known-players-input" style={{
-          display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-          textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
-          fontFamily: "var(--font-mono)", marginTop: 8,
-        }}>
-          Known Players{" "}
-          <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
-            — optional
-          </span>
-        </label>
-        <input
-          id="known-players-input"
-          type="text"
-          value={session.knownPlayers}
-          onChange={(event) => mutateSession((current) => ({ ...current, knownPlayers: event.target.value }))}
-          placeholder="Accenture, McKinsey…"
-          style={{ marginBottom: 16 }}
-        />
-
-        <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
+      {/* Tool navigation */}
+      <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 32 }}>
+        {(
+          [
+            { id: "category-scout" as ActiveTool, label: "Category Scout" },
+            { id: "context-builder" as ActiveTool, label: "ND Context Builder" },
+            { id: "process-designer" as ActiveTool, label: "ND Process Designer" },
+          ] as { id: ActiveTool; label: string; disabled?: boolean }[]
+        ).map(({ id, label, disabled }) => {
+          const isActive = activeTool === id;
+          return (
+            <button
+              key={id}
+              onClick={() => !disabled && setActiveTool(id)}
+              className="btn-text"
+              disabled={disabled}
+              style={{
+                fontSize: 12,
+                fontWeight: isActive ? 500 : 400,
+                color: disabled ? "var(--ink-muted)" : isActive ? "var(--ink)" : "var(--ink-muted)",
+                opacity: disabled ? 0.35 : 1,
+                padding: "6px 14px",
+                borderBottom: `2px solid ${isActive ? "var(--teal)" : "transparent"}`,
+                cursor: disabled ? "default" : "pointer",
+                transition: "color 0.12s, border-color 0.12s",
+                marginLeft: 0,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       <hr className="rule" />
 
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        padding: "16px 0",
-        flexWrap: "wrap",
-      }}>
-        <ViewToggle activeView={activeView} onChange={setActiveView} strategyDirty={session.strategyDirty} />
+      {activeTool === "context-builder" && (
+        <div style={{ paddingTop: 40 }}>
+          <NDContextBuilder />
+        </div>
+      )}
 
-        {activeView === "research" && hasAnyResults && (
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <button className="btn-text" onClick={downloadResearch} aria-label="Export research as Markdown" style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-              <DownloadSimple size={13} />
+      {activeTool === "process-designer" && (
+        <div style={{ paddingTop: 40 }}>
+          <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
+        </div>
+      )}
+
+      {activeTool === "category-scout" && (
+      <>
+      <ToolSection
+        number="01"
+        label="Category Scout"
+        description="Before you commit to a direction, know what you're getting into. Runs six searches across customer pain, competitor gaps, market shape, and whether people are already looking for this."
+        statusChip={
+          phaseRunning ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span className="dot dot-running" />
+              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>Running</span>
+            </span>
+          ) : donePhaseCount > 0 ? (
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
+              {donePhaseCount}/{PHASES.length} phases · {totalResultCount} results
+            </span>
+          ) : undefined
+        }
+        headerActions={
+          hasAnyResults ? (
+            <button
+              className="btn-text"
+              onClick={downloadResearch}
+              aria-label="Export research as Markdown"
+              style={{ fontSize: 11, color: "var(--ink-muted)" }}
+            >
+              <DownloadSimple size={11} />
               Export
             </button>
+          ) : undefined
+        }
+        isOpen={openSection === "research"}
+        onToggle={() => setOpenSection(openSection === "research" ? null : "research")}
+      >
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65, margin: "0 0 28px", maxWidth: 560 }}>
+          Enter the problem. Hit run. Review what comes back across six angles — read the excerpts, export the file, or hand it to an agent.
+        </p>
 
-            <button className="btn-text" onClick={reset} aria-label="Reset session" style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-              <ArrowCounterClockwise size={12} />
-              Reset
-            </button>
-          </div>
-        )}
+        <div className="input-grid" style={{ marginBottom: 30 }}>
+          <label htmlFor="problem-input" style={{
+            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
+            fontFamily: "var(--font-mono)",
+          }}>
+            Problem Statement
+          </label>
+          <textarea
+            id="problem-input"
+            value={session.problem}
+            onChange={(event) => mutateSession((current) => ({ ...current, problem: event.target.value }))}
+            placeholder="Describe the customer problem in plain language…"
+            rows={4}
+            style={{ marginBottom: 8 }}
+          />
 
-        {activeView === "strategy" && (
-          <button className="btn-text" onClick={reset} aria-label="Reset session" style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-            <ArrowCounterClockwise size={12} />
-            Reset
-          </button>
-        )}
-      </div>
+          <label htmlFor="known-players-input" style={{
+            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
+            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
+            fontFamily: "var(--font-mono)", marginTop: 8,
+          }}>
+            Known Players{" "}
+            <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
+              — optional
+            </span>
+          </label>
+          <input
+            id="known-players-input"
+            type="text"
+            value={session.knownPlayers}
+            onChange={(event) => mutateSession((current) => ({ ...current, knownPlayers: event.target.value }))}
+            placeholder="Accenture, McKinsey…"
+            style={{ marginBottom: 16 }}
+          />
 
-      {activeView === "research" ? (
-        <>
-          <ReportView session={session} onRunPhase={runPhase} isRunning={phaseRunning} />
-          {hasAnyResults && (
-            <>
-              <hr className="rule" style={{ margin: "40px 0" }} />
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2, delay: 0.05 }}
-                style={{ padding: "20px 0" }}
-              >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
-                  <div>
-                    <p style={{
-                      fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
-                      color: "var(--ink-muted)", margin: "0 0 5px", fontFamily: "var(--font-mono)",
-                    }}>
-                      Take this to Claude
-                    </p>
-                    <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
-                      Export the research, upload to{" "}
-                      <a href="https://claude.ai" target="_blank" rel="noreferrer" style={{ color: "var(--teal)", textDecoration: "none" }}>
-                        claude.ai
-                      </a>
-                      , and use this prompt to generate a category design brief.
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
-                    <button
-                      className="btn-text"
-                      onClick={copyPrompt}
-                      aria-label="Copy Claude prompt to clipboard"
-                      style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}
-                    >
-                      {promptCopied ? <Check size={12} /> : <Copy size={12} />}
-                      {promptCopied ? "Copied" : "Copy prompt"}
-                    </button>
-                    <button
-                      className="btn-text"
-                      onClick={() => setPromptOpen((open) => !open)}
-                      aria-expanded={promptOpen}
-                      aria-controls="claude-prompt"
-                      style={{ fontSize: 12, color: "var(--ink-muted)" }}
-                    >
-                      <motion.span
-                        animate={{ rotate: promptOpen ? 180 : 0 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        style={{ display: "inline-flex" }}
-                      >
-                        <CaretDown size={12} />
-                      </motion.span>
-                      {promptOpen ? "Hide" : "View prompt"}
-                    </button>
-                  </div>
+          <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
+        </div>
+
+        <ReportView session={session} onRunPhase={runPhase} isRunning={phaseRunning} />
+        {hasAnyResults && (
+          <>
+            <hr className="rule" style={{ margin: "40px 0" }} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.05 }}
+              style={{ padding: "20px 0" }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
+                <div>
+                  <p style={{
+                    fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
+                    color: "var(--ink-muted)", margin: "0 0 5px", fontFamily: "var(--font-mono)",
+                  }}>
+                    Export results
+                  </p>
+                  <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
+                    Download the research file, then pass it to any AI agent using the category design brief prompt below.
+                  </p>
                 </div>
-
-                <AnimatePresence>
-                  {promptOpen && (
-                    <motion.pre
-                      id="claude-prompt"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                        lineHeight: 1.7,
-                        color: "var(--ink-light)",
-                        margin: "14px 0 0",
-                        padding: "14px 16px",
-                        border: "1px solid var(--rule)",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                        overflow: "hidden",
-                      }}
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
+                  <button
+                    className="btn-text"
+                    onClick={downloadResearch}
+                    aria-label="Download research as Markdown"
+                    style={{ fontSize: 12, color: "var(--ink-muted)" }}
+                  >
+                    <DownloadSimple size={12} />
+                    Download
+                  </button>
+                  <button
+                    className="btn-text"
+                    onClick={copyPrompt}
+                    aria-label="Copy Claude prompt to clipboard"
+                    style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}
+                  >
+                    {promptCopied ? <Check size={12} /> : <Copy size={12} />}
+                    {promptCopied ? "Copied" : "Copy prompt"}
+                  </button>
+                  <button
+                    className="btn-text"
+                    onClick={() => setPromptOpen((open) => !open)}
+                    aria-expanded={promptOpen}
+                    aria-controls="claude-prompt"
+                    style={{ fontSize: 12, color: "var(--ink-muted)" }}
+                  >
+                    <motion.span
+                      animate={{ rotate: promptOpen ? 180 : 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      style={{ display: "inline-flex" }}
                     >
-                      {CLAUDE_PROMPT}
-                    </motion.pre>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            </>
-          )}
-        </>
-      ) : (
+                      <CaretDown size={12} />
+                    </motion.span>
+                    {promptOpen ? "Hide" : "View prompt"}
+                  </button>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {promptOpen && (
+                  <motion.pre
+                    id="claude-prompt"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12,
+                      lineHeight: 1.7,
+                      color: "var(--ink-light)",
+                      margin: "14px 0 0",
+                      padding: "14px 16px",
+                      border: "1px solid var(--rule)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {CLAUDE_PROMPT}
+                  </motion.pre>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </ToolSection>
+
+      <ToolSection
+        number="02"
+        label="Distribution Strategy"
+        description="The part most ND founders dread — getting work out into the world. Builds a plan around what you can actually sustain, not what hustle culture assumes you're willing to do."
+        statusChip={
+          (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
+           session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span className="dot dot-running" />
+              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>Generating</span>
+            </span>
+          ) : session.strategyDraft ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
+                {session.strategyDirty ? "Outdated" : "Draft ready"}
+              </span>
+              {session.strategyDirty && <span className="dot" style={{ background: "var(--terracotta)" }} />}
+            </span>
+          ) : session.intelligenceBrief ? (
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
+              Brief ready
+            </span>
+          ) : undefined
+        }
+        isOpen={openSection === "strategy"}
+        onToggle={() => setOpenSection(openSection === "strategy" ? null : "strategy")}
+      >
         <StrategyView
           session={session}
+          ndProfileContext={ndProfileContext}
           researchRunning={phaseRunning}
           onInputChange={updateStrategyInput}
           onSectionChange={updateStrategySection}
@@ -773,6 +920,17 @@ export default function App() {
           onExportIntelligence={downloadIntelligenceBrief}
           draftHistory={draftHistory}
         />
+      </ToolSection>
+
+      {hasAnyResults && (
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
+          <button className="btn-text" onClick={reset} aria-label="Start fresh" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+            <ArrowCounterClockwise size={12} />
+            Reset
+          </button>
+        </div>
+      )}
+      </>
       )}
     </div>
   );
@@ -826,57 +984,97 @@ function RunButton({
   );
 }
 
-function ViewToggle({
-  activeView,
-  onChange,
-  strategyDirty,
+function ToolSection({
+  number,
+  label,
+  description,
+  statusChip,
+  headerActions,
+  isOpen,
+  onToggle,
+  children,
 }: {
-  activeView: ActiveView;
-  onChange: (view: ActiveView) => void;
-  strategyDirty?: boolean;
+  number: string;
+  label: string;
+  description: string;
+  statusChip?: React.ReactNode;
+  headerActions?: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "inline-flex", gap: 6, border: "1px solid var(--rule)", padding: 4, borderRadius: 999 }}>
-      <ViewButton label="Research" active={activeView === "research"} onClick={() => onChange("research")} />
-      <ViewButton label="Strategy" active={activeView === "strategy"} onClick={() => onChange("strategy")} showDot={strategyDirty} />
-    </div>
-  );
-}
-
-function ViewButton({ label, active, onClick, showDot }: { label: string; active: boolean; onClick: () => void; showDot?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: "none",
-        background: active ? "var(--teal)" : "transparent",
-        color: active ? "#fff" : "var(--ink-muted)",
-        borderRadius: 999,
-        padding: "7px 14px",
-        cursor: "pointer",
-        fontFamily: "var(--font-display)",
-        fontSize: 13,
-        lineHeight: 1,
-        transition: "background 0.15s, color 0.15s",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      {label}
-      {showDot && (
-        <span
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <button
+          className="btn-text"
+          onClick={onToggle}
+          aria-expanded={isOpen}
           style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: active ? "#fff" : "var(--terracotta)",
-            display: "inline-block",
-            flexShrink: 0,
+            flex: 1,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 16,
+            padding: "28px 0 24px",
+            textAlign: "left",
           }}
-        />
-      )}
-    </button>
+        >
+          <span
+            className="mono"
+            style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-muted)", flexShrink: 0, paddingTop: 5 }}
+          >
+            {number}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
+              <span
+                style={{
+                  fontSize: 19,
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  letterSpacing: "-0.02em",
+                  flex: 1,
+                }}
+              >
+                {label}
+              </span>
+              {statusChip && <span style={{ flexShrink: 0 }}>{statusChip}</span>}
+              <motion.span
+                animate={{ rotate: isOpen ? 180 : 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                style={{ display: "inline-flex", color: "var(--ink-muted)", flexShrink: 0 }}
+              >
+                <CaretDown size={13} />
+              </motion.span>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: 0 }}>
+              {description}
+            </p>
+          </div>
+        </button>
+        {headerActions && (
+          <span style={{ flexShrink: 0, paddingTop: 28 }}>{headerActions}</span>
+        )}
+      </div>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 280, damping: 30 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ paddingBottom: 56 }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <hr className="rule" />
+    </div>
   );
 }
 

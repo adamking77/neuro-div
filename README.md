@@ -2,7 +2,7 @@
 
 Six research phases in parallel — who has the pain, who's solving it, how the market is structured, and how people talk about it.
 
-Built for category design research. Runs semantic search across six distinct lenses simultaneously, then turns that evidence into a grounded strategy workflow using Exa deep-reasoning search plus Anthropic synthesis.
+Built for category design research. Runs semantic search across six distinct lenses simultaneously, then turns that evidence into a grounded strategy workflow using Exa deep-reasoning search plus Kimi synthesis.
 
 ## How it works
 
@@ -10,7 +10,7 @@ Built for category design research. Runs semantic search across six distinct len
 2. Optionally add known players in the space
 3. Hit **Run** — six phases search in parallel via Exa's neural search
 4. Review results by phase, each with relevance scores, publication timelines, and source highlights
-5. Switch to **Strategy** to generate a low-contact distribution draft grounded in Exa deep-reasoning search and Anthropic
+5. Switch to **Strategy** to generate a low-contact distribution draft grounded in Exa deep-reasoning search and Kimi
 6. **Export** either the research file or the generated strategy as markdown
 
 ## Research phases
@@ -28,7 +28,7 @@ Built for category design research. Runs semantic search across six distinct len
 
 - **Frontend** — React 19, TypeScript, Vite, Tailwind CSS v4, HeroUI v3, Framer Motion
 - **Search & research** — [Exa](https://exa.ai) neural search plus deep-reasoning search via Vercel serverless functions
-- **Strategy synthesis** — [Anthropic Claude Sonnet 4](https://docs.anthropic.com/en/docs/models-overview) or [Kimi K2.6](https://www.moonshot.cn/) (selectable)
+- **Strategy synthesis** — [Kimi K2.6](https://www.moonshot.cn/)
 - **Deployment** — Vercel
 
 ## Setup
@@ -38,8 +38,6 @@ Built for category design research. Runs semantic search across six distinct len
 ```
 EXA_API_KEY=your_key_here
 EXA_SEARCH_TYPE=deep-reasoning
-ANTHROPIC_API_KEY=your_key_here
-ANTHROPIC_MODEL=claude-sonnet-4-6
 KIMI_API_KEY=your_key_here
 KIMI_MODEL=kimi-k2-6
 KIMI_BASE_URL=https://api.moonshot.cn/v1

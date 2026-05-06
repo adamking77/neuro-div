@@ -196,7 +196,7 @@ function AgentBriefSection({ section }: { section: ParsedSection }) {
       <h2
         style={{
           fontSize: isH2 ? 14 : 16,
-          fontWeight: 700,
+          fontWeight: 500,
           fontFamily: "var(--font-display)",
           color: isTopLevel ? "var(--ink)" : "var(--ink)",
           margin: "0 0 12px",
@@ -277,11 +277,9 @@ function FormattedMarkdown({ content }: { content: string }) {
         <div
           key={i}
           style={{
-            borderLeft: "3px solid var(--teal)",
             padding: "10px 14px",
             margin: "8px 0",
             background: "rgba(91, 138, 138, 0.06)",
-            borderRadius: "0 4px 4px 0",
           }}
         >
           <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: "var(--ink)" }}>

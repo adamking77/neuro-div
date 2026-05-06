@@ -37,7 +37,7 @@ function Section({ label, number, children }: SectionProps) {
         <h3
           style={{
             fontSize: 15,
-            fontWeight: 600,
+            fontWeight: 400,
             fontFamily: "var(--font-display)",
             color: "var(--ink)",
             margin: 0,
@@ -125,7 +125,6 @@ export function IntelligenceView({ brief, status, error }: Props) {
           padding: "40px 24px",
           textAlign: "center",
           background: "rgba(180, 107, 88, 0.06)",
-          borderRadius: 8,
           border: "1px solid rgba(180, 107, 88, 0.2)",
         }}
       >
@@ -144,15 +143,15 @@ export function IntelligenceView({ brief, status, error }: Props) {
         <p
           style={{
             fontSize: 14,
-            color: "var(--ink-muted)",
-            margin: "0 0 8px",
-            fontFamily: "var(--font-display)",
+            color: "var(--ink)",
+            margin: "0 0 6px",
+            fontWeight: 500,
           }}
         >
-          No brief yet
+          Nothing here yet
         </p>
-        <p style={{ fontSize: 12, color: "var(--ink-muted)", opacity: 0.7, margin: 0, maxWidth: 400, marginInline: "auto" }}>
-          Generate a brief to see where you stand in the market, how you compare to competitors, where to show up, and a 90-day plan.
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0, maxWidth: 400, marginInline: "auto", lineHeight: 1.6 }}>
+          Generate a brief to see where you actually stand — market position, competitive gaps, where to show up, and a 90-day roadmap.
         </p>
       </div>
     );
@@ -165,7 +164,6 @@ export function IntelligenceView({ brief, status, error }: Props) {
         style={{
           background: "var(--cream)",
           border: "1px solid var(--rule)",
-          borderRadius: 8,
           padding: "20px 24px",
           marginBottom: 32,
         }}
