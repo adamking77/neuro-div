@@ -104,7 +104,7 @@ export function getStrategyReadiness(phases: Record<number, PhaseResult>) {
     return phase?.status !== "done" || phase.results.length === 0;
   });
 
-  const canGenerate = doneCount >= 2;
+  const canGenerate = true;
   const confidence: "partial" | "strong" = doneCount >= 4 && missingSuggested.length === 0 ? "strong" : "partial";
 
   return { canGenerate, doneCount, missingSuggested, confidence };

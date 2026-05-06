@@ -33,6 +33,31 @@ function createPhases(overrides: Partial<Record<number, PhaseResult>> = {}) {
 }
 
 describe("strategy readiness", () => {
+  it("allows generation with no completed research phases", () => {
+    expect(getStrategyReadiness(createPhases())).toEqual({
+      canGenerate: true,
+      doneCount: 0,
+      missingSuggested: [
+        {
+          id: 1,
+          label: "Problem Cartography",
+          rationale: "Raw customer language — messaging won't sound right without this",
+        },
+        {
+          id: 3,
+          label: "Solution Landscape",
+          rationale: "White space context — positioning is guesswork without this",
+        },
+        {
+          id: 5,
+          label: "Evidence Mining",
+          rationale: "Proof the problem is real — strengthens every section",
+        },
+      ],
+      confidence: "partial",
+    });
+  });
+
   it("allows generation after two completed phases and marks missing suggested phases as partial confidence", () => {
     const twoPhases = createPhases({
       1: { status: "done", results: [{ id: "1", url: "https://a.com", highlights: ["a"] }] },
@@ -194,6 +219,33 @@ describe("strategy API helpers", () => {
 
   it("validates the draft request payload", () => {
     expect(() => validateStrategyDraftRequest({})).toThrow("problem is required");
+  });
+
+  it("accepts requests without phase research", () => {
+    expect(validateStrategyDraftRequest({
+      problem: "manual reporting wastes time",
+      audienceLens: "operators who avoid networking",
+      founderConstraints: {
+        teamSize: "solo",
+        budgetBand: "low",
+        weeklyCapacity: "",
+        socialPostingTolerance: "avoid",
+        channelAvoidances: "",
+        outreachTolerance: "inbound-only",
+        peerCollaborationOk: false,
+        contentMode: ["writing"],
+        contentModeOther: "",
+        existingAssets: [],
+        previousAttempts: "",
+        avoidanceTasks: "",
+        activationWindows: "",
+        unavailablePeriods: "",
+      },
+    })).toMatchObject({
+      problem: "manual reporting wastes time",
+      audienceLens: "operators who avoid networking",
+      phaseResearch: [],
+    });
   });
 
   it("builds Exa research and Kimi prompts with low-contact guidance", () => {

@@ -323,18 +323,18 @@ function IntroStep({
   return (
     <div style={{ maxWidth: 680 }}>
       <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px" }}>
-        Most planning systems assume you'll execute tomorrow what you decided today. That's not how most ND brains work.
+        Most planning systems assume you will do tomorrow what you decided today. If your energy shifts day to day, that assumption breaks fast.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 20px" }}>
-        This takes one goal and turns it into a menu of moves organized around the conditions that actually activate you — not a schedule, not a task list. Your ND profile shapes it to how you specifically operate. The output is a document any AI agent can run from.
+        Give this tool one goal and your profile. It builds a set of options you can pick from based on how you feel. You get a document any AI can read and run.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 12px" }}>
         About 5 minutes. Stop whenever.
       </p>
       <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: "0 0 36px" }}>
         {hasProfile
-          ? "Your ND profile is loaded — the process will be shaped around how you specifically work."
-          : "No ND profile found. This will still work — it'll ask a few extra questions to fill the gap. Build your profile first if you want the process fully personalized from the start."}
+          ? "Your profile is loaded. The process will match how you work."
+          : "No profile found. This will still work. It will ask a few extra questions to fill the gap. Build your profile first if you want the process shaped around you from the start."}
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: hasSavedProcesses ? 40 : 0 }}>
         <button
@@ -411,7 +411,7 @@ function GoalStep({
         <textarea
           value={inputs.whyNow}
           onChange={(e) => onChange({ whyNow: e.target.value })}
-          placeholder="Optional — what makes this matter now?"
+          placeholder="Optional. What makes this matter now?"
           rows={3}
           style={{ fontSize: 13 }}
         />
@@ -489,7 +489,7 @@ function BoundariesStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        Last step. Make the boundary visible. A useful process is not just what you're doing, it's also what you're not doing.
+        Last step. Make the boundary visible. A useful process includes what you are doing and what you are not doing.
       </p>
 
       <Field>

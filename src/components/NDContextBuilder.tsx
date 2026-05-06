@@ -275,13 +275,13 @@ function IntroStep({ onBegin, hasExisting }: { onBegin: () => void; hasExisting:
   return (
     <div style={{ maxWidth: 600 }}>
       <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px" }}>
-        Most AI tools respond the same way to everyone. This makes yours respond to you.
+        Most AI tools treat everyone the same. This one treats you like you.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 20px" }}>
-        You answer a few questions about how your brain actually works — what activates you, what causes shutdown, how you prefer to receive information, what you've tried before. The output is a profile document you drop into any AI as context. It changes how the AI behaves with you, not just what it says.
+        Answer questions about what energizes you, what shuts you down, and how you take in information. You get a profile file. Paste it into any AI you use. That AI will then respond in ways that match how you work.
       </p>
       <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 36px" }}>
-        10–15 minutes. Stop whenever. Nothing is required.
+        10 to 15 minutes. Stop whenever. Skip anything you do not want to answer.
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <button
@@ -384,7 +384,7 @@ function TraitsStep({
         <textarea
           value={profile.traits.notes}
           onChange={(e) => onChange({ notes: e.target.value })}
-          placeholder="Optional — your own words, whatever didn't fit the options above"
+          placeholder="Optional. Your own words, whatever didn't fit the options above"
           rows={3}
           style={{ fontSize: 13 }}
         />
@@ -421,7 +421,7 @@ function ActivationStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        What actually gets you started? Not what should motivate you — what does.
+        What actually gets you started? Not what should motivate you. What actually does.
       </p>
 
       <Field>
@@ -445,7 +445,7 @@ function ActivationStep({
         <textarea
           value={profile.activation.goodDayDescription}
           onChange={(e) => onChange({ goodDayDescription: e.target.value })}
-          placeholder="Describe it in your own words — what's different when it's actually going well?"
+          placeholder="Describe it in your own words. What's different when it's actually going well?"
           rows={4}
           style={{ fontSize: 13 }}
         />
@@ -482,7 +482,7 @@ function ShutdownStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        What makes you want to disappear? This is important — knowing what to avoid is as useful as knowing what works.
+        What makes you want to disappear? This is important. Knowing what to avoid is as useful as knowing what works.
       </p>
 
       <Field>
@@ -506,7 +506,7 @@ function ShutdownStep({
         <textarea
           value={profile.shutdown.shutdownDescription}
           onChange={(e) => onChange({ shutdownDescription: e.target.value })}
-          placeholder="Not what causes it — what happens when you're in it. Describe your specific pattern."
+          placeholder="Not what causes it. What happens when you're in it. Describe your specific pattern."
           rows={4}
           style={{ fontSize: 13 }}
         />
@@ -543,7 +543,7 @@ function TimeStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        How does time and energy actually work for you? Not how you want it to — how it does.
+        How does time and energy actually work for you? Not how you want it to. How it actually does.
       </p>
 
       <Field>
@@ -567,7 +567,7 @@ function TimeStep({
         <textarea
           value={profile.timeEnergy.activationWindows}
           onChange={(e) => onChange({ activationWindows: e.target.value })}
-          placeholder="Time of day, day of week, conditions — whatever describes when work actually happens for you"
+          placeholder="Time of day, day of week, conditions. Whatever describes when work actually happens for you"
           rows={3}
           style={{ fontSize: 13 }}
         />
@@ -578,7 +578,7 @@ function TimeStep({
         <textarea
           value={profile.timeEnergy.unavailablePeriods}
           onChange={(e) => onChange({ unavailablePeriods: e.target.value })}
-          placeholder="Burnout periods, recovery days, times when nothing gets done no matter what — anything predictable"
+          placeholder="Burnout periods, recovery days, times when nothing gets done no matter what. Anything predictable"
           rows={3}
           style={{ fontSize: 13 }}
         />
@@ -605,7 +605,7 @@ function HistoryStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        Most ND people have tried a lot of systems. The history is useful — it stops anything new from recommending something that's already failed.
+        Most ND people have tried a lot of systems. The history is useful. It stops anything new from recommending something that's already failed.
       </p>
 
       <Field>
@@ -613,7 +613,7 @@ function HistoryStep({
         <textarea
           value={profile.history.triedSystems}
           onChange={(e) => onChange({ triedSystems: e.target.value })}
-          placeholder="Apps, methods, structures, routines — anything you've genuinely tried to stay on track or get things done"
+          placeholder="Apps, methods, structures, routines. Anything you've genuinely tried to stay on track or get things done"
           rows={4}
           style={{ fontSize: 13 }}
         />
@@ -624,7 +624,7 @@ function HistoryStep({
         <textarea
           value={profile.history.whatWorked}
           onChange={(e) => onChange({ whatWorked: e.target.value })}
-          placeholder="It doesn't have to have been sustainable — just anything that helped for a while"
+          placeholder="It doesn't have to have been sustainable. Just anything that helped for a while"
           rows={3}
           style={{ fontSize: 13 }}
         />
@@ -682,7 +682,7 @@ function InfoStep({
   return (
     <div>
       <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 560 }}>
-        Two quick topics — how you prefer information, and what helps you actually work.
+        Two quick topics. How you prefer information, and what helps you actually work.
       </p>
 
       <Field>

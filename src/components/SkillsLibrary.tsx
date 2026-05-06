@@ -43,7 +43,7 @@ const SKILLS: SkillPackage[] = [
     slug: "nd-context-builder",
     status: "Available",
 
-    summary: "Use the web tool to build your profile, or run this skill in any AI that takes persistent instructions. It asks the same intake questions and produces the same portable nd-profile.md. Install it once and every subsequent conversation in that environment already knows how your brain works.",
+    summary: "Build your profile here or inside any AI that saves instructions. It asks the same questions and produces the same profile file. Set it up once and every conversation in that AI already knows how you work.",
 
     skillText: ndContextSkill,
     openAiYaml: ndContextOpenAi,
@@ -53,7 +53,7 @@ const SKILLS: SkillPackage[] = [
     slug: "nd-process-designer",
     status: "Available",
 
-    summary: "Give it your ND profile and one thing you're trying to move. It builds a trigger-based process around how you actually activate — a menu of moves organized by condition, not a task list organized by priority. The output is structured so any AI can run from it without setup.",
+    summary: "Give it your profile and one goal. It builds a plan that matches your energy patterns, not a fixed schedule. The output is structured so any AI can run it with no extra setup.",
 
     skillText: ndProcessSkill,
     openAiYaml: ndProcessOpenAi,
@@ -63,7 +63,7 @@ const SKILLS: SkillPackage[] = [
     slug: "category-scout",
     status: "Available",
 
-    summary: "Run this before committing to a direction. Give it a problem statement and any known players. It searches six angles and returns a research dossier you can read yourself or pass directly to Distribution Strategy for synthesis.",
+    summary: "Run this before you commit to a direction. Give it a problem statement and any known players. It searches six angles and gives you a research file you can read or pass straight to Distribution Strategy.",
 
     skillText: categoryScoutSkill,
     openAiYaml: categoryScoutOpenAi,
@@ -73,7 +73,7 @@ const SKILLS: SkillPackage[] = [
     slug: "distribution-strategy",
     status: "Available",
 
-    summary: "Reads your Category Scout dossier alongside your ND profile. The output is a distribution plan built around how you specifically work — your activation patterns and the conditions that produce action for you. Not a generic strategy.",
+    summary: "Reads your Category Scout research and your profile together. It writes a plan for getting your work seen that matches how you actually work. Not a generic template.",
 
     skillText: distributionStrategySkill,
     openAiYaml: distributionStrategyOpenAi,
@@ -83,7 +83,7 @@ const SKILLS: SkillPackage[] = [
     slug: "nd-session-loop",
     status: "Available",
 
-    summary: "Run it at the start of a work session and it reads your active process, asks what's actually available today, and surfaces exactly one move. Run it at the end and it captures what happened and updates the process. No catch-up posture. No guilt language.",
+    summary: "Run this at the start of a session. It checks your active plan, asks what you have energy for today, and gives you exactly one move to make. Run it at the end and it records what happened and updates your plan. No catch-up talk. No guilt.",
 
     skillText: ndSessionLoopSkill,
     openAiYaml: ndSessionLoopOpenAi,
@@ -112,7 +112,7 @@ export function SkillsLibrary() {
     <div>
       <div style={{ maxWidth: 600, marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid var(--rule)" }}>
         <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.75 }}>
-          Each skill is a set of instructions you paste into your AI environment. That includes Claude Projects, custom GPT instructions, Codex, or anything that accepts a system prompt. Once installed, that AI runs the same methodology as the web tools here, and the outputs are compatible in both directions.
+          Each skill is a set of instructions you paste into an AI you already use. Once pasted, that AI runs the same process as these web tools.
         </p>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>
           Copy or download a skill below, then paste it into your system prompt or project instructions.

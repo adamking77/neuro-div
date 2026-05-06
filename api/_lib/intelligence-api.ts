@@ -145,7 +145,7 @@ function buildIntelligenceBriefUserMessage(
     `Founder profile: ${founderProfile}`,
     "",
     "Phase research:",
-    phaseContext,
+    phaseContext || "No Category Scout phase research provided.",
     "",
     "Exa research dossier:",
     exaContext,

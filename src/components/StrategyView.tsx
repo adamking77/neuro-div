@@ -173,7 +173,7 @@ export function StrategyView({
             {activeTab === "draft"
               ? completedResearch > 0
                 ? "Research is attached. Set what you can and can't do — the draft uses all of it."
-                : "Strategy starts once at least 2 research phases are complete. More signal gives you a stronger draft, but you don't need a full six-phase run."
+                : "You can generate from founder inputs alone. Research is optional here — it makes the draft more grounded, but it is not required."
               : activeTab === "intelligence"
                 ? "A structured read of what the research found — where you stand, who you're up against, where to show up, and what the next 90 days could look like."
                 : "Instructions for your agent — not a task list. Sets up a session check-in, surfaces one move at a time matched to what you actually have available, and includes hard limits the agent can't override. Paste it in. Invitations, not assignments."}</p>
@@ -440,7 +440,7 @@ function ConfigDrawer({
           Research is still running. Wait for it to settle before drafting.
         </p>
       )}
-      {!readiness.canGenerate && !researchRunning && (
+      {completedResearch === 0 && !researchRunning && (
         <p
           style={{
             fontSize: 12,
@@ -449,7 +449,7 @@ function ConfigDrawer({
             lineHeight: 1.5,
           }}
         >
-          Complete at least 2 research phases to generate. 4+ phases including Problem Cartography, Solution Landscape, and Evidence Mining gives stronger output.
+          No Category Scout research is attached. You can still generate now; adding Problem Cartography, Solution Landscape, and Evidence Mining later will make the output more specific.
         </p>
       )}
       {error && (

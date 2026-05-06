@@ -182,10 +182,6 @@ export function validateStrategyDraftRequest(input: unknown): StrategyDraftReque
   const ndProfileContext = validateNDProfileContext(body.ndProfileContext);
   const phaseResearch = validatePhaseResearch(body.phaseResearch);
 
-  if (phaseResearch.length === 0) {
-    throw new StrategyRequestError(400, "phaseResearch must contain at least one completed phase");
-  }
-
   return {
     problem,
     knownPlayers,
@@ -864,12 +860,14 @@ function buildExaResearchInstructions(payload: StrategyDraftRequestPayload): str
     `Problem statement: ${payload.problem}.`,
     payload.knownPlayers ? `Known players or incumbents: ${payload.knownPlayers}.` : "",
     founderConstraints,
-    "Use the seed research below as orientation, but independently search the web for stronger evidence, adjacent tactics, and corroborating sources.",
+    payload.phaseResearch.length > 0
+      ? "Use the seed research below as orientation, but independently search the web for stronger evidence, adjacent tactics, and corroborating sources."
+      : "No seed research dossier is attached. Infer from the founder context and independently search the web for the strongest available evidence, adjacent tactics, and corroborating sources.",
     "Prioritize channels, assets, and experiments that can work for a founder or small team with low tolerance for networking, community dependence, or frequent social posting.",
     "Find evidence about audience behavior, async discovery channels, searchable assets, directories, partner surfaces, newsletters, SEO, problem-aware content, and quiet credibility mechanisms.",
     "Avoid generic high-social advice unless the evidence clearly indicates it and you explicitly mark it as a poor fit or stretch path.",
     "Return structured output that is specific, evidence-grounded, and directly useful for follow-on strategy drafting.",
-    `Seed research:\n${seedContext}`,
+    payload.phaseResearch.length > 0 ? `Seed research:\n${seedContext}` : "",
   ].filter(Boolean).join("\n\n"), 4096);
 }
 
@@ -885,6 +883,10 @@ function formatOutreachPreferences(outreachTolerance: FounderConstraints["outrea
 }
 
 function buildSeedContext(payload: StrategyDraftRequestPayload): string {
+  if (payload.phaseResearch.length === 0) {
+    return "No Category Scout phase research provided.";
+  }
+
   const phaseLines = payload.phaseResearch.map((phase) => {
     const seedResults = phase.results.slice(0, 2).map((result) => {
       const highlight = result.highlights[0] ? ` — highlight: "${trimText(result.highlights[0], 180)}"` : "";
@@ -1064,8 +1066,12 @@ function validateExistingAssets(input: unknown): FounderConstraints["existingAss
 }
 
 function validatePhaseResearch(input: unknown) {
+  if (input === undefined || input === null) {
+    return [];
+  }
+
   if (!Array.isArray(input)) {
-    throw new StrategyRequestError(400, "phaseResearch is required");
+    throw new StrategyRequestError(400, "phaseResearch must be an array when provided");
   }
 
   return input.map((item, index) => {

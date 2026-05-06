@@ -14,7 +14,6 @@ import {
   condensePhaseResearch,
   createEmptyStrategyInputs,
   getStrategyFingerprint,
-  getStrategyReadiness,
   hasCompleteStrategyDraft,
   syncStrategyDirtyState,
 } from "./lib/strategy";
@@ -395,14 +394,6 @@ export default function App() {
   const generateStrategy = useCallback(async () => {
     if (!session.problem.trim()) return;
     if (!session.strategyInputs.audienceLens.trim()) return;
-    if (!getStrategyReadiness(session.phases).canGenerate) {
-      mutateSession((current) => ({
-        ...current,
-        strategyStatus: "error",
-        strategyError: "Complete at least 2 research phases before generating a strategy draft.",
-      }));
-      return;
-    }
 
     mutateSession((current) => ({
       ...current,
@@ -495,14 +486,6 @@ export default function App() {
   const generateIntelligenceBrief = useCallback(async () => {
     if (!session.problem.trim()) return;
     if (!session.strategyInputs.audienceLens.trim()) return;
-    if (!getStrategyReadiness(session.phases).canGenerate) {
-      mutateSession((current) => ({
-        ...current,
-        intelligenceStatus: "error",
-        intelligenceError: "Complete at least 2 research phases before generating an intelligence brief.",
-      }));
-      return;
-    }
 
     mutateSession((current) => ({
       ...current,
@@ -643,10 +626,14 @@ export default function App() {
       />
 
       {/* Suite intro */}
-      <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 28px", maxWidth: 560 }}>
-        A suite of tools built for ND founders and creators. Most AI tools assume consistent, schedule-driven execution. ND brains don't work that way. You get a profile of how your brain actually works, and a set of tools that read from it.{" "}
-        Start with <button onClick={() => setActiveTool("context-builder")} className="btn-text" style={{ fontSize: 13, color: "var(--ink-light)", textDecoration: "underline", textDecorationColor: "var(--rule)", textUnderlineOffset: 3 }}>ND Context Builder</button>.
-      </p>
+      <div style={{ maxWidth: 600, margin: "0 0 28px" }}>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 16px" }}>
+          NeuroDiv OS gives your AI deep context about how you work. The context covers what you need, what drains you, when you have capacity, and what produces action for you. With that context, the AI responds to your actual patterns. You create this context in the Context Builder. The other tools then use it to research, plan, and write in ways that fit you. Category Scout researches through your lens. Process Designer builds plans that match your energy. Distribution Strategy writes outreach you can follow.
+        </p>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: 0 }}>
+          Start with the Context Builder. It takes 10 to 15 minutes. Stop whenever. Skip anything you do not want to answer. You get a profile file. Paste it into any AI you use. You can also install these same tools inside Claude, ChatGPT, or any AI that accepts instructions. They work in both places.
+        </p>
+      </div>
 
       {/* Tool navigation */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
@@ -694,7 +681,7 @@ export default function App() {
       {activeTool === "context-builder" && (
         <ToolSection
           label="ND Context Builder"
-          description="A portable profile of how your brain actually works — what activates you, what causes shutdown, how you take in information. Drop it into any AI as context and it changes how the AI responds to you, not just what it says."
+          description="Build a profile of how your brain works. The other tools on this site read from it automatically."
         >
           <NDContextBuilder />
         </ToolSection>
@@ -703,7 +690,7 @@ export default function App() {
       {activeTool === "process-designer" && (
         <ToolSection
           label="ND Process Designer"
-          description="Takes one goal and your ND profile and builds a trigger-based process around how you actually activate. Not a schedule or a task list — a menu of moves organized around the conditions that produce action for your specific brain."
+          description="Give it one goal and your profile. It builds a plan with options you can choose from based on how you feel. No fixed schedule. No guilt."
         >
           <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
         </ToolSection>
@@ -712,7 +699,7 @@ export default function App() {
       {activeTool === "skills" && (
         <ToolSection
           label="Skill Suite"
-          description="If you already work inside Claude Projects, Codex, or another AI environment, you shouldn't have to leave it to use this methodology. These skills bring the same ND-aware workflows there. Install one and that AI runs the same process as the web tools, with outputs that work in both directions."
+          description="Use these tools inside any AI that accepts instructions. The same process, the same outputs, in the environment you already work in."
         >
           <SkillsLibrary />
         </ToolSection>
@@ -722,7 +709,7 @@ export default function App() {
       <>
       <ToolSection
         label="Category Scout"
-        description="You have an idea — but you don't yet know if the market exists, who's already in it, or what language buyers actually use. Category Scout runs six research angles in parallel: customer pain, competitor gaps, market shape, search demand, and more. You get evidence to work with before you commit to a direction."
+        description="You have an idea and need to know if the market exists, who is already in it, and what language buyers use. Category Scout searches six angles and gives you evidence before you commit to a direction."
         statusChip={
           phaseRunning ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -750,7 +737,7 @@ export default function App() {
         }
       >
         <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65, margin: "0 0 28px", maxWidth: 560 }}>
-          Describe the customer problem below. Run the research. Six angles come back — read the excerpts directly, export the full dossier, or hand it to Distribution Strategy for the next step.
+          Describe the customer problem below. Run the research. Read the excerpts directly, export the full file, or hand it to Distribution Strategy for the next step.
         </p>
 
         <div className="input-grid" style={{ marginBottom: 30 }}>
@@ -777,7 +764,7 @@ export default function App() {
           }}>
             Known Players{" "}
             <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
-              — optional
+              (optional)
             </span>
           </label>
           <input
@@ -904,7 +891,7 @@ export default function App() {
       <>
       <ToolSection
         label="Distribution Strategy"
-        description="Once you have research, this turns it into a distribution plan built around how you actually work. It reads your ND profile, your constraints, and the research dossier — then writes a strategy you can act on, an intelligence brief on the competitive landscape, and a handoff document for any agent continuing the work."
+        description="Turn your research into a plan for getting your work seen. It reads your profile and your constraints, then writes a strategy you can actually follow. You also get a brief on the competitive landscape and a document you can hand off to any AI continuing the work."
         statusChip={
           (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
            session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
@@ -928,16 +915,9 @@ export default function App() {
       >
         {!hasAnyResults && (
           <div style={{ marginBottom: 28, maxWidth: 600 }}>
-            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: "0 0 10px" }}>
-              This tool reads from a research dossier. Run Category Scout first, then come back here — your results will be waiting.
+            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: 0 }}>
+              Category Scout research is optional here. You can generate from your audience lens, constraints, and ND profile alone. If you add research first, the draft gets more grounded and specific.
             </p>
-            <button
-              className="btn-text"
-              onClick={() => setActiveTool("category-scout")}
-              style={{ fontSize: 12, color: "var(--teal-deep)" }}
-            >
-              Open Category Scout
-            </button>
           </div>
         )}
 
