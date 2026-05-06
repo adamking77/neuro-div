@@ -44,13 +44,14 @@ Do not collapse them into one skill or one web surface again. Keep the handoff e
 
 Every skill in this suite follows these rules:
 
-- Read existing context first: current chat, memory, vault, CLAUDE.md, existing artifacts.
+- Read existing context first: current chat, memory, vault, CLAUDE.md, existing artifacts — but only if they are available. Context files are not automatically loaded in all environments. Handle their absence gracefully without assuming their contents.
 - Ask only for genuine gaps.
 - Ask one question at a time unless the skill explicitly needs a short grouped intake.
 - Use plain language, no framework jargon, no clinical posturing.
 - Treat silence as neutral, not failure.
 - No streaks, no catch-up framing, no passive accountability.
 - If required upstream artifacts are missing, say so clearly and offer the smallest viable next move.
+- Never fabricate evidence. Do not invent sources, companies, studies, URLs, quotes, or data points. If something cannot be verified, say so and name the gap.
 
 ## Fallback rules
 

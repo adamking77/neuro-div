@@ -11,23 +11,25 @@ This skill produces the research artifact only. It gathers or structures evidenc
 
 ## Workflow
 
-1. Clarify the problem statement and any known players.
-2. Decide whether live research is available. If it is not, work from user-provided sources and say so explicitly.
-3. Run or simulate the six research lenses:
+1. Clarify the problem statement and any known players. Open by confirming these two inputs before proceeding.
+2. Determine what research sources are available. If live web search is available, use it. If it is not, work only from user-provided sources — name which phases are evidence-thin or incomplete. Do not generate fictional sources, companies, studies, quotes, or URLs under any circumstances.
+3. Run each of the six research lenses using available sources:
    - problem cartography
    - audience demand signals
    - solution landscape
    - category language
    - evidence mining
    - wedge and white space
-4. Write the research artifact using the contract in `../_shared/artifact-contracts.md`.
-5. End with a short handoff note: whether the dossier is ready for `distribution-strategy`, and what gaps remain.
+4. For any lens where sufficient evidence is not available, mark that phase incomplete and state what kind of evidence would strengthen it. Do not fill gaps with inference presented as fact.
+5. Write the research artifact using the contract in `../_shared/artifact-contracts.md`.
+6. End with a short handoff note: whether the dossier is ready for `distribution-strategy`, and what gaps remain.
 
 ## Boundaries
 
 - This skill does not own the distribution strategy.
 - It may summarize what the research suggests, but it must not replace `distribution-strategy`.
-- It should not fabricate citations or pretend weak evidence is strong.
+- Never fabricate citations, companies, studies, data points, or URLs. If a source does not exist, do not invent it.
+- Never present inference or synthesis as if it were sourced evidence. Distinguish clearly between what evidence shows and what you are reasoning from it.
 
 ## Output rules
 

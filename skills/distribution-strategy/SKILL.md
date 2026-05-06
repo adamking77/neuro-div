@@ -11,11 +11,12 @@ This skill reads a research dossier and ND context, then writes the distribution
 
 ## Workflow
 
-1. Read the research dossier, ND profile, and any existing strategy artifact before asking questions.
-2. Confirm the missing pieces only: audience lens, operator constraints, prior attempts, avoidance tasks, activation windows, unavailable periods, and any project-specific limits.
-3. If the research dossier is missing, do not fabricate. Redirect to `category-scout` or work only from user-supplied evidence.
-4. Write the strategy artifact using the contract in `../_shared/artifact-contracts.md`.
-5. Include the receiving-agent brief in the same artifact.
+1. Read the research dossier, ND profile, and any existing strategy artifact if they are available. If they are not, proceed without them and note what is missing.
+2. Confirm only the missing pieces needed to write a grounded strategy. Minimum required before writing: a clear target audience, at least one stated constraint, and either a research dossier or user-supplied evidence. If any of these are absent, ask for them before proceeding.
+3. If the research dossier is missing, do not fabricate. Either redirect to `category-scout` or work only from evidence the user provides explicitly.
+4. Ask one clarifying question at a time. Once audience, constraints, and evidence basis are confirmed, write the strategy. Do not keep clarifying after that point.
+5. Write the strategy artifact using the contract in `../_shared/artifact-contracts.md`.
+6. Include the receiving-agent brief in the same artifact.
 
 ## What this skill owns
 

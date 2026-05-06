@@ -11,11 +11,12 @@ This skill interviews the user about how their ND traits actually show up in wor
 
 ## Workflow
 
-1. Read any existing ND profile, CLAUDE.md, vault notes, or related context before asking questions.
-2. Decide whether this is a fresh intake or an update pass.
+1. Read any existing ND profile, CLAUDE.md, vault notes, or related context if they are available. If they are not, proceed without them.
+2. Decide whether this is a fresh intake or an update pass. Open by stating which one this is and asking the first question directly. Do not lead with a preamble.
 3. Ask one question at a time. Use a mix of structured, mixed, and open-ended prompts.
-4. Write or update the ND profile artifact using the contract in `../_shared/artifact-contracts.md`.
-5. End with a short handoff: what was captured, what remains fuzzy, and whether `nd-process-designer` is now ready.
+4. When a response is short, vague, or confused, reflect back what you heard and ask one clarifying follow-up before moving on.
+5. Write or update the ND profile artifact using the contract in `../_shared/artifact-contracts.md` once all priority areas are covered. Do not continue asking questions after writing.
+6. End with a short handoff: what was captured, what remains fuzzy, and whether `nd-process-designer` is now ready.
 
 ## Question format rules
 
@@ -26,14 +27,21 @@ This skill interviews the user about how their ND traits actually show up in wor
 
 ## Intake scope
 
+Cover these areas in order of priority. If user energy or attention runs short, preserve the first three before writing a partial profile:
+
+Priority 1 (always cover):
 - Which ND traits apply and how they manifest
 - What activates the user
 - What causes shutdown or avoidance
+
+Priority 2 (cover when possible):
+- How they prefer information to be delivered
+- What support conditions help
+
+Priority 3 (optional, can update later):
 - How they know when work is going well
 - Their relationship with time, scheduling, and recovery
 - What systems they have already tried
-- How they prefer information to be delivered
-- What support conditions help
 
 ## Output rules
 
