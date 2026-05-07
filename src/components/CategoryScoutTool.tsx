@@ -155,7 +155,7 @@ export function CategoryScoutTool({
                   >
                     Export results
                   </p>
-                  <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 14, color: "var(--ink-light)", margin: 0, lineHeight: 1.7 }}>
                     Download the research file, then pass it to any AI agent using the category design brief prompt below.
                   </p>
                 </div>

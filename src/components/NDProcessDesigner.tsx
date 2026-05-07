@@ -631,7 +631,7 @@ function ReadableProcessView({
           {plan.checkInModes.map((mode) => (
             <div key={mode.label} style={simpleCardStyle}>
               <p style={metaLabelStyle}>{mode.label}</p>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>{mode.guidance}</p>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
             </div>
           ))}
         </div>
@@ -683,12 +683,12 @@ function ReadableProcessView({
         <div style={simpleCardStyle}>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {plan.measures.map((measure) => (
-              <li key={measure} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
+              <li key={measure} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
                 {measure}
               </li>
             ))}
           </ul>
-          <p style={{ margin: "14px 0 0", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>
+          <p style={{ margin: "14px 0 0", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
             Weekly check-in: {plan.weeklyQuestion}
           </p>
         </div>
@@ -741,7 +741,7 @@ function ThreeColumnSummary({
           <p style={metaLabelStyle}>{column.label}</p>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {column.items.map((item) => (
-              <li key={item} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
+              <li key={item} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
                 {item}
               </li>
             ))}
@@ -851,7 +851,7 @@ function MoveCard({ move }: { move: ProcessMove }) {
 
 function MoveLine({ label, value }: { label: string; value: string }) {
   return (
-    <p style={{ margin: "0 0 7px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65 }}>
+    <p style={{ margin: "0 0 7px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
       <span style={{ color: "var(--ink)", fontWeight: 500 }}>{label}:</span> {value}
     </p>
   );

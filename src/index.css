@@ -127,6 +127,20 @@ pre { overflow-x: auto; max-width: 100%; }
   font-size: 14px;
 }
 
+/* Nav pill tabs */
+.nav-pill {
+  transition: background 0.16s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-pill:not(.nav-pill--active):hover {
+  color: var(--ink) !important;
+  background: rgba(26, 26, 24, 0.06) !important;
+}
+
+.nav-pill--active {
+  transition: background 0.16s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Text button — bare, no chrome */
 .btn-text {
   background: none;

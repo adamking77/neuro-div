@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NDContextBuilder } from "./components/NDContextBuilder";
@@ -57,6 +57,13 @@ export default function App({
   embedded?: boolean;
 }) {
   const router = useRouter();
+  const [pendingTool, setPendingTool] = useState<ActiveTool | null>(null);
+  const displayTool = pendingTool ?? activeTool;
+
+  useEffect(() => {
+    setPendingTool(null);
+  }, [activeTool]);
+
   const {
     ndProfileContext,
     session,
@@ -436,11 +443,11 @@ export default function App({
       />
 
       {!embedded ? (
-        <div style={{ maxWidth: 600, margin: "0 0 28px" }}>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 12px" }}>
+        <div style={{ maxWidth: 600, margin: "0 0 60px" }}>
+          <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 12px" }}>
             AI is the most adaptive partner neurodivergent people have ever had access to. The problem is context: it doesn't know your activation patterns, what causes shutdown, when you have real capacity, or what produces action versus paralysis. That context is hard to articulate, so it almost never gets in. NeuroDiv OS helps you build that full context and hand it to your AI, so every tool and every session responds to how you actually work.
           </p>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: 0 }}>
+          <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
             Start with Context Builder. It takes about ten minutes. Stop whenever, skip anything you'd rather not answer. Once your profile is built, the other tools read from it and you can paste it into any AI you already use.
           </p>
         </div>
@@ -449,11 +456,13 @@ export default function App({
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
         <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
           {TOOL_LINKS.map(({ id, label }) => {
-            const isActive = activeTool === id;
+            const isActive = displayTool === id;
             return (
               <Link
                 key={id}
                 href={TOOL_ROUTES[id]}
+                className={`nav-pill${isActive ? " nav-pill--active" : ""}`}
+                onClick={() => setPendingTool(id)}
                 style={{
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 500,
@@ -462,11 +471,11 @@ export default function App({
                   border: "none",
                   borderRadius: 999,
                   padding: "5px 14px",
-                  transition: "background 0.15s, color 0.15s",
                   fontFamily: "var(--font-display)",
                   letterSpacing: "0.02em",
                   lineHeight: 1,
                   textDecoration: "none",
+                  display: "inline-block",
                 }}
               >
                 {label}
