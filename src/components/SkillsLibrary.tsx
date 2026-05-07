@@ -18,7 +18,7 @@ const SKILLS: SkillCard[] = [
     slug: "nd-context-builder",
     status: "Available",
     summary:
-      "Build your profile here or inside any AI that saves instructions. It asks the same questions and produces the same profile file. Set it up once and every conversation in that AI already knows how you work.",
+      "Install this in your AI and run it there. It walks you through the same intake — activation patterns, shutdown triggers, energy rhythms, support conditions — and produces the same profile natively in your AI. Every conversation after that already knows how you work.",
     includesAgent: true,
   },
   {
@@ -26,7 +26,7 @@ const SKILLS: SkillCard[] = [
     slug: "nd-process-designer",
     status: "Available",
     summary:
-      "Give it your profile and one goal. It builds a plan that matches your energy patterns, not a fixed schedule. The output is structured so any AI can run it with no extra setup.",
+      "With your profile already loaded, give it one goal. It builds a working process organized by energy state: step menus for each working mode, rescue steps for when you hit a wall.",
     includesAgent: true,
   },
   {
@@ -42,7 +42,7 @@ const SKILLS: SkillCard[] = [
     slug: "distribution-strategy",
     status: "Available",
     summary:
-      "Reads your Category Scout research and your profile together. It writes a plan for getting your work seen that matches how you actually work. Not a generic template.",
+      "Reads your Category Scout research and profile together. Writes a low-contact distribution plan: channels, message angles, and experiments sized for your real energy and availability.",
     includesAgent: true,
   },
   {
@@ -72,16 +72,7 @@ export function SkillsLibrary() {
 
   return (
     <div>
-      <div style={{ maxWidth: 600, marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid var(--rule)" }}>
-        <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.75 }}>
-          Each skill is a set of instructions you paste into an AI you already use. Once pasted, that AI runs the same process as these web tools.
-        </p>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.65 }}>
-          Copy or download a skill below, then paste it into your system prompt or project instructions.
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gap: 18 }}>
+<div style={{ display: "grid", gap: 18 }}>
         {SKILLS.map((skill, index) => {
           const isCopied = copiedSlug === skill.slug;
           return (

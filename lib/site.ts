@@ -33,16 +33,16 @@ export const TOOL_DEFINITIONS: Record<
     title: "Context Builder",
     shortTitle: "Context Builder",
     description:
-      "Create a persistent ND profile that tells any AI how you actually work — your activation patterns, shutdown triggers, support conditions, and how you need information delivered.",
+      "Create a persistent profile that tells any AI how you actually work: your activation patterns, shutdown triggers, support conditions, and how you need information delivered.",
     audience:
       "Neurodivergent founders and builders who want a stable AI starting point they can set once and carry across tools and sessions.",
     howItWorks: [
       "Answer intake questions about your traits, activation patterns, shutdown triggers, energy patterns, and support conditions.",
-      "Save a reusable profile that other tools in the suite — and any AI you work with — can read.",
+      "Save a reusable profile that other tools in the suite, and any AI you work with, can read.",
       "Reuse the same profile inside NeuroDiv OS or paste it into Claude, ChatGPT, Codex, or another agent workflow.",
     ],
     outputs: [
-      "Structured ND profile",
+      "Structured profile",
       "Agent guidance summary",
       "Reusable context for the rest of the suite",
     ],
@@ -53,9 +53,9 @@ export const TOOL_DEFINITIONS: Record<
     description:
       "Turn one goal into a trigger-based working process: step menus for each working mode, rescue steps for hard days, protected conditions, and an agent brief.",
     audience:
-      "Neurodivergent founders who need a process that works with energy variability and demand avoidance — and holds up on hard days.",
+      "Neurodivergent founders who need a process that works with energy variability and demand avoidance, and holds up on hard days.",
     howItWorks: [
-      "Load your ND profile, define one goal, and name what usually creates drag.",
+      "Load your profile, define one goal, and name what usually creates drag.",
       "Generate a process organized by working mode and energy state, with specific steps for each condition.",
       "Save and revise the process as your conditions and goals shift.",
     ],
@@ -69,7 +69,7 @@ export const TOOL_DEFINITIONS: Record<
     title: "Category Scout",
     shortTitle: "Category Scout",
     description:
-      "Run six research lenses on any problem statement — problem framing, customer demand, competitor landscape, evidence, category language, and white space. Export a dossier or pass the findings to Distribution Strategy.",
+      "Run six research lenses on any problem statement: problem framing, customer demand, competitor landscape, evidence, category language, and white space. Export a dossier or pass the findings to Distribution Strategy.",
     audience:
       "Founders doing category design or market validation who need grounded research before committing to a direction.",
     howItWorks: [
@@ -87,7 +87,7 @@ export const TOOL_DEFINITIONS: Record<
     title: "Distribution Strategy",
     shortTitle: "Distribution Strategy",
     description:
-      "Generate a low-contact distribution strategy and intelligence brief built from your Category Scout research, ND profile, and real constraints.",
+      "Generate a low-contact distribution strategy and intelligence brief built from your Category Scout research, profile, and real constraints.",
     audience:
       "Founders who want channel choices, message angles, and experiments sized for real energy and availability.",
     howItWorks: [

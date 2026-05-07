@@ -437,11 +437,11 @@ export default function App({
 
       {!embedded ? (
         <div style={{ maxWidth: 600, margin: "0 0 28px" }}>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 16px" }}>
-            NeuroDiv OS gives your AI deep context about how you work. The context covers what you need, what drains you, when you have capacity, and what produces action for you. With that context, the AI responds to your actual patterns. You create this context in the Context Builder. The other tools then use it to research, plan, and write in ways that fit you. Category Scout researches through your lens. Process Designer builds plans that match your energy. Distribution Strategy writes outreach you can follow.
+          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 12px" }}>
+            AI is the most adaptive partner neurodivergent people have ever had access to. The problem is context: it doesn't know your activation patterns, what causes shutdown, when you have real capacity, or what produces action versus paralysis. That context is hard to articulate, so it almost never gets in. NeuroDiv OS helps you build that full context and hand it to your AI, so every tool and every session responds to how you actually work.
           </p>
           <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: 0 }}>
-            Start with the Context Builder. It takes 10 to 15 minutes. Stop whenever. Skip anything you do not want to answer. You get a profile file. Paste it into any AI you use. You can also install these same tools inside Claude, ChatGPT, or any AI that accepts instructions. They work in both places.
+            Start with Context Builder. It takes about ten minutes. Stop whenever, skip anything you'd rather not answer. Once your profile is built, the other tools read from it and you can paste it into any AI you already use.
           </p>
         </div>
       ) : null}
@@ -481,7 +481,7 @@ export default function App({
       {activeTool === "context-builder" && (
         <ToolSection
           label="Context Builder"
-          description="Your AI doesn't know how your brain works. Build a profile that teaches it. The other tools read from it automatically."
+          description="A profile that tells any AI how you actually work: your activation patterns, shutdown triggers, and support conditions. Build it once. Every other tool reads from it."
         >
           <NDContextBuilder />
         </ToolSection>
@@ -490,7 +490,7 @@ export default function App({
       {activeTool === "process-designer" && (
         <ToolSection
           label="Process Designer"
-          description="Fixed schedules fail when energy shifts. This gives you a menu of moves."
+          description="One goal, converted into a working process organized by energy state. Step menus for each working mode. Rescue steps for hard days."
         >
           <NDProcessDesigner onOpenContextBuilder={() => router.push(TOOL_ROUTES["context-builder"])} />
         </ToolSection>
@@ -499,7 +499,7 @@ export default function App({
       {activeTool === "skills" && (
         <ToolSection
           label="Skill Suite"
-          description="Your AI doesn't know about these tools. Paste a skill into it. It runs the same process."
+          description="You built your context here. These skills carry it into the AI you already use every day. Use any skill as often as you need, natively in your own agentic environment."
         >
           <SkillsLibrary />
         </ToolSection>
