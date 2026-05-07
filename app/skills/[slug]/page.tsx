@@ -125,7 +125,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
                   ))}
                 </ul>
               ) : (
-                <p>None declared.</p>
+                <p>None.</p>
               )}
             </div>
           </div>
@@ -135,7 +135,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
       <section className="content-panel">
         <div className="section-heading">
           <p className="eyebrow">Guide</p>
-          <h2>Rendered markdown from the filesystem</h2>
+          <h2>Full skill content</h2>
         </div>
         <div className="markdown-surface">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{skill.body}</ReactMarkdown>

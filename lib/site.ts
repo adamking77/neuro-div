@@ -7,9 +7,9 @@ export type ToolSlug =
   | "distribution-strategy";
 
 export const SITE_NAME = "NeuroDiv OS";
-export const SITE_TAGLINE = "ND-aware research, planning, and strategy tools with real URLs and installable skills.";
+export const SITE_TAGLINE = "Planning, research, and strategy tools built for neurodivergent founders.";
 export const SITE_DESCRIPTION =
-  "NeuroDiv OS helps neurodivergent founders build persistent context, research a market category, design work processes, and generate distribution strategy that fits real energy constraints.";
+  "NeuroDiv OS is four interconnected tools for neurodivergent founders: a persistent AI context profile, a trigger-based working process, category research, and a distribution strategy that accounts for real energy and availability.";
 
 export const TOOL_ORDER: ToolSlug[] = [
   "context-builder",
@@ -33,12 +33,12 @@ export const TOOL_DEFINITIONS: Record<
     title: "Context Builder",
     shortTitle: "Context Builder",
     description:
-      "Create a persistent ND profile that teaches any AI how you work: what activates you, what causes shutdown, what support conditions help, and how information should be delivered.",
+      "Create a persistent ND profile that tells any AI how you actually work — your activation patterns, shutdown triggers, support conditions, and how you need information delivered.",
     audience:
-      "Founders, operators, and independent builders who want stable working context instead of re-explaining themselves in every AI conversation.",
+      "Neurodivergent founders and builders who want a stable AI starting point they can set once and carry across tools and sessions.",
     howItWorks: [
-      "Answer structured intake questions about traits, activation patterns, shutdown triggers, time and energy, and support conditions.",
-      "Save a reusable profile artifact that downstream tools can read automatically.",
+      "Answer intake questions about your traits, activation patterns, shutdown triggers, energy patterns, and support conditions.",
+      "Save a reusable profile that other tools in the suite — and any AI you work with — can read.",
       "Reuse the same profile inside NeuroDiv OS or paste it into Claude, ChatGPT, Codex, or another agent workflow.",
     ],
     outputs: [
@@ -51,17 +51,17 @@ export const TOOL_DEFINITIONS: Record<
     title: "Process Designer",
     shortTitle: "Process Designer",
     description:
-      "Turn one concrete goal into a trigger-based working process with move menus, rescue moves, protected conditions, and an agent brief instead of a rigid task system.",
+      "Turn one goal into a trigger-based working process: step menus for each working mode, rescue steps for hard days, protected conditions, and an agent brief.",
     audience:
-      "People with inconsistent energy, demand avoidance, or bursty working patterns who need process design instead of calendar compliance.",
+      "Neurodivergent founders who need a process that works with energy variability and demand avoidance — and holds up on hard days.",
     howItWorks: [
-      "Load your ND profile, define one goal, and name the conditions that usually create drag.",
-      "Generate a plan organized by working mode and condition rather than chronology.",
-      "Save and iterate on reusable process artifacts over time.",
+      "Load your ND profile, define one goal, and name what usually creates drag.",
+      "Generate a process organized by working mode and energy state, with specific steps for each condition.",
+      "Save and revise the process as your conditions and goals shift.",
     ],
     outputs: [
       "Process thesis",
-      "Move groups and rescue moves",
+      "Step menus and rescue steps",
       "Protected conditions and not-doing list",
     ],
   },
@@ -69,13 +69,13 @@ export const TOOL_DEFINITIONS: Record<
     title: "Category Scout",
     shortTitle: "Category Scout",
     description:
-      "Run six parallel research lenses against a problem statement to map audience pain, incumbents, adjacent solutions, evidence, and vocabulary before you commit to a category direction.",
+      "Run six research lenses on any problem statement — problem framing, customer demand, competitor landscape, evidence, category language, and white space. Export a dossier or pass the findings to Distribution Strategy.",
     audience:
-      "Founders doing category design, offer shaping, or market validation who need grounded evidence rather than vibes.",
+      "Founders doing category design or market validation who need grounded research before committing to a direction.",
     howItWorks: [
-      "Enter a problem statement and optional known players.",
-      "Launch six distinct research phases that search the web from different strategic angles.",
-      "Review highlights, export a research dossier, or hand the evidence off to strategy synthesis.",
+      "Enter a problem statement and any known players or competitors.",
+      "Launch six research phases, each pulling from a different analytical angle.",
+      "Review highlights, export a research dossier, or hand the evidence off to Distribution Strategy.",
     ],
     outputs: [
       "Per-phase research results",
@@ -87,9 +87,9 @@ export const TOOL_DEFINITIONS: Record<
     title: "Distribution Strategy",
     shortTitle: "Distribution Strategy",
     description:
-      "Generate a low-contact distribution strategy and strategic intelligence brief grounded in the research, your constraints, and your ND profile.",
+      "Generate a low-contact distribution strategy and intelligence brief built from your Category Scout research, ND profile, and real constraints.",
     audience:
-      "Founders who want realistic channels, message angles, and experiments without defaulting to high-touch outreach or social maintenance.",
+      "Founders who want channel choices, message angles, and experiments sized for real energy and availability.",
     howItWorks: [
       "Combine Category Scout research with audience lens, founder constraints, and profile context.",
       "Generate a structured distribution plan plus an optional intelligence brief.",
