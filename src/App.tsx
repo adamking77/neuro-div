@@ -1,45 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowCounterClockwise, DownloadSimple, Copy, Check, CaretDown, Plus, PencilSimple, Trash, X } from "@phosphor-icons/react";
-import { PHASES } from "./phases";
-import { ReportView } from "./components/ReportView";
-import { StrategyView } from "./components/StrategyView";
+'use client';
+
+import { useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { NDContextBuilder } from "./components/NDContextBuilder";
 import { NDProcessDesigner } from "./components/NDProcessDesigner";
 import { SkillsLibrary } from "./components/SkillsLibrary";
-import { buildNDProfileContext, loadNDProfile } from "./lib/nd-profile";
+import { CategoryScoutTool } from "./components/CategoryScoutTool";
+import { DistributionStrategyTool } from "./components/DistributionStrategyTool";
+import { ProjectDrawer, ToolSection } from "./components/app-shell";
+import { useProjectSession } from "./hooks/useProjectSession";
+import { buildIntelligenceMarkdown } from "./lib/intelligence";
 import {
-  applyNDProfileDefaults,
   buildStrategyMarkdown,
   condensePhaseResearch,
-  createEmptyStrategyInputs,
   getStrategyFingerprint,
   hasCompleteStrategyDraft,
-  syncStrategyDirtyState,
 } from "./lib/strategy";
-import {
-  deleteProject,
-  listProjects,
-  loadCurrentProjectId,
-  loadProject,
-  renameProject,
-  saveCurrentProjectId,
-  saveProject,
-  type SavedProject,
-} from "./lib/storage";
+import { PHASES } from "./phases";
+import { TOOL_LINKS, TOOL_ROUTES, type ActiveTool } from "./lib/tool-routes";
 import type {
   ExaResult,
   IntelligenceBrief,
-  NDProfileContext,
-  PhaseResult,
-  SessionState,
   StrategyDraft,
-  StrategyInputs,
-  StrategySectionKey,
 } from "./types";
 import "./index.css";
-
-type ActiveTool = "category-scout" | "distribution-strategy" | "context-builder" | "process-designer" | "skills";
 
 interface StrategyDraftErrorResponse {
   error?: string;
@@ -64,197 +49,42 @@ Rules:
 - Do not introduce information from outside the file
 - Be specific and direct — no generic category design filler`;
 
-const emptyPhases = (): Record<number, PhaseResult> =>
-  Object.fromEntries(PHASES.map((phase) => [phase.id, { status: "idle", results: [] }]));
+export default function App({
+  activeTool,
+  embedded = false,
+}: {
+  activeTool: ActiveTool;
+  embedded?: boolean;
+}) {
+  const router = useRouter();
+  const {
+    ndProfileContext,
+    session,
+    mutateSession,
+    draftHistory,
+    setDraftHistory,
+    projectId,
+    projectDrawerOpen,
+    setProjectDrawerOpen,
+    projects,
+    editingProjectId,
+    editName,
+    setEditName,
+    lastSavedAt,
+    refreshProjects,
+    createNewProject,
+    switchProject,
+    handleDeleteProject,
+    startRenamingProject,
+    handleRenameProject,
+    cancelRenamingProject,
+    updatePhase,
+    updateStrategyInput,
+    updateStrategySection,
+  } = useProjectSession(activeTool);
 
-const createEmptySession = (): SessionState => ({
-  problem: "",
-  knownPlayers: "",
-  phases: emptyPhases(),
-  strategyInputs: applyNDProfileDefaults(createEmptyStrategyInputs(), loadNDProfile()),
-  strategyDraft: null,
-  strategyStatus: "idle",
-  strategyError: undefined,
-  strategyDirty: false,
-  strategySourceFingerprint: null,
-  intelligenceBrief: null,
-  intelligenceStatus: "idle",
-  intelligenceError: undefined,
-});
-
-function getLiveNDProfileContext(): NDProfileContext | null {
-  const profile = loadNDProfile();
-  return profile ? buildNDProfileContext(profile) : null;
-}
-
-function applyProfileToSession(session: SessionState): SessionState {
-  return {
-    ...session,
-    strategyInputs: applyNDProfileDefaults(session.strategyInputs, loadNDProfile()),
-  };
-}
-
-export default function App() {
-  const [activeTool, setActiveTool] = useState<ActiveTool>("context-builder");
-  const [ndProfileContext, setNdProfileContext] = useState<NDProfileContext | null>(() => getLiveNDProfileContext());
-  const [session, setSession] = useState<SessionState>(() => createEmptySession());
-  const [promptCopied, setPromptCopied] = useState(false);
-  const [promptOpen, setPromptOpen] = useState(false);
-  const [projectId, setProjectId] = useState<string | null>(null);
-  const [draftHistory, setDraftHistory] = useState<StrategyDraft[]>([]);
-  const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
-  const [projects, setProjects] = useState<SavedProject[]>([]);
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-
-  const mutateSession = useCallback((updater: (current: SessionState) => SessionState) => {
-    setSession((current) => syncStrategyDirtyState(updater(current), ndProfileContext));
-  }, [ndProfileContext]);
-
-  useEffect(() => {
-    const refreshProfileContext = () => setNdProfileContext(getLiveNDProfileContext());
-
-    refreshProfileContext();
-    window.addEventListener("focus", refreshProfileContext);
-    return () => window.removeEventListener("focus", refreshProfileContext);
-  }, []);
-
-  useEffect(() => {
-    if (activeTool === "category-scout" || activeTool === "distribution-strategy") {
-      const nextContext = getLiveNDProfileContext();
-      setNdProfileContext(nextContext);
-      setSession((current) => syncStrategyDirtyState(applyProfileToSession(current), nextContext));
-    }
-  }, [activeTool]);
-
-  // Load last project on mount
-  useEffect(() => {
-    const profileContext = getLiveNDProfileContext();
-    const currentId = loadCurrentProjectId();
-    if (currentId) {
-      const project = loadProject(currentId);
-      if (project) {
-        setProjectId(project.id);
-        setSession(syncStrategyDirtyState(applyProfileToSession(project.session), profileContext));
-        setDraftHistory(project.draftHistory);
-        setLastSavedAt(project.updatedAt);
-        return;
-      }
-    }
-    // No saved project — start fresh and immediately save it
-    const empty = createEmptySession();
-    setSession(empty);
-    const saved = saveProject(empty, []);
-    setProjectId(saved.id);
-    saveCurrentProjectId(saved.id);
-    setLastSavedAt(saved.updatedAt);
-  }, []);
-
-  // Auto-save every 5 seconds when state changes
-  useEffect(() => {
-    if (!projectId) return;
-    if (autoSaveTimer.current) {
-      clearTimeout(autoSaveTimer.current);
-    }
-    autoSaveTimer.current = setTimeout(() => {
-      const saved = saveProject(session, draftHistory, projectId);
-      setLastSavedAt(saved.updatedAt);
-    }, 5000);
-    return () => {
-      if (autoSaveTimer.current) {
-        clearTimeout(autoSaveTimer.current);
-      }
-    };
-  }, [session, draftHistory, projectId]);
-
-  const refreshProjects = useCallback(() => {
-    setProjects(listProjects());
-  }, []);
-
-  const createNewProject = useCallback(() => {
-    const empty = createEmptySession();
-    setSession(empty);
-    setDraftHistory([]);
-    const saved = saveProject(empty, []);
-    setProjectId(saved.id);
-    saveCurrentProjectId(saved.id);
-    setLastSavedAt(saved.updatedAt);
-    refreshProjects();
-  }, [refreshProjects]);
-
-  const switchProject = useCallback((id: string) => {
-    const project = loadProject(id);
-    if (!project) return;
-    setProjectId(project.id);
-    setSession(syncStrategyDirtyState(applyProfileToSession(project.session), ndProfileContext));
-    setDraftHistory(project.draftHistory);
-    saveCurrentProjectId(project.id);
-    setLastSavedAt(project.updatedAt);
-    setProjectDrawerOpen(false);
-  }, [ndProfileContext]);
-
-  const handleDeleteProject = useCallback((id: string) => {
-    if (!window.confirm("Delete this project? This can't be undone.")) return;
-    deleteProject(id);
-    refreshProjects();
-    if (id === projectId) {
-      createNewProject();
-    }
-  }, [projectId, refreshProjects, createNewProject]);
-
-  const handleRenameProject = useCallback((id: string) => {
-    renameProject(id, editName);
-    setEditingProjectId(null);
-    setEditName("");
-    refreshProjects();
-    if (id === projectId) {
-      const updated = listProjects().find((p) => p.id === id);
-      if (updated) setLastSavedAt(updated.updatedAt);
-    }
-  }, [editName, projectId, refreshProjects]);
-
-  const updatePhase = useCallback((id: number, update: Partial<PhaseResult>) => {
-    mutateSession((current) => ({
-      ...current,
-      phases: {
-        ...current.phases,
-        [id]: {
-          ...current.phases[id],
-          ...update,
-        },
-      },
-    }));
-  }, [mutateSession]);
-
-  const updateStrategyInput = useCallback(<K extends keyof StrategyInputs>(key: K, value: StrategyInputs[K]) => {
-    mutateSession((current) => ({
-      ...current,
-      strategyInputs: {
-        ...current.strategyInputs,
-        [key]: value,
-      },
-    }));
-  }, [mutateSession]);
-
-  const updateStrategySection = useCallback((key: StrategySectionKey, value: string) => {
-    mutateSession((current) => {
-      if (!current.strategyDraft) {
-        return current;
-      }
-
-      return {
-        ...current,
-        strategyDraft: {
-          ...current.strategyDraft,
-          sections: {
-            ...current.strategyDraft.sections,
-            [key]: value,
-          },
-        },
-      };
-    });
+  const handleSessionFieldChange = useCallback((field: "problem" | "knownPlayers", value: string) => {
+    mutateSession((current) => ({ ...current, [field]: value }));
   }, [mutateSession]);
 
   const runPhase = useCallback(async (phaseId: number, startDelay = 0) => {
@@ -287,7 +117,6 @@ export default function App() {
         }
 
         const results: ExaResult[] = await response.json();
-
         for (const result of results) {
           if (!allResults.find((existing) => existing.url === result.url)) {
             allResults.push(result);
@@ -303,7 +132,6 @@ export default function App() {
 
   const runAll = useCallback(() => {
     if (!session.problem.trim()) return;
-
     PHASES.forEach((phase, index) => {
       void runPhase(phase.id, index * 400);
     });
@@ -373,7 +201,6 @@ export default function App() {
   }, [downloadBlob, session]);
 
   const downloadIntelligenceBrief = useCallback(() => {
-    const { buildIntelligenceMarkdown } = require("./lib/intelligence");
     if (!session.intelligenceBrief) return;
     const markdown = buildIntelligenceMarkdown(session.intelligenceBrief);
     const slug = session.problem
@@ -385,15 +212,8 @@ export default function App() {
     downloadBlob(markdown, `${slug}-intelligence-brief`);
   }, [downloadBlob, session]);
 
-  const copyPrompt = useCallback(() => {
-    navigator.clipboard.writeText(CLAUDE_PROMPT);
-    setPromptCopied(true);
-    setTimeout(() => setPromptCopied(false), 2000);
-  }, []);
-
   const generateStrategy = useCallback(async () => {
-    if (!session.problem.trim()) return;
-    if (!session.strategyInputs.audienceLens.trim()) return;
+    if (!session.problem.trim() || !session.strategyInputs.audienceLens.trim()) return;
 
     mutateSession((current) => ({
       ...current,
@@ -426,9 +246,7 @@ export default function App() {
         phaseResearch: condensePhaseResearch(session.phases),
       };
 
-      const endpoint = "/api/strategy-draft";
-
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/strategy-draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draftRequest),
@@ -446,7 +264,6 @@ export default function App() {
         throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Strategy draft failed");
       }
 
-      // Exa search is complete — show the synthesis phase briefly before applying the result.
       mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
       await new Promise((resolve) => setTimeout(resolve, 700));
 
@@ -472,7 +289,7 @@ export default function App() {
         strategySourceFingerprint: fingerprint,
       }));
 
-      setDraftHistory((prev) => [...prev, finalDraft]);
+      setDraftHistory((current) => [...current, finalDraft]);
     } catch (error) {
       mutateSession((current) => ({
         ...current,
@@ -481,11 +298,10 @@ export default function App() {
         strategyError: error instanceof Error ? error.message : "Strategy draft failed",
       }));
     }
-  }, [mutateSession, ndProfileContext, session]);
+  }, [mutateSession, ndProfileContext, session, setDraftHistory]);
 
   const generateIntelligenceBrief = useCallback(async () => {
-    if (!session.problem.trim()) return;
-    if (!session.strategyInputs.audienceLens.trim()) return;
+    if (!session.problem.trim() || !session.strategyInputs.audienceLens.trim()) return;
 
     mutateSession((current) => ({
       ...current,
@@ -539,11 +355,9 @@ export default function App() {
       mutateSession((current) => ({ ...current, intelligenceStatus: "drafting" }));
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      const finalBrief = payload as IntelligenceBrief;
-
       mutateSession((current) => ({
         ...current,
-        intelligenceBrief: finalBrief,
+        intelligenceBrief: payload as IntelligenceBrief,
         intelligenceStatus: "done",
         intelligenceError: undefined,
       }));
@@ -560,8 +374,8 @@ export default function App() {
   const phaseRunning = Object.values(session.phases).some((phase) => phase.status === "running");
   const hasAnyResults = Object.values(session.phases).some((phase) => phase.results.length > 0);
   const canRun = !!session.problem.trim() && !phaseRunning;
-  const donePhaseCount = Object.values(session.phases).filter((p) => p.status === "done").length;
-  const totalResultCount = Object.values(session.phases).reduce((sum, p) => sum + p.results.length, 0);
+  const donePhaseCount = Object.values(session.phases).filter((phase) => phase.status === "done").length;
+  const totalResultCount = Object.values(session.phases).reduce((sum, phase) => sum + phase.results.length, 0);
   const usesProjectShell = activeTool === "category-scout" || activeTool === "distribution-strategy";
 
   return (
@@ -570,8 +384,8 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <svg width="28" height="20" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="16" r="10" stroke="var(--teal)" strokeWidth="2" fill="none"/>
-              <circle cx="20" cy="16" r="10" stroke="var(--terracotta)" strokeWidth="2" fill="none" opacity="0.85"/>
+              <circle cx="12" cy="16" r="10" stroke="var(--teal)" strokeWidth="2" fill="none" />
+              <circle cx="20" cy="16" r="10" stroke="var(--terracotta)" strokeWidth="2" fill="none" opacity="0.85" />
             </svg>
             <span style={{ fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
               NeuroDiv OS
@@ -607,68 +421,52 @@ export default function App() {
         onSelect={switchProject}
         onNew={createNewProject}
         onDelete={handleDeleteProject}
-        onRenameStart={(id: string, name: string) => {
-          setEditingProjectId(id);
-          setEditName(name);
-        }}
+        onRenameStart={startRenamingProject}
         onRenameSubmit={handleRenameProject}
-        onRenameCancel={() => {
-          setEditingProjectId(null);
-          setEditName("");
-        }}
+        onRenameCancel={cancelRenamingProject}
         editingId={editingProjectId}
         editName={editName}
         onEditNameChange={setEditName}
       />
 
-      {/* Suite intro */}
-      <div style={{ maxWidth: 600, margin: "0 0 28px" }}>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 16px" }}>
-          NeuroDiv OS gives your AI deep context about how you work. The context covers what you need, what drains you, when you have capacity, and what produces action for you. With that context, the AI responds to your actual patterns. You create this context in the Context Builder. The other tools then use it to research, plan, and write in ways that fit you. Category Scout researches through your lens. Process Designer builds plans that match your energy. Distribution Strategy writes outreach you can follow.
-        </p>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: 0 }}>
-          Start with the Context Builder. It takes 10 to 15 minutes. Stop whenever. Skip anything you do not want to answer. You get a profile file. Paste it into any AI you use. You can also install these same tools inside Claude, ChatGPT, or any AI that accepts instructions. They work in both places.
-        </p>
-      </div>
+      {!embedded ? (
+        <div style={{ maxWidth: 600, margin: "0 0 28px" }}>
+          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: "0 0 16px" }}>
+            NeuroDiv OS gives your AI deep context about how you work. The context covers what you need, what drains you, when you have capacity, and what produces action for you. With that context, the AI responds to your actual patterns. You create this context in the Context Builder. The other tools then use it to research, plan, and write in ways that fit you. Category Scout researches through your lens. Process Designer builds plans that match your energy. Distribution Strategy writes outreach you can follow.
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.75, margin: 0 }}>
+            Start with the Context Builder. It takes 10 to 15 minutes. Stop whenever. Skip anything you do not want to answer. You get a profile file. Paste it into any AI you use. You can also install these same tools inside Claude, ChatGPT, or any AI that accepts instructions. They work in both places.
+          </p>
+        </div>
+      ) : null}
 
-      {/* Tool navigation */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
         <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, flexWrap: "wrap" }}>
-        {(
-          [
-            { id: "context-builder" as ActiveTool, label: "Context Builder" },
-            { id: "process-designer" as ActiveTool, label: "Process Designer" },
-            { id: "category-scout" as ActiveTool, label: "Category Scout" },
-            { id: "distribution-strategy" as ActiveTool, label: "Distribution Strategy" },
-            { id: "skills" as ActiveTool, label: "Skills" },
-          ] as { id: ActiveTool; label: string; disabled?: boolean }[]
-        ).map(({ id, label, disabled }) => {
-          const isActive = activeTool === id;
-          return (
-            <button
-              key={id}
-              onClick={() => !disabled && setActiveTool(id)}
-              disabled={disabled}
-              style={{
-                fontSize: 12,
-                fontWeight: isActive ? 600 : 500,
-                color: disabled ? "var(--ink-muted)" : isActive ? "#fff" : "var(--ink-muted)",
-                opacity: disabled ? 0.35 : 1,
-                background: isActive ? "var(--teal)" : "transparent",
-                border: "none",
-                borderRadius: 999,
-                padding: "5px 14px",
-                cursor: disabled ? "default" : "pointer",
-                transition: "background 0.15s, color 0.15s",
-                fontFamily: "var(--font-display)",
-                letterSpacing: "0.02em",
-                lineHeight: 1,
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+          {TOOL_LINKS.map(({ id, label }) => {
+            const isActive = activeTool === id;
+            return (
+              <Link
+                key={id}
+                href={TOOL_ROUTES[id]}
+                style={{
+                  fontSize: 12,
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? "#fff" : "var(--ink-muted)",
+                  background: isActive ? "var(--teal)" : "transparent",
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "5px 14px",
+                  transition: "background 0.15s, color 0.15s",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "0.02em",
+                  lineHeight: 1,
+                  textDecoration: "none",
+                }}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -688,7 +486,7 @@ export default function App() {
           label="Process Designer"
           description="Fixed schedules fail when energy shifts. This gives you a menu of moves."
         >
-          <NDProcessDesigner onOpenContextBuilder={() => setActiveTool("context-builder")} />
+          <NDProcessDesigner onOpenContextBuilder={() => router.push(TOOL_ROUTES["context-builder"])} />
         </ToolSection>
       )}
 
@@ -702,598 +500,40 @@ export default function App() {
       )}
 
       {activeTool === "category-scout" && (
-      <>
-      <ToolSection
-        label="Category Scout"
-        description="You see patterns other people miss. Before you go all-in, check if the market agrees. Category Scout validates your idea against six angles of real evidence."
-        statusChip={
-          phaseRunning ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span className="dot dot-running" />
-              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>Running</span>
-            </span>
-          ) : donePhaseCount > 0 ? (
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
-              {donePhaseCount}/{PHASES.length} phases · {totalResultCount} results
-            </span>
-          ) : undefined
-        }
-        headerActions={
-          hasAnyResults ? (
-            <button
-              className="btn-text"
-              onClick={downloadResearch}
-              aria-label="Export research as Markdown"
-              style={{ fontSize: 11, color: "var(--ink-muted)" }}
-            >
-              <DownloadSimple size={11} />
-              Export
-            </button>
-          ) : undefined
-        }
-      >
-        <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
-          Describe the customer problem below. Run the research. Read the excerpts directly, export the full file, or hand it to Distribution Strategy for the next step.
-        </p>
-
-        <div className="input-grid" style={{ marginBottom: 30 }}>
-          <label htmlFor="problem-input" style={{
-            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
-            fontFamily: "var(--font-mono)",
-          }}>
-            Problem Statement
-          </label>
-          <textarea
-            id="problem-input"
-            value={session.problem}
-            onChange={(event) => mutateSession((current) => ({ ...current, problem: event.target.value }))}
-            placeholder="Describe the customer problem in plain language…"
-            rows={4}
-            style={{ marginBottom: 8 }}
-          />
-
-          <label htmlFor="known-players-input" style={{
-            display: "block", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em",
-            textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 6,
-            fontFamily: "var(--font-mono)", marginTop: 8,
-          }}>
-            Known Players{" "}
-            <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>
-              (optional)
-            </span>
-          </label>
-          <input
-            id="known-players-input"
-            type="text"
-            value={session.knownPlayers}
-            onChange={(event) => mutateSession((current) => ({ ...current, knownPlayers: event.target.value }))}
-            placeholder="Accenture, McKinsey…"
-            style={{ marginBottom: 16 }}
-          />
-
-          <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={runAll} />
-        </div>
-
-        <ReportView session={session} onRunPhase={runPhase} isRunning={phaseRunning} />
-        {hasAnyResults && (
-          <>
-            <hr className="rule" style={{ margin: "40px 0" }} />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2, delay: 0.05 }}
-              style={{ padding: "20px 0" }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
-                <div>
-                  <p style={{
-                    fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase",
-                    color: "var(--ink-muted)", margin: "0 0 5px", fontFamily: "var(--font-mono)",
-                  }}>
-                    Export results
-                  </p>
-                  <p style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
-                    Download the research file, then pass it to any AI agent using the category design brief prompt below.
-                  </p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
-                  <button
-                    className="btn-text"
-                    onClick={downloadResearch}
-                    aria-label="Download research as Markdown"
-                    style={{ fontSize: 12, color: "var(--ink-muted)" }}
-                  >
-                    <DownloadSimple size={12} />
-                    Download
-                  </button>
-                  <button
-                    className="btn-text"
-                    onClick={copyPrompt}
-                    aria-label="Copy Claude prompt to clipboard"
-                    style={{ fontSize: 12, color: promptCopied ? "var(--teal-deep)" : "var(--ink-muted)", transition: "color 0.15s" }}
-                  >
-                    {promptCopied ? <Check size={12} /> : <Copy size={12} />}
-                    {promptCopied ? "Copied" : "Copy prompt"}
-                  </button>
-                  <button
-                    className="btn-text"
-                    onClick={() => setPromptOpen((open) => !open)}
-                    aria-expanded={promptOpen}
-                    aria-controls="claude-prompt"
-                    style={{ fontSize: 12, color: "var(--ink-muted)" }}
-                  >
-                    <motion.span
-                      animate={{ rotate: promptOpen ? 180 : 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                      style={{ display: "inline-flex" }}
-                    >
-                      <CaretDown size={12} />
-                    </motion.span>
-                    {promptOpen ? "Hide" : "View prompt"}
-                  </button>
-                </div>
-              </div>
-
-              <AnimatePresence>
-                {promptOpen && (
-                  <motion.pre
-                    id="claude-prompt"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12,
-                      lineHeight: 1.7,
-                      color: "var(--ink-light)",
-                      margin: "14px 0 0",
-                      padding: "14px 16px",
-                      border: "1px solid var(--rule)",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {CLAUDE_PROMPT}
-                  </motion.pre>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </>
-        )}
-      </ToolSection>
-
-      {hasAnyResults && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, paddingTop: 16, flexWrap: "wrap" }}>
-          <button
-            className="btn-text"
-            onClick={() => setActiveTool("distribution-strategy")}
-            style={{ fontSize: 12, color: "var(--teal-deep)" }}
-          >
-            Open Distribution Strategy
-          </button>
-          <button className="btn-text" onClick={reset} aria-label="Start fresh" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-            <ArrowCounterClockwise size={12} />
-            Reset
-          </button>
-        </div>
-      )}
-      </>
+        <CategoryScoutTool
+          session={session}
+          phaseRunning={phaseRunning}
+          hasAnyResults={hasAnyResults}
+          donePhaseCount={donePhaseCount}
+          totalResultCount={totalResultCount}
+          canRun={canRun}
+          onSessionChange={handleSessionFieldChange}
+          onRunAll={runAll}
+          onRunPhase={runPhase}
+          onDownloadResearch={downloadResearch}
+          onReset={reset}
+          onOpenDistributionStrategy={() => router.push(TOOL_ROUTES["distribution-strategy"])}
+          prompt={CLAUDE_PROMPT}
+        />
       )}
 
       {activeTool === "distribution-strategy" && (
-      <>
-      <ToolSection
-        label="Distribution Strategy"
-        description="You built something good but typical marketing will burn you out. This builds outreach that fits your energy and avoids the tactics that drain you."
-        statusChip={
-          (session.strategyStatus === "researching" || session.strategyStatus === "drafting" ||
-           session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting") ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span className="dot dot-running" />
-              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>Generating</span>
-            </span>
-          ) : session.strategyDraft ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
-                {session.strategyDirty ? "Outdated" : "Draft ready"}
-              </span>
-              {session.strategyDirty && <span className="dot" style={{ background: "var(--terracotta)" }} />}
-            </span>
-          ) : session.intelligenceBrief ? (
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.05em" }}>
-              Brief ready
-            </span>
-          ) : undefined
-        }
-      >
-        {!hasAnyResults && (
-          <div style={{ marginBottom: 28, maxWidth: 600 }}>
-            <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
-              Category Scout research is optional here. You can generate from your audience lens, constraints, and profile alone. If you add research first, the draft gets more grounded and specific.
-            </p>
-          </div>
-        )}
-
-        <StrategyView
+        <DistributionStrategyTool
           session={session}
           ndProfileContext={ndProfileContext}
-          researchRunning={phaseRunning}
+          draftHistory={draftHistory}
+          phaseRunning={phaseRunning}
+          hasAnyResults={hasAnyResults}
           onInputChange={updateStrategyInput}
           onSectionChange={updateStrategySection}
           onGenerate={generateStrategy}
           onGenerateIntelligence={generateIntelligenceBrief}
           onExport={downloadStrategy}
           onExportIntelligence={downloadIntelligenceBrief}
-          draftHistory={draftHistory}
+          onReset={reset}
+          onBackToResearch={() => router.push(TOOL_ROUTES["category-scout"])}
         />
-      </ToolSection>
-
-      {hasAnyResults && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, paddingTop: 16, flexWrap: "wrap" }}>
-          <button
-            className="btn-text"
-            onClick={() => setActiveTool("category-scout")}
-            style={{ fontSize: 12, color: "var(--ink-muted)" }}
-          >
-            Back to research
-          </button>
-          <button className="btn-text" onClick={reset} aria-label="Start fresh" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-            <ArrowCounterClockwise size={12} />
-            Reset
-          </button>
-        </div>
-      )}
-      </>
       )}
     </div>
-  );
-}
-
-function RunButton({
-  canRun,
-  isRunning,
-  hasAnyResults,
-  onClick,
-}: {
-  canRun: boolean;
-  isRunning: boolean;
-  hasAnyResults: boolean;
-  onClick: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <button
-      onClick={canRun ? onClick : undefined}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 15,
-        fontWeight: 600,
-        letterSpacing: "0.01em",
-        padding: "10px 52px",
-        border: "none",
-        borderRadius: 999,
-        cursor: canRun ? "pointer" : "not-allowed",
-        background: canRun ? (hovered ? "#3D6B6B" : "#5B8A8A") : "rgba(91, 138, 138, 0.4)",
-        color: "#fff",
-        transition: "background 0.15s",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        userSelect: "none",
-      }}
-    >
-      {isRunning
-        ? (
-          <>
-            <span className="spinner" style={{ width: 14, height: 14 }} />
-            <span>Running…</span>
-          </>
-        )
-        : hasAnyResults ? "Re-run All" : "Run"}
-    </button>
-  );
-}
-
-function ToolSection({
-  number,
-  label,
-  description,
-  statusChip,
-  headerActions,
-  children,
-}: {
-  number?: string;
-  label: string;
-  description: string;
-  statusChip?: React.ReactNode;
-  headerActions?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 16,
-            padding: "28px 0 24px",
-            textAlign: "left",
-          }}
-        >
-          {number && (
-            <span
-              className="mono"
-              style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-muted)", flexShrink: 0, paddingTop: 5 }}
-            >
-              {number}
-            </span>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
-              <span
-                style={{
-                  fontSize: 19,
-                  fontWeight: 500,
-                  color: "var(--ink)",
-                  letterSpacing: "-0.02em",
-                  flex: 1,
-                }}
-              >
-                {label}
-              </span>
-              {statusChip && <span style={{ flexShrink: 0 }}>{statusChip}</span>}
-            </div>
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6, margin: 0 }}>
-              {description}
-            </p>
-          </div>
-        </div>
-        {headerActions && (
-          <span style={{ flexShrink: 0, paddingTop: 28 }}>{headerActions}</span>
-        )}
-      </div>
-
-      <div style={{ paddingBottom: 56 }}>
-        {children}
-      </div>
-
-      <hr className="rule" />
-    </div>
-  );
-}
-
-function ProjectDrawer({
-  open,
-  onClose,
-  projects,
-  currentId,
-  onSelect,
-  onNew,
-  onDelete,
-  onRenameStart,
-  onRenameSubmit,
-  onRenameCancel,
-  editingId,
-  editName,
-  onEditNameChange,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projects: SavedProject[];
-  currentId: string | null;
-  onSelect: (id: string) => void;
-  onNew: () => void;
-  onDelete: (id: string) => void;
-  onRenameStart: (id: string, name: string) => void;
-  onRenameSubmit: (id: string) => void;
-  onRenameCancel: () => void;
-  editingId: string | null;
-  editName: string;
-  onEditNameChange: (value: string) => void;
-}) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(26, 26, 24, 0.2)",
-              zIndex: 40,
-            }}
-          />
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            style={{
-              position: "fixed",
-              top: 0,
-              right: 0,
-              width: 320,
-              height: "100vh",
-              background: "var(--cream)",
-              borderLeft: "1px solid var(--rule)",
-              zIndex: 50,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "20px 20px 16px",
-                borderBottom: "1px solid var(--rule)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--ink-muted)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                Projects
-              </span>
-              <button className="btn-text" onClick={onClose} aria-label="Close projects">
-                <X size={14} />
-              </button>
-            </div>
-
-            <div style={{ padding: "12px 20px" }}>
-              <button
-                className="btn-text"
-                onClick={onNew}
-                style={{
-                  fontSize: 12,
-                  color: "var(--teal-deep)",
-                  padding: "6px 0",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                <Plus size={12} />
-                New project
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflow: "auto", padding: "0 20px 20px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {projects.map((project) => {
-                  const isCurrent = project.id === currentId;
-                  const isEditing = project.id === editingId;
-
-                  return (
-                    <div
-                      key={project.id}
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        background: isCurrent ? "rgba(91, 138, 138, 0.07)" : "transparent",
-                        border: `1px solid ${isCurrent ? "var(--teal)" : "transparent"}`,
-                        cursor: isEditing ? "default" : "pointer",
-                      }}
-                      onClick={() => !isEditing && onSelect(project.id)}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 8,
-                        }}
-                      >
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => onEditNameChange(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") onRenameSubmit(project.id);
-                              if (e.key === "Escape") onRenameCancel();
-                            }}
-                            onBlur={() => onRenameSubmit(project.id)}
-                            autoFocus
-                            style={{
-                              fontSize: 13,
-                              fontFamily: "var(--font-display)",
-                              color: "var(--ink)",
-                              background: "transparent",
-                              border: "1px solid var(--rule)",
-                              borderRadius: 4,
-                              padding: "3px 6px",
-                              flex: 1,
-                              outline: "none",
-                            }}
-                          />
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: isCurrent ? 600 : 400,
-                              color: "var(--ink)",
-                              flex: 1,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {project.name}
-                          </span>
-                        )}
-
-                        {!isEditing && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                            <button
-                              className="btn-text"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onRenameStart(project.id, project.name);
-                              }}
-                              aria-label={`Rename ${project.name}`}
-                              style={{ color: "var(--ink-muted)", padding: 2 }}
-                            >
-                              <PencilSimple size={11} />
-                            </button>
-                            <button
-                              className="btn-text"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(project.id);
-                              }}
-                              aria-label={`Delete ${project.name}`}
-                              style={{ color: "var(--ink-muted)", padding: 2 }}
-                            >
-                              <Trash size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: 9,
-                          color: "var(--ink-muted)",
-                          opacity: 0.6,
-                          marginTop: 3,
-                          display: "block",
-                        }}
-                      >
-                        {new Date(project.updatedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
   );
 }

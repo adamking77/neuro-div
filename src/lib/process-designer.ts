@@ -292,7 +292,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
     lines.push(`- **${mode.label}** — ${mode.guidance}`);
   }
 
-  lines.push("", "## Step menu", "");
+  lines.push("", "## Move menu", "");
   for (const block of plan.blocks) {
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
@@ -305,7 +305,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
     }
   }
 
-  lines.push("## Rescue steps", "");
+  lines.push("## Rescue moves", "");
   for (const move of plan.rescueMoves) {
     lines.push(`### ${move.title}`, "");
     lines.push(`- **Trigger** — ${move.trigger}`);
@@ -590,7 +590,7 @@ function buildAgentBrief({
     lines.push(`- **${mode.label}** — ${mode.guidance}`);
   }
 
-  lines.push("", "## Step menu", "");
+  lines.push("", "## Move menu", "");
   for (const block of blocks) {
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
@@ -599,7 +599,7 @@ function buildAgentBrief({
     lines.push("");
   }
 
-  lines.push("## Rescue steps", "");
+  lines.push("## Rescue moves", "");
   for (const move of rescueMoves) {
     lines.push(`- **${move.title}** — ${move.action}`);
   }

@@ -9,7 +9,7 @@ import {
   getKimiConfig,
   parseExaSearchResponse,
   validateStrategyDraftRequest,
-} from "./strategy-api.js";
+} from "./strategy-api";
 
 interface KimiResponse {
   choices?: Array<{

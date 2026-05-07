@@ -1,6 +1,16 @@
 ---
 name: nd-process-designer
 description: Use when a user has an ND profile and a specific goal and needs a trigger-based process artifact instead of a schedule or task system. Trigger when the user wants one goal turned into a move menu, not-doing list, measurement system, and agent brief.
+version: 1.0.0
+tags:
+  - process
+  - planning
+  - execution
+  - neurodivergent
+relatedSkills:
+  - nd-context-builder
+  - nd-session-loop
+  - distribution-strategy
 ---
 
 # ND Process Designer
