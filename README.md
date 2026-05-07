@@ -1,8 +1,8 @@
 # NeuroDiv OS
 
-Server-rendered ND-aware tools for context building, process design, category research, and distribution strategy.
+ND-aware tools for context building, process design, category research, and distribution strategy.
 
-The suite now runs on Next.js App Router with real URLs for each tool, filesystem-backed skill pages, route metadata, `llms.txt`, and `skills.json`. The interactive surfaces still use browser-side state where needed, but the public route layer is now crawlable and linkable.
+The app now runs on Next.js App Router with real URLs for each tool while preserving the original interactive shell and core UX. The main suite routes stay fast by keeping the client app mounted across navigation, while the public route layer exposes crawlable URLs, skill pages, `llms.txt`, and `skills.json`.
 
 ## Routes
 
@@ -13,9 +13,21 @@ The suite now runs on Next.js App Router with real URLs for each tool, filesyste
 - `/distribution-strategy`
 - `/skills`
 - `/skills/[slug]`
+- `/skills/[slug]/source`
+- `/skills/[slug]/download`
 - `/llms.txt`
 - `/skills.json`
 - `/.well-known/api-catalog`
+- `/robots.txt`
+- `/sitemap.xml`
+
+The public skill catalog is intentionally limited to the five NeuroDiv suite skills:
+
+- `nd-context-builder`
+- `nd-process-designer`
+- `category-scout`
+- `distribution-strategy`
+- `nd-session-loop`
 
 ## Stack
 
@@ -57,5 +69,7 @@ npm run start
 ### Deploy
 
 ```bash
-vercel --prod
+git push origin main
 ```
+
+This repo is connected to Vercel, so pushing `main` triggers the production deployment automatically.
