@@ -1,6 +1,16 @@
 ---
 name: nd-context-builder
 description: Use when a user needs to create or refresh a persistent ND profile artifact for Claude, Codex, or another LLM. Trigger when the user wants structured intake around traits, activation patterns, shutdown triggers, time and energy patterns, prior systems, information preferences, or agent working instructions.
+version: 1.0.0
+tags:
+  - intake
+  - profile
+  - neurodivergent
+  - context
+relatedSkills:
+  - nd-process-designer
+  - nd-session-loop
+  - distribution-strategy
 ---
 
 # ND Context Builder
