@@ -1,15 +1,6 @@
 ---
 name: nd-session-loop
 description: Use when a user is starting or ending a work session and needs ND-aware guidance from an existing process artifact. Trigger for session-start check-ins, one-move surfacing, brief end-of-session reflection, and outcomes-log updates.
-version: 1.0.0
-tags:
-  - session
-  - reflection
-  - execution
-  - neurodivergent
-relatedSkills:
-  - nd-context-builder
-  - nd-process-designer
 ---
 
 # ND Session Loop

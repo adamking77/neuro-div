@@ -1,15 +1,6 @@
 ---
 name: distribution-strategy
 description: Use when a user has research plus ND constraints and needs a distribution strategy artifact, not just a market dossier. Trigger when they want channel choices, message angles, asset ideas, experiments, activation-window moves, and an agent brief grounded in evidence.
-version: 1.0.0
-tags:
-  - strategy
-  - distribution
-  - positioning
-  - neurodivergent
-relatedSkills:
-  - category-scout
-  - nd-process-designer
 ---
 
 # Distribution Strategy

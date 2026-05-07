@@ -57,8 +57,8 @@ describe("process designer", () => {
       plan,
     );
 
-    expect(markdown).toContain("## Move menu");
-    expect(markdown).toContain("## Rescue moves");
+    expect(markdown).toContain("## Step menu");
+    expect(markdown).toContain("## Rescue steps");
     expect(markdown).toContain("**Not today**");
     expect(markdown).toContain("## Agent brief");
   });

@@ -1,88 +1,88 @@
 'use client';
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { useState } from "react";
 import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
 
-interface SkillManifestEntry {
-  slug: string;
+interface SkillCard {
   name: string;
-  description: string;
-  detailUrl: string;
-  sourceUrl: string;
-  downloadUrl: string;
+  slug: string;
+  status: "Available" | "Planned";
+  summary: string;
+  includesAgent: boolean;
 }
 
-interface SkillsManifest {
-  generatedAt: string;
-  skills: SkillManifestEntry[];
-}
+const SKILLS: SkillCard[] = [
+  {
+    name: "Context Builder",
+    slug: "nd-context-builder",
+    status: "Available",
+    summary:
+      "Build your profile here or inside any AI that saves instructions. It asks the same questions and produces the same profile file. Set it up once and every conversation in that AI already knows how you work.",
+    includesAgent: true,
+  },
+  {
+    name: "Process Designer",
+    slug: "nd-process-designer",
+    status: "Available",
+    summary:
+      "Give it your profile and one goal. It builds a plan that matches your energy patterns, not a fixed schedule. The output is structured so any AI can run it with no extra setup.",
+    includesAgent: true,
+  },
+  {
+    name: "Category Scout",
+    slug: "category-scout",
+    status: "Available",
+    summary:
+      "Run this before you commit to a direction. Give it a problem statement and any known players. It searches six angles and gives you a research file you can read or pass straight to Distribution Strategy.",
+    includesAgent: true,
+  },
+  {
+    name: "Distribution Strategy",
+    slug: "distribution-strategy",
+    status: "Available",
+    summary:
+      "Reads your Category Scout research and your profile together. It writes a plan for getting your work seen that matches how you actually work. Not a generic template.",
+    includesAgent: true,
+  },
+  {
+    name: "Session Loop",
+    slug: "nd-session-loop",
+    status: "Available",
+    summary:
+      "Run this at the start of a session. It checks your active plan, asks what you have energy for today, and gives you exactly one move to make. Run it at the end and it records what happened and updates your plan. No catch-up talk. No guilt.",
+    includesAgent: true,
+  },
+];
 
 export function SkillsLibrary() {
-  const [skills, setSkills] = useState<SkillManifestEntry[]>([]);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadSkills() {
-      try {
-        const response = await fetch("/skills.json", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Failed to load skills manifest (${response.status})`);
-        }
-
-        const data = (await response.json()) as SkillsManifest;
-        if (!cancelled) {
-          setSkills(data.skills);
-        }
-      } catch {
-        if (!cancelled) {
-          setSkills([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+  async function handleCopy(skill: SkillCard) {
+    const response = await fetch(`/skills/${skill.slug}/download`, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Failed to load skill bundle (${response.status})`);
     }
 
-    void loadSkills();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function handleCopy(skill: SkillManifestEntry) {
-    await navigator.clipboard.writeText(skill.sourceUrl);
+    const bundle = await response.text();
+    await navigator.clipboard.writeText(bundle);
     setCopiedSlug(skill.slug);
     setTimeout(() => setCopiedSlug((current) => (current === skill.slug ? null : current)), 2000);
-  }
-
-  if (loading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--ink-muted)" }}>
-        <span className="spinner" />
-        <span style={{ fontSize: 14 }}>Loading skills…</span>
-      </div>
-    );
   }
 
   return (
     <div>
       <div style={{ maxWidth: 600, marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid var(--rule)" }}>
         <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.75 }}>
-          Each skill is a set of instructions you can install or reference directly. The public route gives you the
-          detail page, raw source, and bundle download without relying on Vite raw imports.
+          Each skill is a set of instructions you paste into an AI you already use. Once pasted, that AI runs the same process as these web tools.
         </p>
         <p style={{ margin: 0, fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.65 }}>
-          Open a skill page to inspect it, copy the raw source URL, or download the packaged bundle.
+          Copy or download a skill below, then paste it into your system prompt or project instructions.
         </p>
       </div>
 
       <div style={{ display: "grid", gap: 18 }}>
-        {skills.map((skill, index) => {
+        {SKILLS.map((skill, index) => {
           const isCopied = copiedSlug === skill.slug;
           return (
             <div key={skill.slug} style={{ border: "1px solid var(--rule)", padding: "18px 18px 16px" }}>
@@ -95,21 +95,35 @@ export function SkillsLibrary() {
                     {skill.name}
                   </h3>
                   <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-                    {skill.description}
+                    {skill.summary}
                   </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                    <Link href={skill.detailUrl} style={{ fontSize: 12, color: "var(--teal-deep)", textDecoration: "none" }}>
-                      View skill
-                    </Link>
-                    <button className="btn-text" onClick={() => void handleCopy(skill)} style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}>
-                      {isCopied ? <Check size={12} /> : <Copy size={12} />}
-                      {isCopied ? "Copied source URL" : "Copy source URL"}
-                    </button>
-                    <a href={skill.downloadUrl} style={{ fontSize: 12, color: "var(--ink-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      <DownloadSimple size={12} />
-                      Download bundle
-                    </a>
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={metaLabelStyle}>Package includes</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-muted)", lineHeight: 1.8 }}>
+                      {`skills/${skill.slug}/SKILL.md`}
+                      {skill.includesAgent ? " · agents/openai.yaml" : ""}
+                      {" · _shared/ reference docs"}
+                    </p>
                   </div>
+                  {skill.status === "Available" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                      <button
+                        className="btn-text"
+                        onClick={() => void handleCopy(skill)}
+                        style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}
+                      >
+                        {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                        {isCopied ? "Copied" : "Copy skill"}
+                      </button>
+                      <a
+                        href={`/skills/${skill.slug}/download`}
+                        style={{ fontSize: 12, color: "var(--ink-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}
+                      >
+                        <DownloadSimple size={12} />
+                        Download skill
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -119,3 +133,13 @@ export function SkillsLibrary() {
     </div>
   );
 }
+
+const metaLabelStyle: CSSProperties = {
+  fontSize: 10,
+  fontWeight: 500,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--ink-muted)",
+  margin: "0 0 8px",
+  fontFamily: "var(--font-mono)",
+};

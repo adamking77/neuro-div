@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NDContextBuilder } from "./components/NDContextBuilder";
@@ -377,6 +377,12 @@ export default function App({
   const donePhaseCount = Object.values(session.phases).filter((phase) => phase.status === "done").length;
   const totalResultCount = Object.values(session.phases).reduce((sum, phase) => sum + phase.results.length, 0);
   const usesProjectShell = activeTool === "category-scout" || activeTool === "distribution-strategy";
+
+  useEffect(() => {
+    for (const route of Object.values(TOOL_ROUTES)) {
+      void router.prefetch(route);
+    }
+  }, [router]);
 
   return (
     <div className="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>

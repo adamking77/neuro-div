@@ -1,14 +1,6 @@
 ---
 name: category-scout
 description: Use when a user needs ND-aware category and market research for an idea, offer, or business problem. Trigger when the user wants a research dossier covering customer pain, competitors, market shape, evidence, language, and white space before moving into strategy.
-version: 1.0.0
-tags:
-  - research
-  - category-design
-  - market-analysis
-  - neurodivergent
-relatedSkills:
-  - distribution-strategy
 ---
 
 # Category Scout
