@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildIntelligenceMarkdown } from "../src/lib/intelligence";
+import { POST as postDeterministicAnalysis } from "../app/api/intelligence-analysis/route";
+import { POST as postDeterministicSnapshot } from "../app/api/intelligence-snapshot-v1/route";
 import type { IntelligenceBrief } from "../src/types";
 
 const mockBrief: IntelligenceBrief = {
@@ -52,6 +54,66 @@ const mockBrief: IntelligenceBrief = {
     skills: ["Strategic writing", "Basic SEO"],
     gaps: ["Need first create-once asset"],
   },
+};
+
+const mockStrategyPayload = {
+  problem: "manual reporting wastes time",
+  knownPlayers: "",
+  audienceLens: "operators who avoid networking",
+  founderConstraints: {
+    teamSize: "solo",
+    budgetBand: "low",
+    weeklyCapacity: "4 hours",
+    socialPostingTolerance: "avoid",
+    channelAvoidances: "LinkedIn and live events",
+    outreachTolerance: "warm-intro-ok",
+    peerCollaborationOk: false,
+    contentMode: ["writing"],
+    contentModeOther: "",
+    existingAssets: [
+      {
+        name: "",
+        url: "",
+        description: "",
+      },
+    ],
+    previousAttempts: "",
+    avoidanceTasks: "",
+    activationWindows: "",
+    unavailablePeriods: "",
+  },
+  ndProfileContext: {
+    summary: "",
+    traitLabels: [],
+    manifestationLabels: [],
+    activationPatterns: [],
+    goodDayDescription: "",
+    shutdownTriggers: [],
+    shutdownDescription: "",
+    activationWindows: "",
+    unavailablePeriods: "",
+    triedSystems: "",
+    whatWorked: "",
+    whatFailed: "",
+    infoDensity: "",
+    infoFormats: [],
+    supportConditions: [],
+    agentGuidance: "",
+  },
+  phaseResearch: [
+    {
+      phaseId: 1,
+      phaseName: "Problem Cartography",
+      description: "desc",
+      results: [
+        {
+          title: "Source",
+          url: "https://example.com",
+          highlights: ["Teams hate manual reporting."],
+        },
+      ],
+    },
+  ],
 };
 
 describe("buildIntelligenceMarkdown", () => {
@@ -120,5 +182,29 @@ describe("buildIntelligenceMarkdown", () => {
   it("includes generation timestamp", () => {
     const md = buildIntelligenceMarkdown(mockBrief);
     expect(md).toContain("Generated:");
+  });
+});
+
+describe("deterministic intelligence routes", () => {
+  it("keeps the snapshot route distinct from the analysis route", async () => {
+    const requestBody = JSON.stringify(mockStrategyPayload);
+
+    const [analysisResponse, snapshotResponse] = await Promise.all([
+      postDeterministicAnalysis(new Request("http://localhost/api/intelligence-analysis", {
+        method: "POST",
+        body: requestBody,
+        headers: { "content-type": "application/json" },
+      })),
+      postDeterministicSnapshot(new Request("http://localhost/api/intelligence-snapshot-v1", {
+        method: "POST",
+        body: requestBody,
+        headers: { "content-type": "application/json" },
+      })),
+    ]);
+
+    expect(analysisResponse.status).toBe(200);
+    expect(snapshotResponse.status).toBe(200);
+    expect(analysisResponse.headers.get("x-intelligence-handler")).toBe("deterministic-v1");
+    expect(snapshotResponse.headers.get("x-intelligence-handler")).toBe("deterministic-v1-snapshot");
   });
 });

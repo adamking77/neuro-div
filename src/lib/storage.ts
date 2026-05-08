@@ -12,6 +12,34 @@ export interface SavedProject {
   draftHistory: StrategyDraft[];
 }
 
+function normalizeTransientStatus(
+  status: SessionState["strategyStatus"] | SessionState["intelligenceStatus"],
+  hasOutput: boolean,
+): "idle" | "done" {
+  if (status === "researching" || status === "drafting") {
+    return hasOutput ? "done" : "idle";
+  }
+
+  return status === "done" ? "done" : "idle";
+}
+
+function sanitizeSession(session: SessionState): SessionState {
+  const strategyRecovered = session.strategyStatus === "researching" || session.strategyStatus === "drafting";
+  const intelligenceRecovered = session.intelligenceStatus === "researching" || session.intelligenceStatus === "drafting";
+
+  return {
+    ...session,
+    strategyStatus: normalizeTransientStatus(session.strategyStatus, !!session.strategyDraft),
+    strategyError: strategyRecovered
+      ? "Previous strategy generation did not finish. Generate again."
+      : session.strategyError,
+    intelligenceStatus: normalizeTransientStatus(session.intelligenceStatus, !!session.intelligenceBrief),
+    intelligenceError: intelligenceRecovered
+      ? "Previous intelligence brief generation did not finish. Generate again."
+      : session.intelligenceError,
+  };
+}
+
 function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -37,7 +65,9 @@ function loadProjects(): SavedProject[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as SavedProject[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.map((project) => ({ ...project, session: sanitizeSession(project.session) }))
+      : [];
   } catch {
     return [];
   }
@@ -60,6 +90,7 @@ export function listProjects(): SavedProject[] {
 export function saveProject(session: SessionState, draftHistory: StrategyDraft[], id?: string): SavedProject {
   const projects = loadProjects();
   const now = new Date().toISOString();
+  const sanitizedSession = sanitizeSession(session);
   const name = getDefaultProjectName(session);
 
   const existingIndex = id ? projects.findIndex((p) => p.id === id) : -1;
@@ -71,7 +102,7 @@ export function saveProject(session: SessionState, draftHistory: StrategyDraft[]
         ? name
         : projects[existingIndex].name,
       updatedAt: now,
-      session,
+      session: sanitizedSession,
       draftHistory,
     };
     projects[existingIndex] = updated;
@@ -84,7 +115,7 @@ export function saveProject(session: SessionState, draftHistory: StrategyDraft[]
     name,
     createdAt: now,
     updatedAt: now,
-    session,
+    session: sanitizedSession,
     draftHistory,
   };
 

@@ -15,6 +15,8 @@ export function DistributionStrategyTool({
   onSectionChange,
   onGenerate,
   onGenerateIntelligence,
+  onDismissStrategyNotice,
+  onDismissIntelligenceNotice,
   onExport,
   onExportIntelligence,
   onReset,
@@ -29,6 +31,8 @@ export function DistributionStrategyTool({
   onSectionChange: (key: StrategySectionKey, value: string) => void;
   onGenerate: () => Promise<void>;
   onGenerateIntelligence: () => Promise<void>;
+  onDismissStrategyNotice: () => void;
+  onDismissIntelligenceNotice: () => void;
   onExport: () => void;
   onExportIntelligence: () => void;
   onReset: () => void;
@@ -76,6 +80,8 @@ export function DistributionStrategyTool({
           onSectionChange={onSectionChange}
           onGenerate={onGenerate}
           onGenerateIntelligence={onGenerateIntelligence}
+          onDismissStrategyNotice={onDismissStrategyNotice}
+          onDismissIntelligenceNotice={onDismissIntelligenceNotice}
           onExport={onExport}
           onExportIntelligence={onExportIntelligence}
           draftHistory={draftHistory}

@@ -30,6 +30,24 @@ interface StrategyDraftErrorResponse {
   error?: string;
 }
 
+function isIntelligenceBriefPayload(value: unknown): value is IntelligenceBrief {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const body = value as Record<string, unknown>;
+  return (
+    typeof body.summary === "string" &&
+    !!body.scorecard &&
+    !!body.landscape &&
+    !!body.positioning &&
+    !!body.channels &&
+    !!body.risks &&
+    !!body.timeline &&
+    !!body.resources
+  );
+}
+
 const CLAUDE_PROMPT = `I'm attaching a Category Scout research file. It contains results from 6 research phases, each with source titles, URLs, publication dates, relevance scores, and direct highlight excerpts pulled from each source.
 
 Produce a category design brief with these sections:
@@ -341,7 +359,7 @@ export default function App({
         phaseResearch: condensePhaseResearch(session.phases),
       };
 
-      const response = await fetch("/api/intelligence-brief", {
+      const response = await fetch("/api/intelligence-snapshot-v1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draftRequest),
@@ -359,12 +377,16 @@ export default function App({
         throw new Error(typeof payload === "object" && payload && "error" in payload ? payload.error : "Intelligence brief failed");
       }
 
+      if (!isIntelligenceBriefPayload(payload)) {
+        throw new Error("The server returned an unexpected analysis format. Try again.");
+      }
+
       mutateSession((current) => ({ ...current, intelligenceStatus: "drafting" }));
       await new Promise((resolve) => setTimeout(resolve, 700));
 
       mutateSession((current) => ({
         ...current,
-        intelligenceBrief: payload as IntelligenceBrief,
+        intelligenceBrief: payload,
         intelligenceStatus: "done",
         intelligenceError: undefined,
       }));
@@ -377,6 +399,22 @@ export default function App({
       }));
     }
   }, [mutateSession, ndProfileContext, session]);
+
+  const dismissStrategyNotice = useCallback(() => {
+    mutateSession((current) => ({
+      ...current,
+      strategyStatus: current.strategyStatus === "error" ? "idle" : current.strategyStatus,
+      strategyError: undefined,
+    }));
+  }, [mutateSession]);
+
+  const dismissIntelligenceNotice = useCallback(() => {
+    mutateSession((current) => ({
+      ...current,
+      intelligenceStatus: current.intelligenceStatus === "error" ? "idle" : current.intelligenceStatus,
+      intelligenceError: undefined,
+    }));
+  }, [mutateSession]);
 
   const phaseRunning = Object.values(session.phases).some((phase) => phase.status === "running");
   const hasAnyResults = Object.values(session.phases).some((phase) => phase.results.length > 0);
@@ -543,6 +581,8 @@ export default function App({
           onSectionChange={updateStrategySection}
           onGenerate={generateStrategy}
           onGenerateIntelligence={generateIntelligenceBrief}
+          onDismissStrategyNotice={dismissStrategyNotice}
+          onDismissIntelligenceNotice={dismissIntelligenceNotice}
           onExport={downloadStrategy}
           onExportIntelligence={downloadIntelligenceBrief}
           onReset={reset}

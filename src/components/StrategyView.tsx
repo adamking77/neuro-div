@@ -33,6 +33,8 @@ interface Props {
   onSectionChange: (key: StrategySectionKey, value: string) => void;
   onGenerate: () => void;
   onGenerateIntelligence: () => void;
+  onDismissStrategyNotice: () => void;
+  onDismissIntelligenceNotice: () => void;
   onExport: () => void;
   onExportIntelligence: () => void;
   draftHistory: StrategyDraft[];
@@ -75,6 +77,8 @@ export function StrategyView({
   onSectionChange,
   onGenerate,
   onGenerateIntelligence,
+  onDismissStrategyNotice,
+  onDismissIntelligenceNotice,
   onExport,
   onExportIntelligence,
 }: Props) {
@@ -128,6 +132,10 @@ export function StrategyView({
   const buttonLabel = activeTab === "intelligence"
     ? intelligenceButtonLabel
     : draftButtonLabel;
+  const activeStatus = activeTab === "draft" ? session.strategyStatus : session.intelligenceStatus;
+  const activeError = activeTab === "draft" ? session.strategyError : session.intelligenceError;
+  const interruptedNotice = isInterruptedNotice(activeStatus, activeError);
+  const dismissActiveNotice = activeTab === "draft" ? onDismissStrategyNotice : onDismissIntelligenceNotice;
 
   const armTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [isArmed, setIsArmed] = useState(false);
@@ -140,6 +148,16 @@ export function StrategyView({
       armTimerRef.current = setTimeout(() => setIsArmed(false), 5000);
       return;
     }
+    clearTimeout(armTimerRef.current);
+    setIsArmed(false);
+    if (activeTab === "intelligence") {
+      onGenerateIntelligence();
+    } else {
+      onGenerate();
+    }
+  };
+
+  const handleRetryInterruptedRun = () => {
     clearTimeout(armTimerRef.current);
     setIsArmed(false);
     if (activeTab === "intelligence") {
@@ -240,11 +258,11 @@ export function StrategyView({
         completedResearch={completedResearch}
         audienceReady={audienceReady}
         strategyRunning={isRunning}
-        strategyStatus={activeTab === "draft" ? session.strategyStatus : session.intelligenceStatus}
+        strategyStatus={activeStatus}
         strategyDirty={session.strategyDirty}
         draftExists={hasDraft}
         researchRunning={researchRunning}
-        error={activeTab === "draft" ? session.strategyError : session.intelligenceError}
+        error={interruptedNotice ? undefined : activeError}
         canGenerate={canGenerate}
         buttonLabel={isArmed ? "Replace — confirm?" : buttonLabel}
         isArmed={isArmed}
@@ -255,6 +273,15 @@ export function StrategyView({
       />
 
       <hr className="rule" style={{ marginBottom: 32 }} />
+
+      {interruptedNotice && (
+        <RecoveredRunNotice
+          label={activeTab === "intelligence" ? "intelligence brief" : "strategy draft"}
+          message={activeError ?? ""}
+          onRetry={handleRetryInterruptedRun}
+          onDismiss={dismissActiveNotice}
+        />
+      )}
 
       {activeTab === "draft" && (
         <StrategyContent
@@ -270,7 +297,7 @@ export function StrategyView({
         <IntelligenceView
           brief={session.intelligenceBrief}
           status={session.intelligenceStatus}
-          error={session.intelligenceError}
+          error={interruptedNotice ? undefined : session.intelligenceError}
         />
       )}
       {activeTab === "agent" && (
@@ -278,6 +305,59 @@ export function StrategyView({
           markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem, ndProfileContext)}
         />
       )}
+    </div>
+  );
+}
+
+function isInterruptedNotice(
+  status: SessionState["strategyStatus"] | SessionState["intelligenceStatus"],
+  error?: string,
+) {
+  return status === "idle" && !!error && error.startsWith("Previous ");
+}
+
+function RecoveredRunNotice({
+  label,
+  message,
+  onRetry,
+  onDismiss,
+}: {
+  label: string;
+  message: string;
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      style={{
+        padding: "16px 18px",
+        marginBottom: 24,
+        border: "1px solid rgba(196, 164, 132, 0.35)",
+        background: "rgba(196, 164, 132, 0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 560 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>
+            Previous {label} run was interrupted
+          </p>
+          <p style={{ margin: "0 0 6px", fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6 }}>
+            This is not currently running.
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6 }}>
+            {message}
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button className="btn-text" onClick={onDismiss} style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+            Dismiss
+          </button>
+          <button className="btn-text" onClick={onRetry} style={{ fontSize: 12, color: "var(--teal-deep)" }}>
+            <ArrowClockwise size={12} />
+            Generate again
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

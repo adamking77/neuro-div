@@ -111,6 +111,24 @@ interface ExaRawCitation {
 
 export type ExaResearchCitations = Partial<Record<ExaDossierKey, ExaRawCitation[]>>;
 
+export function createEmptyExaResearch(): {
+  dossier: ExaResearchDossier;
+  citations: ExaResearchCitations;
+} {
+  return {
+    dossier: {
+      audienceSignals: [],
+      positioningEdges: [],
+      lowContactChannels: [],
+      messagePatterns: [],
+      assetDirections: [],
+      experimentLevers: [],
+      risks: [],
+    },
+    citations: {},
+  };
+}
+
 interface ExaCompletedTask {
   researchId: string;
   status: "completed";
@@ -168,9 +186,41 @@ export function getKimiConfig(env: Record<string, string | undefined>) {
 
   return {
     apiKey,
-    model: env.KIMI_MODEL || "kimi-k2.6",
-    baseUrl: env.KIMI_BASE_URL || "https://api.moonshot.ai/v1",
+    model: env.KIMI_MODEL || "kimi-k2-6",
+    baseUrl: env.KIMI_BASE_URL || "https://api.moonshot.cn/v1",
   };
+}
+
+export function getUpstreamTimeouts(env: Record<string, string | undefined>) {
+  return {
+    exaMs: parseTimeoutValue(env.EXA_TIMEOUT_MS, 45_000),
+    kimiMs: parseTimeoutValue(env.KIMI_TIMEOUT_MS, 45_000),
+  };
+}
+
+export async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+  label: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (isAbortLikeError(error)) {
+      throw new StrategyRequestError(504, `${label} timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function validateStrategyDraftRequest(input: unknown): StrategyDraftRequestPayload {
@@ -1521,6 +1571,19 @@ function pickLines(primary: string[], secondary: string[], fallback: string[]): 
   }
 
   return lines.slice(0, 4);
+}
+
+function parseTimeoutValue(input: string | undefined, fallback: number): number {
+  if (!input) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(input, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function expectNonEmptyString(input: unknown, message: string): string {

@@ -5,6 +5,8 @@ import {
   buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
   getExaConfig,
+  getKimiConfig,
+  getUpstreamTimeouts,
   mergeStrategyCitations,
   parseExaSearchResponse,
   parseStrategyDraftInput,
@@ -215,6 +217,21 @@ describe("strategy draft completeness", () => {
 describe("strategy API helpers", () => {
   it("rejects missing Exa credentials", () => {
     expect(() => getExaConfig({})).toThrow("EXA_API_KEY not configured");
+  });
+
+  it("uses the documented Kimi defaults", () => {
+    expect(getKimiConfig({ KIMI_API_KEY: "test-key" })).toEqual({
+      apiKey: "test-key",
+      model: "kimi-k2-6",
+      baseUrl: "https://api.moonshot.cn/v1",
+    });
+  });
+
+  it("uses sane upstream timeouts by default", () => {
+    expect(getUpstreamTimeouts({})).toEqual({
+      exaMs: 45000,
+      kimiMs: 45000,
+    });
   });
 
   it("validates the draft request payload", () => {
