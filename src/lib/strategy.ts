@@ -12,6 +12,7 @@ import type {
   StrategyDraft,
   StrategySectionKey,
   StrategySections,
+  StrategySectionsProse,
   StrategySectionsStructured,
   StrategySectionContent,
 } from "../types";
@@ -419,7 +420,7 @@ function compactSectionSummary(text: string): string {
 export function normalizeStrategyDraft(draft: StrategyDraft): StrategyDraft {
   const sections = isStructuredSections(draft.sections)
     ? STRATEGY_SECTIONS.reduce((acc, section) => {
-      const current = draft.sections[section.key];
+      const current = (draft.sections as StrategySectionsStructured)[section.key];
       acc[section.key] = {
         summary: compactSectionSummary(current.summary || ""),
         recommendations: current.recommendations
@@ -439,7 +440,7 @@ export function normalizeStrategyDraft(draft: StrategyDraft): StrategyDraft {
       return acc;
     }, {} as StrategySectionsStructured)
     : STRATEGY_SECTIONS.reduce((acc, section) => {
-      acc[section.key] = normalizeNarrative(draft.sections[section.key] || "");
+      acc[section.key] = normalizeNarrative((draft.sections as StrategySectionsProse)[section.key] || "");
       return acc;
     }, {} as StrategySectionsProse);
 
