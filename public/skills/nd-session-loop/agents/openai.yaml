@@ -1,4 +1,0 @@
-interface:
-  display_name: "ND Session Loop"
-  short_description: "Run session start and reflection from a process."
-  default_prompt: "Use $nd-session-loop to run session start or reflection from the active ND process artifact."

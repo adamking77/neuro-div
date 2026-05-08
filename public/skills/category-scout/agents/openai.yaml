@@ -1,4 +1,0 @@
-interface:
-  display_name: "Category Scout"
-  short_description: "Build a category research dossier with sources."
-  default_prompt: "Use $category-scout to produce a research dossier for this idea."

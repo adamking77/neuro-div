@@ -1,4 +1,0 @@
-interface:
-  display_name: "ND Context Builder"
-  short_description: "Build an ND profile artifact for any LLM."
-  default_prompt: "Use $nd-context-builder to build or update this user's ND profile artifact."
