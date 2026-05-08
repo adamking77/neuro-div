@@ -39,12 +39,7 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
       {PHASES.map((phase, i) => {
         const result = session.phases[phase.id];
         return (
-          <motion.div
-            key={phase.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.04, duration: 0.25 }}
-          >
+          <div key={phase.id}>
             {i > 0 && <hr className="rule" style={{ margin: "36px 0" }} />}
             <PhaseSection
               phaseId={phase.id}
@@ -54,7 +49,7 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
               canRerun={!isRunning}
               onRerun={() => onRunPhase(phase.id)}
             />
-          </motion.div>
+          </div>
         );
       })}
     </div>
@@ -98,12 +93,13 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
               onClick={onRerun}
               disabled={!canRerun}
               style={{
-                background: "none", border: "none", padding: 0,
+                background: "none", border: "none", padding: "6px 8px",
                 cursor: canRerun ? "pointer" : "not-allowed",
                 fontSize: 11, color: "var(--ink-muted)",
                 fontFamily: "var(--font-display)",
                 display: "flex", alignItems: "center", gap: 4,
                 opacity: canRerun ? 1 : 0.4,
+                minHeight: 36,
               }}
             >
               <ArrowClockwise size={11} />
@@ -163,12 +159,10 @@ function ResultList({ results }: { results: any[] }) {
   return (
     <div>
       {results.map((result, i) => (
-        <motion.div key={result.id ?? i}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ delay: i * 0.02, duration: 0.2 }}>
+        <div key={result.id ?? i}>
           {i > 0 && <hr className="rule" style={{ margin: "16px 0" }} />}
           <ResultItem result={result} />
-        </motion.div>
+        </div>
       ))}
     </div>
   );

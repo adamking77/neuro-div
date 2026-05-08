@@ -142,7 +142,7 @@ export function CategoryScoutTool({
         {hasAnyResults && (
           <>
             <hr className="rule" style={{ margin: "40px 0" }} />
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: 0.05 }} style={{ padding: "20px 0" }}>
+            <div style={{ padding: "20px 0" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
                 <div>
                   <p
@@ -225,7 +225,7 @@ export function CategoryScoutTool({
                   </motion.pre>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
           </>
         )}
       </ToolSection>
