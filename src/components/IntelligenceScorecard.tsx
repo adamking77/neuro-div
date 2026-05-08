@@ -27,7 +27,14 @@ const GRADE_STYLES: Record<string, { border: string; bg: string; pill: string; t
 
 export function IntelligenceScorecard({ metrics }: Props) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: 14,
+        alignItems: "stretch",
+      }}
+    >
       {metrics.map((metric) => {
         const s = GRADE_STYLES[metric.grade] ?? GRADE_STYLES.medium;
         return (
@@ -36,45 +43,57 @@ export function IntelligenceScorecard({ metrics }: Props) {
             style={{
               background: s.bg,
               border: "1px solid var(--rule)",
-              padding: "14px 16px",
+              padding: "16px 18px",
+              minHeight: 0,
             }}
           >
-            <p
+            <div
               style={{
-                fontSize: 10,
-                fontWeight: 500,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--ink-muted)",
-                margin: "0 0 10px",
-                fontFamily: "var(--font-mono)",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 12,
               }}
             >
-              {metric.label}
-            </p>
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "var(--font-display)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                padding: "3px 10px",
-                borderRadius: 999,
-                background: s.pill,
-                color: s.text,
-                marginBottom: 10,
-              }}
-            >
-              {metric.grade}
-            </span>
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--ink-muted)",
+                  margin: 0,
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {metric.label}
+              </p>
+              <span
+                style={{
+                  display: "inline-block",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-display)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: s.pill,
+                  color: s.text,
+                  flexShrink: 0,
+                }}
+              >
+                {metric.grade}
+              </span>
+            </div>
             <p
               style={{
-                fontSize: 12,
+                fontSize: 12.5,
                 color: "var(--ink-light)",
-                lineHeight: 1.6,
+                lineHeight: 1.72,
                 margin: 0,
+                maxWidth: 42 + "ch",
               }}
             >
               {metric.rationale}

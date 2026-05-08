@@ -51,6 +51,36 @@ function Section({ label, number, children }: SectionProps) {
   );
 }
 
+function splitIntoSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function chunkParagraphs(text: string, sentencesPerParagraph: number) {
+  const explicitParagraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  if (explicitParagraphs.length > 1) {
+    return explicitParagraphs;
+  }
+
+  const sentences = splitIntoSentences(text);
+  if (sentences.length <= 2) {
+    return [text.trim()];
+  }
+
+  const paragraphs: string[] = [];
+  for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
+    paragraphs.push(sentences.slice(i, i + sentencesPerParagraph).join(" "));
+  }
+
+  return paragraphs;
+}
+
 function LoadingStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -157,6 +187,8 @@ export function IntelligenceView({ brief, status, error }: Props) {
     );
   }
 
+  const summaryParagraphs = chunkParagraphs(brief.summary, 2);
+
   return (
     <div>
       {/* Executive Summary */}
@@ -181,17 +213,22 @@ export function IntelligenceView({ brief, status, error }: Props) {
         >
           Executive Summary
         </p>
-        <p
-          style={{
-            fontSize: 14,
-            color: "var(--ink)",
-            lineHeight: 1.7,
-            margin: 0,
-            fontStyle: "italic",
-          }}
-        >
-          {brief.summary}
-        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 760 }}>
+          {summaryParagraphs.map((paragraph, index) => (
+            <p
+              key={index}
+              style={{
+                fontSize: 14,
+                color: "var(--ink)",
+                lineHeight: 1.8,
+                margin: 0,
+                fontStyle: "italic",
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
 
       {/* Scorecard */}
