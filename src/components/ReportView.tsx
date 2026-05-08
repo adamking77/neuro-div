@@ -80,7 +80,7 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
         {/* Phase header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.01em" }}>
+            <span style={{ fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
               {name}
             </span>
             {result.status === "running" && <span className="dot dot-running" />}

@@ -909,7 +909,7 @@ export function NDContextBuilder() {
               fontSize: 18,
               fontWeight: 500,
               color: "var(--ink)",
-              letterSpacing: "-0.02em",
+              letterSpacing: 0,
               margin: 0,
               lineHeight: 1.2,
             }}>

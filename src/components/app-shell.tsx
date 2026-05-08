@@ -96,7 +96,7 @@ export function ToolSection({
                   fontSize: 19,
                   fontWeight: 500,
                   color: "var(--ink)",
-                  letterSpacing: "-0.02em",
+                  letterSpacing: 0,
                   flex: 1,
                 }}
               >

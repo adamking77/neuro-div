@@ -202,7 +202,7 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
                 fontSize: 18,
                 fontWeight: 500,
                 color: "var(--ink)",
-                letterSpacing: "-0.02em",
+                letterSpacing: 0,
                 margin: 0,
                 lineHeight: 1.2,
               }}
@@ -607,7 +607,7 @@ function ReadableProcessView({
     <div>
       <div style={{ marginBottom: 28 }}>
         <p style={metaLabelStyle}>Readable view</p>
-        <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em" }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
           {plan.goal}
         </h3>
         <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, maxWidth: 680 }}>
@@ -649,7 +649,7 @@ function ReadableProcessView({
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
-                  <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em" }}>
+                  <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
                     {block.title}
                   </h4>
                   <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
@@ -834,7 +834,7 @@ function MoveCard({ move }: { move: ProcessMove }) {
   return (
     <div style={simpleCardStyle}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-        <h5 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.015em", lineHeight: 1.25 }}>
+        <h5 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
           {move.title}
         </h5>
         <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>

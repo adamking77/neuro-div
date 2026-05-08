@@ -74,7 +74,7 @@ a {
   margin: 0;
   font-size: clamp(2.2rem, 4vw, 4.25rem);
   line-height: 0.95;
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
 }
 
 .hero-lead,
@@ -152,7 +152,7 @@ a {
   margin: 0 0 12px;
   font-size: 22px;
   line-height: 1.1;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .home-hero {
@@ -262,7 +262,7 @@ a {
 .markdown-surface h2,
 .markdown-surface h3,
 .markdown-surface h4 {
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1.1;
   color: var(--ink);
 }

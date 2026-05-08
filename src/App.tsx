@@ -438,7 +438,7 @@ export default function App({
               <circle cx="12" cy="16" r="10" stroke="var(--teal)" strokeWidth="2" fill="none" />
               <circle cx="20" cy="16" r="10" stroke="var(--terracotta)" strokeWidth="2" fill="none" opacity="0.85" />
             </svg>
-            <span style={{ fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+            <span style={{ fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1 }}>
               NeuroDiv OS
             </span>
           </div>

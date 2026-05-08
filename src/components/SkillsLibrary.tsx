@@ -82,7 +82,7 @@ export function SkillsLibrary() {
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
-                  <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+                  <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.2 }}>
                     {skill.name}
                   </h3>
                   <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
