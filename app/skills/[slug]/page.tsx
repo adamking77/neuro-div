@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { StructuredData } from "@/components/structured-data";
-import { getSkillSourceApiPath } from "@/lib/skill-routes";
+
 import { absoluteUrl, buildMetadata } from "@/lib/site";
 import { getSkillBySlug, listSkills, readSkillSource } from "@/lib/skills";
 
@@ -51,7 +51,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
           "@type": "SoftwareSourceCode",
           name: skill.name,
           description: skill.description,
-          codeRepository: absoluteUrl(getSkillSourceApiPath(skill.slug)),
+          codeRepository: absoluteUrl(`/skills/${skill.slug}/source`),
           url: absoluteUrl(`/skills/${skill.slug}`),
           programmingLanguage: "Markdown",
           keywords: skill.tags,
@@ -66,7 +66,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
         </div>
 
         <div className="skill-actions">
-          <a href={getSkillSourceApiPath(skill.slug)} className="button-link secondary">Open raw source</a>
+          <a href={`/skills/${skill.slug}/source`} className="button-link secondary">Open raw source</a>
           <a href={`/skills/${skill.slug}/download`} className="button-link primary">Download skill</a>
         </div>
 
@@ -99,7 +99,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
             <p className="meta-label">Direct links</p>
             <ul className="plain-list">
               <li><Link href={`/skills/${skill.slug}`}>Detail page</Link></li>
-              <li><a href={getSkillSourceApiPath(skill.slug)}>Raw source</a></li>
+              <li><a href={`/skills/${skill.slug}/source`}>Raw source</a></li>
               <li><a href={`/skills/${skill.slug}/download`}>Download skill</a></li>
             </ul>
           </div>
