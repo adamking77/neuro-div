@@ -1,7 +1,7 @@
-export function getSkillSourcePath(slug: string) {
-  return `/skills/${encodeURIComponent(slug)}/source`;
+export function getSkillSourceApiPath(slug: string) {
+  return `/api/skills-source?slug=${encodeURIComponent(slug)}`;
 }
 
-export function getSkillDownloadPath(slug: string) {
-  return `/skills/${encodeURIComponent(slug)}/download`;
+export function getSkillDownloadApiPath(slug: string) {
+  return `/api/skills-download?slug=${encodeURIComponent(slug)}`;
 }
