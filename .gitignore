@@ -32,3 +32,4 @@ output
 # Tauri (legacy desktop build — not used)
 src-tauri/target
 public/skills/
+tsconfig.tsbuildinfo
