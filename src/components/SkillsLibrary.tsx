@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
+import { getSkillBundleApiPath } from "@/lib/skill-routes";
 
 interface SkillCard {
   name: string;
@@ -60,7 +61,7 @@ export function SkillsLibrary() {
   const [errorSlug, setErrorSlug] = useState<string | null>(null);
 
   async function fetchSkillBundle(skill: SkillCard) {
-    const response = await fetch(`/skills/${skill.slug}/download`, { cache: "no-store" });
+    const response = await fetch(getSkillBundleApiPath(skill.slug), { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Failed to load skill bundle (${response.status})`);
     }
