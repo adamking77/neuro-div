@@ -29,7 +29,23 @@ function splitIntoParagraphs(text: string, sentencesPerParagraph = 2) {
   }
 
   const sentences = splitIntoSentences(text);
-  if (sentences.length <= 2) {
+  if (sentences.length === 0) {
+    return text
+      .split(/(?<=,)\s+/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .reduce<string[]>((chunks, paragraph) => {
+        const current = chunks[chunks.length - 1];
+        if (!current || current.length > 180) {
+          chunks.push(paragraph);
+        } else {
+          chunks[chunks.length - 1] = `${current} ${paragraph}`;
+        }
+        return chunks;
+      }, []);
+  }
+
+  if (sentences.length <= 2 && text.length < 220) {
     return [text.trim()];
   }
 
@@ -52,10 +68,10 @@ function buildCalloutContent(text: string) {
 }
 
 export function IntelligenceNarrative({ content, callouts }: Props) {
-  const paragraphs = content.split("\n\n").filter(Boolean);
+  const paragraphs = splitIntoParagraphs(content, 2);
 
   return (
-    <div>
+    <div style={{ maxWidth: 780 }}>
       {paragraphs.map((paragraph, i) => (
         <p
           key={i}
@@ -64,6 +80,8 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
             color: "var(--ink)",
             lineHeight: 1.75,
             margin: "0 0 16px",
+            maxWidth: 74 + "ch",
+            overflowWrap: "anywhere",
           }}
         >
           {paragraph}
@@ -74,15 +92,17 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 14,
             marginTop: 24,
+            maxWidth: 780,
           }}
         >
           {callouts.map((callout, i) => {
             const style = CALLOUT_STYLES[callout.type] ?? CALLOUT_STYLES.insight;
             const label = callout.type.charAt(0).toUpperCase() + callout.type.slice(1);
             const calloutContent = buildCalloutContent(callout.text);
+            const isLong = callout.text.length > 220;
             return (
               <div
                 key={i}
@@ -90,6 +110,7 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
                   border: `1px solid ${style.border}`,
                   background: style.bg,
                   padding: "14px 16px",
+                  gridColumn: isLong ? "1 / -1" : undefined,
                 }}
               >
                 <div
@@ -121,6 +142,8 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
                     lineHeight: 1.65,
                     margin: 0,
                     fontWeight: 600,
+                    maxWidth: 62 + "ch",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {calloutContent.lead}
@@ -135,6 +158,8 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
                           color: "var(--ink-light)",
                           lineHeight: 1.65,
                           margin: 0,
+                          maxWidth: 68 + "ch",
+                          overflowWrap: "anywhere",
                         }}
                       >
                         {paragraph}

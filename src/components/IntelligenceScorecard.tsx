@@ -30,9 +30,10 @@ export function IntelligenceScorecard({ metrics }: Props) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: 14,
+        gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+        gap: 16,
         alignItems: "stretch",
+        maxWidth: 760,
       }}
     >
       {metrics.map((metric) => {
@@ -94,6 +95,7 @@ export function IntelligenceScorecard({ metrics }: Props) {
                 lineHeight: 1.72,
                 margin: 0,
                 maxWidth: 42 + "ch",
+                overflowWrap: "anywhere",
               }}
             >
               {metric.rationale}

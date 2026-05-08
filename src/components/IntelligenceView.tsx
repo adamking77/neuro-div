@@ -69,7 +69,23 @@ function chunkParagraphs(text: string, sentencesPerParagraph: number) {
   }
 
   const sentences = splitIntoSentences(text);
-  if (sentences.length <= 2) {
+  if (sentences.length === 0) {
+    return text
+      .split(/(?<=,)\s+/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .reduce<string[]>((chunks, paragraph) => {
+        const current = chunks[chunks.length - 1];
+        if (!current || current.length > 180) {
+          chunks.push(paragraph);
+        } else {
+          chunks[chunks.length - 1] = `${current} ${paragraph}`;
+        }
+        return chunks;
+      }, []);
+  }
+
+  if (sentences.length <= 2 && text.length < 220) {
     return [text.trim()];
   }
 
@@ -222,7 +238,7 @@ export function IntelligenceView({ brief, status, error }: Props) {
                 color: "var(--ink)",
                 lineHeight: 1.8,
                 margin: 0,
-                fontStyle: "italic",
+                overflowWrap: "anywhere",
               }}
             >
               {paragraph}
