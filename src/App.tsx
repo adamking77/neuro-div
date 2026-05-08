@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { NDContextBuilder } from "./components/NDContextBuilder";
-import { NDProcessDesigner } from "./components/NDProcessDesigner";
-import { SkillsLibrary } from "./components/SkillsLibrary";
-import { CategoryScoutTool } from "./components/CategoryScoutTool";
-import { DistributionStrategyTool } from "./components/DistributionStrategyTool";
+const NDContextBuilder = dynamic(() => import("./components/NDContextBuilder").then((m) => ({ default: m.NDContextBuilder })), { ssr: false });
+const NDProcessDesigner = dynamic(() => import("./components/NDProcessDesigner").then((m) => ({ default: m.NDProcessDesigner })), { ssr: false });
+const CategoryScoutTool = dynamic(() => import("./components/CategoryScoutTool").then((m) => ({ default: m.CategoryScoutTool })), { ssr: false });
+const DistributionStrategyTool = dynamic(() => import("./components/DistributionStrategyTool").then((m) => ({ default: m.DistributionStrategyTool })), { ssr: false });
+const SkillsLibrary = dynamic(() => import("./components/SkillsLibrary").then((m) => ({ default: m.SkillsLibrary })), { ssr: false });
+
 import { ProjectDrawer, ToolSection } from "./components/app-shell";
 import { useProjectSession } from "./hooks/useProjectSession";
 import { buildIntelligenceMarkdown, normalizeIntelligenceBrief } from "./lib/intelligence";
@@ -76,12 +78,7 @@ export default function App({
   embedded?: boolean;
 }) {
   const router = useRouter();
-  const [pendingTool, setPendingTool] = useState<ActiveTool | null>(null);
-  const displayTool = pendingTool ?? activeTool;
-
-  useEffect(() => {
-    setPendingTool(null);
-  }, [activeTool]);
+  const displayTool = activeTool;
 
   const {
     ndProfileContext,
@@ -501,7 +498,7 @@ export default function App({
                 key={id}
                 href={TOOL_ROUTES[id]}
                 className={`nav-pill${isActive ? " nav-pill--active" : ""}`}
-                onClick={() => setPendingTool(id)}
+                prefetch
                 style={{
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 500,
