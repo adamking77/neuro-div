@@ -27,6 +27,9 @@
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.2.2"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@tauri-apps/cli": "^2",
