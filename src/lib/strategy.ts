@@ -314,6 +314,150 @@ export function normalizeStrategyInputs(inputs: StrategyInputs): StrategyInputs 
   };
 }
 
+function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function dedupeSegments(segments: string[]): string[] {
+  const seen = new Set<string>();
+  return segments.filter((segment) => {
+    const key = segment.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function splitIntoSegments(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return [];
+
+  const sentenceSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[.!?])\s+/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (sentenceSegments.length > 1) {
+    return sentenceSegments;
+  }
+
+  const clauseSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[;:])\s+|(?<=,)\s+(?=[A-Z0-9])/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (clauseSegments.length > 1) {
+    return clauseSegments;
+  }
+
+  return normalized ? [normalized] : [];
+}
+
+function truncateAtWord(text: string, maxChars: number): string {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+
+  const truncated = normalized.slice(0, maxChars + 1);
+  const lastSpace = truncated.lastIndexOf(" ");
+  const base = lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated.slice(0, maxChars);
+  return `${base.replace(/[.,;:\s]+$/, "")}…`;
+}
+
+function compactSingleLine(text: string, maxChars: number): string {
+  const firstSegment = splitIntoSegments(text)[0] ?? normalizeWhitespace(text);
+  return truncateAtWord(firstSegment, maxChars);
+}
+
+function normalizeNarrative(text: string): string {
+  const normalizedParagraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter(Boolean);
+
+  if (normalizedParagraphs.length >= 2) {
+    return normalizedParagraphs
+      .slice(0, 5)
+      .map((paragraph) => truncateAtWord(paragraph, 320))
+      .join("\n\n");
+  }
+
+  const segments = splitIntoSegments(text);
+  if (segments.length === 0) {
+    return "";
+  }
+
+  const paragraphs: string[] = [];
+  for (let i = 0; i < segments.length && paragraphs.length < 5; i += 2) {
+    paragraphs.push(truncateAtWord(segments.slice(i, i + 2).join(" "), 320));
+  }
+
+  return paragraphs.join("\n\n");
+}
+
+function compactSectionSummary(text: string): string {
+  const normalizedParagraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter(Boolean);
+
+  if (normalizedParagraphs.length > 0) {
+    return truncateAtWord(normalizedParagraphs[0], 220);
+  }
+
+  const segments = splitIntoSegments(text);
+  if (segments.length === 0) {
+    return "";
+  }
+
+  return truncateAtWord(segments.slice(0, 2).join(" "), 220);
+}
+
+export function normalizeStrategyDraft(draft: StrategyDraft): StrategyDraft {
+  const sections = isStructuredSections(draft.sections)
+    ? STRATEGY_SECTIONS.reduce((acc, section) => {
+      const current = draft.sections[section.key];
+      acc[section.key] = {
+        summary: compactSectionSummary(current.summary || ""),
+        recommendations: current.recommendations
+          .map((recommendation) => ({
+            ...recommendation,
+            text: compactSingleLine(recommendation.text || "", 170),
+            why: recommendation.why ? compactSingleLine(recommendation.why, 170) : "",
+          }))
+          .filter((recommendation) => recommendation.text),
+        callouts: current.callouts
+          .map((callout) => ({
+            ...callout,
+            text: compactSingleLine(callout.text || "", 150),
+          }))
+          .filter((callout) => callout.text),
+      };
+      return acc;
+    }, {} as StrategySectionsStructured)
+    : STRATEGY_SECTIONS.reduce((acc, section) => {
+      acc[section.key] = normalizeNarrative(draft.sections[section.key] || "");
+      return acc;
+    }, {} as StrategySectionsProse);
+
+  return {
+    ...draft,
+    sections,
+    warnings: draft.warnings.map((warning) => compactSingleLine(warning, 170)).filter(Boolean),
+    scorecard: draft.scorecard
+      ? {
+        metrics: draft.scorecard.metrics.map((metric) => ({
+          ...metric,
+          rationale: compactSingleLine(metric.rationale || "", 140),
+        })),
+      }
+      : undefined,
+  };
+}
+
 function humanizeValue(value: string): string {
   return value
     .split("-")

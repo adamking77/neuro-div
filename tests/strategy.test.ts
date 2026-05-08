@@ -22,6 +22,7 @@ import {
   getStrategyFingerprint,
   getStrategyReadiness,
   hasCompleteStrategyDraft,
+  normalizeStrategyDraft,
   renderAgentBrief,
 } from "../src/lib/strategy";
 import { buildNDProfileContext, createEmptyNDProfile } from "../src/lib/nd-profile";
@@ -213,6 +214,101 @@ describe("strategy draft completeness", () => {
       citations: [],
       generatedAt: "2026-04-24T00:00:00.000Z",
     })).toBe(true);
+  });
+
+  it("normalizes legacy prose drafts into compact paragraphs", () => {
+    const normalized = normalizeStrategyDraft({
+      sections: {
+        positioning: "This is an extremely long positioning block that keeps going well past what the report should show in one place. It includes too many sentences. It keeps explaining. It keeps elaborating. It should be reduced to a compact readable shape instead of staying as a wall of text for the reader.\n\nHere is another oversized paragraph that should also be clipped and compacted for display in the saved project state.",
+        channelPlan: "Use one searchable channel.",
+        messageAngles: "Lead with customer language.",
+        assetIdeas: "Build one self-serve asset.",
+        experiments: "Run one bounded test.",
+        thirtyDaySequence: "Choose, build, place, review.",
+      },
+      warnings: [],
+      citations: [],
+      generatedAt: "2026-05-08T00:00:00.000Z",
+    });
+
+    if (typeof normalized.sections.positioning !== "string") {
+      throw new Error("Expected prose draft after normalization");
+    }
+
+    expect(normalized.sections.positioning.length).toBeLessThan(700);
+    expect(normalized.sections.positioning.split("\n\n").length).toBeLessThanOrEqual(5);
+  });
+
+  it("normalizes structured drafts and scorecard text for display", () => {
+    const normalized = normalizeStrategyDraft({
+      sections: {
+        positioning: {
+          summary: "This summary is much too long for a compact UI card and keeps expanding into multiple ideas that should not all live in the summary field at once because the reader needs a short so-what, not a whole essay.",
+          recommendations: [
+            {
+              text: "Use a wedge that explicitly names the operational pain, rejects the high-maintenance old way, and introduces a low-contact alternative in one clear sentence that does not turn into a giant paragraph.",
+              why: "The founder avoids social maintenance and the Phase 01 research already shows buyers describing the pain in practical language, so the card should point back to those concrete constraints and findings without becoming a block of analysis.",
+              effort: "medium",
+              actionable: true,
+            },
+          ],
+          callouts: [
+            {
+              type: "warning",
+              text: "Anything that depends on frequent posting or relationship tending will create friction and should be treated as a poor fit rather than quietly slipping into the plan through a verbose note.",
+            },
+          ],
+        },
+        channelPlan: {
+          summary: "Keep channels async.",
+          recommendations: [{ text: "Choose one searchable surface.", why: "This matches the founder's constraints.", effort: "low", actionable: true }],
+          callouts: [],
+        },
+        messageAngles: {
+          summary: "Use buyer language.",
+          recommendations: [{ text: "Mirror the audience phrasing.", why: "Phase 06 language mining supports it.", effort: "low", actionable: true }],
+          callouts: [],
+        },
+        assetIdeas: {
+          summary: "Build one asset.",
+          recommendations: [{ text: "Create one diagnostic.", why: "It compounds quietly.", effort: "medium", actionable: true }],
+          callouts: [],
+        },
+        experiments: {
+          summary: "Run one test.",
+          recommendations: [{ text: "Ship one landing page test.", why: "It produces one signal.", effort: "low", actionable: true }],
+          callouts: [],
+        },
+        thirtyDaySequence: {
+          summary: "Move in bursts.",
+          recommendations: [{ text: "Choose, build, place, review.", why: "This fits activation windows.", effort: "medium", actionable: true }],
+          callouts: [],
+        },
+      },
+      warnings: ["This warning is also too long and should not render as a sprawling block of text that dominates the report UI for something that ought to be readable at a glance."],
+      citations: [],
+      generatedAt: "2026-05-08T00:00:00.000Z",
+      scorecard: {
+        metrics: [
+          {
+            label: "Channel Fit",
+            grade: "medium",
+            rationale: "This rationale is much too long for the compact scorecard and should be reduced to one short readable line instead of taking over the card layout with a paragraph.",
+          },
+        ],
+      },
+    });
+
+    if (typeof normalized.sections.positioning === "string") {
+      throw new Error("Expected structured draft after normalization");
+    }
+
+    expect(normalized.sections.positioning.summary.length).toBeLessThanOrEqual(221);
+    expect(normalized.sections.positioning.recommendations[0].text.length).toBeLessThanOrEqual(171);
+    expect(normalized.sections.positioning.recommendations[0].why.length).toBeLessThanOrEqual(171);
+    expect(normalized.sections.positioning.callouts[0].text.length).toBeLessThanOrEqual(151);
+    expect(normalized.warnings[0].length).toBeLessThanOrEqual(171);
+    expect(normalized.scorecard?.metrics[0].rationale.length).toBeLessThanOrEqual(141);
   });
 });
 

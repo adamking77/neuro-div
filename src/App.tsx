@@ -16,6 +16,7 @@ import {
   condensePhaseResearch,
   getStrategyFingerprint,
   hasCompleteStrategyDraft,
+  normalizeStrategyDraft,
 } from "./lib/strategy";
 import { PHASES } from "./phases";
 import { TOOL_LINKS, TOOL_ROUTES, type ActiveTool } from "./lib/tool-routes";
@@ -292,7 +293,7 @@ export default function App({
       mutateSession((current) => ({ ...current, strategyStatus: "drafting" }));
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      const finalDraft = payload as StrategyDraft;
+      const finalDraft = normalizeStrategyDraft(payload as StrategyDraft);
       if (!hasCompleteStrategyDraft(finalDraft)) {
         throw new Error("Strategy draft returned without section text. Try rebuilding.");
       }

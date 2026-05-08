@@ -1,5 +1,6 @@
 import type { SessionState, StrategyDraft } from "../types";
 import { normalizeIntelligenceBrief } from "./intelligence";
+import { normalizeStrategyDraft } from "./strategy";
 
 const STORAGE_KEY = "category-scout-projects";
 const CURRENT_KEY = "category-scout-current";
@@ -32,6 +33,9 @@ function sanitizeSession(session: SessionState): SessionState {
     ...session,
     intelligenceBrief: session.intelligenceBrief
       ? normalizeIntelligenceBrief(session.intelligenceBrief)
+      : null,
+    strategyDraft: session.strategyDraft
+      ? normalizeStrategyDraft(session.strategyDraft)
       : null,
     strategyStatus: normalizeTransientStatus(session.strategyStatus, !!session.strategyDraft),
     strategyError: strategyRecovered
