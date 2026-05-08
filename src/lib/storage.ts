@@ -1,4 +1,5 @@
 import type { SessionState, StrategyDraft } from "../types";
+import { normalizeIntelligenceBrief } from "./intelligence";
 
 const STORAGE_KEY = "category-scout-projects";
 const CURRENT_KEY = "category-scout-current";
@@ -29,6 +30,9 @@ function sanitizeSession(session: SessionState): SessionState {
 
   return {
     ...session,
+    intelligenceBrief: session.intelligenceBrief
+      ? normalizeIntelligenceBrief(session.intelligenceBrief)
+      : null,
     strategyStatus: normalizeTransientStatus(session.strategyStatus, !!session.strategyDraft),
     strategyError: strategyRecovered
       ? "Previous strategy generation did not finish. Generate again."

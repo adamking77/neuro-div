@@ -10,7 +10,7 @@ import { CategoryScoutTool } from "./components/CategoryScoutTool";
 import { DistributionStrategyTool } from "./components/DistributionStrategyTool";
 import { ProjectDrawer, ToolSection } from "./components/app-shell";
 import { useProjectSession } from "./hooks/useProjectSession";
-import { buildIntelligenceMarkdown } from "./lib/intelligence";
+import { buildIntelligenceMarkdown, normalizeIntelligenceBrief } from "./lib/intelligence";
 import {
   buildStrategyMarkdown,
   condensePhaseResearch,
@@ -386,7 +386,7 @@ export default function App({
 
       mutateSession((current) => ({
         ...current,
-        intelligenceBrief: payload,
+        intelligenceBrief: normalizeIntelligenceBrief(payload),
         intelligenceStatus: "done",
         intelligenceError: undefined,
       }));

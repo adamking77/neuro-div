@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildIntelligenceMarkdown } from "../src/lib/intelligence";
+import { buildIntelligenceMarkdown, normalizeIntelligenceBrief } from "../src/lib/intelligence";
 import { parseIntelligenceBriefPart1 } from "../api/_lib/intelligence-api";
 import { POST as postDeterministicAnalysis } from "../app/api/intelligence-analysis/route";
 import { POST as postDeterministicSnapshot } from "../app/api/intelligence-snapshot-v1/route";
@@ -194,6 +194,41 @@ describe("buildIntelligenceMarkdown", () => {
     expect(parsed.scorecard.metrics[0].evidence?.length ?? 0).toBeLessThanOrEqual(151);
     expect(parsed.landscape.callouts[0].headline.length).toBeLessThanOrEqual(111);
     expect(parsed.landscape.callouts[0].support?.length ?? 0).toBeLessThanOrEqual(146);
+  });
+
+  it("normalizes legacy saved briefs on the client", () => {
+    const normalized = normalizeIntelligenceBrief({
+      ...mockBrief,
+      scorecard: {
+        metrics: [
+          {
+            label: "Market Opportunity",
+            grade: "high",
+            rationale:
+              "Demand is clear across repeated buyer signals and fragmented search language. Teams keep describing the pain in similar but unstable terms. That makes the wedge more available than it first appears.",
+          },
+          mockBrief.scorecard.metrics[1],
+          mockBrief.scorecard.metrics[2],
+          mockBrief.scorecard.metrics[3],
+        ],
+      },
+      landscape: {
+        content:
+          "The market is active but fragmented. Buyers can describe the pain, but they cannot reliably name the category. Larger players still speak in adjacent language.",
+        callouts: [
+          {
+            type: "insight",
+            text:
+              "Buyers are already looking for a solution, but their language is inconsistent and pre-category. That makes message ownership unusually valuable. It also means the first clear explanation can reset the comparison set.",
+          },
+        ],
+      },
+    });
+
+    expect(normalized.scorecard.metrics[0].takeaway.length).toBeLessThanOrEqual(121);
+    expect(normalized.scorecard.metrics[0].evidence?.length ?? 0).toBeLessThanOrEqual(151);
+    expect(normalized.landscape.callouts[0].headline.length).toBeLessThanOrEqual(111);
+    expect(normalized.landscape.callouts[0].support?.length ?? 0).toBeLessThanOrEqual(146);
   });
 
   it("includes positioning table as markdown", () => {
