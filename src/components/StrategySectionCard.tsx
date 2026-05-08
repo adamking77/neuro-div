@@ -40,11 +40,7 @@ export function StrategySectionCard({ section, index, content, citations }: Prop
   const isOutput = index === STRATEGY_SECTIONS.length - 1;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.2 }}
-    >
+    <div>
       {/* Section heading */}
       <div
         style={{
@@ -189,7 +185,7 @@ export function StrategySectionCard({ section, index, content, citations }: Prop
       )}
 
       <SectionCitations citations={citations} />
-    </motion.div>
+    </div>
   );
 }
 

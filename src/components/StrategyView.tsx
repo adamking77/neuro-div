@@ -283,28 +283,29 @@ export function StrategyView({
         />
       )}
 
-      {activeTab === "draft" && (
-        <StrategyContent
-          key={draft?.generatedAt ?? "empty"}
-          session={session}
-          strategyRunning={strategyRunning}
-          readiness={readiness}
-          onSectionChange={onSectionChange}
-          onGenerate={handleGenerate}
-        />
-      )}
-      {activeTab === "intelligence" && (
-        <IntelligenceView
-          brief={session.intelligenceBrief}
-          status={session.intelligenceStatus}
-          error={interruptedNotice ? undefined : session.intelligenceError}
-        />
-      )}
-      {activeTab === "agent" && (
-        <AgentBriefView
-          markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem, ndProfileContext)}
-        />
-      )}
+      <div key={activeTab}>
+        {activeTab === "draft" && (
+          <StrategyContent
+            session={session}
+            strategyRunning={strategyRunning}
+            readiness={readiness}
+            onSectionChange={onSectionChange}
+            onGenerate={handleGenerate}
+          />
+        )}
+        {activeTab === "intelligence" && (
+          <IntelligenceView
+            brief={session.intelligenceBrief}
+            status={session.intelligenceStatus}
+            error={interruptedNotice ? undefined : session.intelligenceError}
+          />
+        )}
+        {activeTab === "agent" && (
+          <AgentBriefView
+            markdown={renderAgentBrief(session.strategyDraft, session.strategyInputs, session.problem, ndProfileContext)}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -1421,11 +1422,7 @@ function SectionCard({
   void onEdit;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.2 }}
-    >
+    <div>
       {/* Section heading */}
       <div
         style={{
@@ -1478,7 +1475,7 @@ function SectionCard({
 
       <FormattedStrategySection value={value} />
       <SectionCitations citations={citations} />
-    </motion.div>
+    </div>
   );
 }
 
