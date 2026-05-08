@@ -539,6 +539,7 @@ export function buildStrategyDraftPromptPart1(
     "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
     "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
     '{"scorecard":{"metrics":[{"label":"Channel Fit","grade":"high|medium|low","rationale":"1-2 sentences grounded in constraints and research"},{"label":"Message Clarity","grade":"high|medium|low","rationale":"..."},{"label":"Asset Leverage","grade":"high|medium|low","rationale":"..."},{"label":"Execution Realism","grade":"high|medium|low","rationale":"..."}]},"sections":{"positioning":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"channelPlan":{...same shape...},"messageAngles":{...same shape...}},"warnings":["..."],"citations":[{"section":"positioning","title":"...","url":"...","note":"..."}]}',
+    "Hard display limits: these sections render as compact UI cards, not essay blocks. Summary must stay within 1-2 short sentences. recommendation.text must be a single concise action sentence. recommendation.why must be one short evidence sentence. callouts must be one short sentence. Do not put multi-paragraph analysis into any card field.",
     "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Examples: 'Based on your stated avoidance of [X]...', 'The Phase 01 research shows audiences are already using language around...', 'Given that you have previously tried [previouslyTried]...'. Generic rationale such as 'this channel works well for founders' is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
     "Section guidance — positioning: draw the wedge from Phase 01 problem language and Phase 03 white space. The summary is the single-sentence positioning statement. Recommendations are differentiated wedge options, each with rationale citing the research phase that supports it.",
     "channelPlan: match channels to the founder's outreach tolerance, content mode, and avoidanceTasks. Effort reflects realistic cost given their working windows. Flag anything requiring social maintenance as a warning callout.",
@@ -595,6 +596,7 @@ export function buildStrategyDraftPromptPart2(
     "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
     "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
     '{"sections":{"assetIdeas":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"experiments":{...same shape...},"thirtyDaySequence":{...same shape...}},"citations":[{"section":"assetIdeas","title":"...","url":"...","note":"..."}]}',
+    "Hard display limits: these sections render as compact UI cards, not essay blocks. Summary must stay within 1-2 short sentences. recommendation.text must be a single concise action sentence. recommendation.why must be one short evidence sentence. callouts must be one short sentence. Do not put multi-paragraph analysis into any card field.",
     "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Generic rationale is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
     "Section guidance — assetIdeas: match asset format to contentMode. Recommendations are specific asset concepts, not categories. The 'why' references both the audience recognition moment and the founder's capacity.",
     "experiments: single bounded experiments only. Effort must be 'low' — if it's medium or high it's not an experiment, it's a project. The 'why' explains what specific signal this test will produce.",
@@ -682,12 +684,18 @@ export function parseStrategyDraftPart2Structured(input: unknown): StrategyDraft
 function parseSectionContent(sectionsRecord: Record<string, unknown>, key: string): StrategySectionContent {
   const raw = sectionsRecord[key];
   if (typeof raw === "string") {
-    return { summary: raw, recommendations: [], callouts: [] };
+    throw new Error(`sections.${key} must be structured data, not a prose string`);
   }
   const obj = expectRecord(raw ?? {}, `sections.${key} must be an object`);
-  const summary = typeof obj.summary === "string" ? obj.summary : String(obj.summary ?? "");
+  const summary = compactSectionSummary(typeof obj.summary === "string" ? obj.summary : String(obj.summary ?? ""));
   const recommendations = parseRecommendations(obj.recommendations);
   const callouts = parseCallouts(obj.callouts);
+  if (!summary) {
+    throw new Error(`sections.${key}.summary is required`);
+  }
+  if (recommendations.length === 0) {
+    throw new Error(`sections.${key}.recommendations must contain at least one item`);
+  }
   return { summary, recommendations, callouts };
 }
 
@@ -695,13 +703,21 @@ function parseRecommendations(input: unknown): StrategyRecommendation[] {
   if (!Array.isArray(input)) return [];
   return input.flatMap((item) => {
     if (typeof item === "string") {
-      return [{ text: item, why: "", effort: "medium" as const, actionable: true }];
+      return [{
+        text: compactSingleLine(item, 170),
+        why: "",
+        effort: "medium" as const,
+        actionable: true,
+      }];
     }
     if (typeof item !== "object" || item === null) return [];
     const obj = item as Record<string, unknown>;
+    const textSource = String(obj.text ?? "");
+    const textSegments = splitIntoSegments(textSource);
+    const whySource = String(obj.why ?? textSegments.slice(1).join(" "));
     return [{
-      text: String(obj.text ?? ""),
-      why: String(obj.why ?? ""),
+      text: compactSingleLine(textSegments[0] || textSource, 170),
+      why: whySource.trim().length > 0 ? compactSingleLine(whySource, 170) : "",
       effort: (["low", "medium", "high"].includes(String(obj.effort)) ? obj.effort : "medium") as "low" | "medium" | "high",
       actionable: obj.actionable !== false,
     }];
@@ -714,8 +730,84 @@ function parseCallouts(input: unknown): StrategyCallout[] {
     if (typeof item !== "object" || item === null) return [];
     const obj = item as Record<string, unknown>;
     const type = (["insight", "warning", "opportunity"].includes(String(obj.type)) ? obj.type : "insight") as "insight" | "warning" | "opportunity";
-    return [{ type, text: String(obj.text ?? "") }];
+    return [{ type, text: compactSingleLine(String(obj.text ?? ""), 150) }];
   }).filter((c) => c.text.trim().length > 0);
+}
+
+function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function dedupeSegments(segments: string[]): string[] {
+  const seen = new Set<string>();
+  return segments.filter((segment) => {
+    const key = segment.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function splitIntoSegments(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return [];
+
+  const sentenceSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[.!?])\s+/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (sentenceSegments.length > 1) {
+    return sentenceSegments;
+  }
+
+  const clauseSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[;:])\s+|(?<=,)\s+(?=[A-Z0-9])/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (clauseSegments.length > 1) {
+    return clauseSegments;
+  }
+
+  return normalized ? [normalized] : [];
+}
+
+function truncateAtWord(text: string, maxChars: number): string {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+
+  const truncated = normalized.slice(0, maxChars + 1);
+  const lastSpace = truncated.lastIndexOf(" ");
+  const base = lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated.slice(0, maxChars);
+  return `${base.replace(/[.,;:\s]+$/, "")}…`;
+}
+
+function compactSingleLine(text: string, maxChars: number): string {
+  const firstSegment = splitIntoSegments(text)[0] ?? normalizeWhitespace(text);
+  return truncateAtWord(firstSegment, maxChars);
+}
+
+function compactSectionSummary(text: string): string {
+  const normalizedParagraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter(Boolean);
+
+  if (normalizedParagraphs.length > 0) {
+    return truncateAtWord(normalizedParagraphs[0], 220);
+  }
+
+  const segments = splitIntoSegments(text);
+  if (segments.length === 0) {
+    return "";
+  }
+
+  return truncateAtWord(segments.slice(0, 2).join(" "), 220);
 }
 
 function parseStrategyScorecard(input: unknown): StrategyScorecard | undefined {

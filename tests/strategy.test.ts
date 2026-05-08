@@ -4,6 +4,8 @@ import {
   buildExaSearchRequest,
   buildFallbackStrategyDraft,
   buildStrategyDraftPrompt,
+  parseStrategyDraftPart1Structured,
+  parseStrategyDraftPart2Structured,
   getExaConfig,
   getKimiConfig,
   getUpstreamTimeouts,
@@ -217,6 +219,80 @@ describe("strategy draft completeness", () => {
 describe("strategy API helpers", () => {
   it("rejects missing Exa credentials", () => {
     expect(() => getExaConfig({})).toThrow("EXA_API_KEY not configured");
+  });
+
+  it("rejects prose-string sections in structured strategy output", () => {
+    expect(() => parseStrategyDraftPart1Structured({
+      sections: {
+        positioning: "A giant prose block that should trigger fallback instead of rendering as one huge card body.",
+        channelPlan: {
+          summary: "Keep channels async and discoverable.",
+          recommendations: [{ text: "Publish one searchable teardown page.", why: "Phase 01 language shows buyers search for concrete fixes.", effort: "medium", actionable: true }],
+          callouts: [],
+        },
+        messageAngles: {
+          summary: "Lead with operational relief, not thought leadership.",
+          recommendations: [{ text: "Use the audience's existing phrasing in the hook.", why: "Phase 06 language mining surfaces this exact wording.", effort: "low", actionable: true }],
+          callouts: [],
+        },
+      },
+      warnings: [],
+      citations: [],
+    })).toThrow("structured data, not a prose string");
+  });
+
+  it("compacts oversized strategy card fields", () => {
+    const part2 = parseStrategyDraftPart2Structured({
+      sections: {
+        assetIdeas: {
+          summary: "Build a flagship diagnostic asset that helps a buyer self-identify the problem before they ever talk to you. It should feel immediately useful, credible, and easy to share internally without requiring any social follow-up from the founder.",
+          recommendations: [
+            {
+              text: "Create an interactive diagnostic that lets teams score their current process, reveals the hidden cost of the old way, and then walks them through the first few corrective steps in a way that feels specific to their situation rather than generic advisory content.",
+              why: "The founder explicitly avoids ongoing posting and social maintenance, and the Phase 01 research shows buyers already describe the pain in operational language, which means a searchable self-serve asset can meet them before a sales conversation is necessary.",
+              effort: "medium",
+              actionable: true,
+            },
+          ],
+          callouts: [
+            {
+              type: "opportunity",
+              text: "If the first version is too broad it will read like generic consulting collateral, so keep the scope narrow enough that the audience immediately recognizes themselves and knows what to do next.",
+            },
+          ],
+        },
+        experiments: {
+          summary: "Run a single bounded test with one success signal.",
+          recommendations: [
+            {
+              text: "Publish one diagnostic landing page and track qualified inbound replies.",
+              why: "This fits the founder's limited weekly capacity.",
+              effort: "low",
+              actionable: true,
+            },
+          ],
+          callouts: [],
+        },
+        thirtyDaySequence: {
+          summary: "Move in short bursts when conditions are right.",
+          recommendations: [
+            {
+              text: "Choose the wedge, build the asset, place it once, then review the signal.",
+              why: "This matches the activation-window pattern in the founder inputs.",
+              effort: "medium",
+              actionable: true,
+            },
+          ],
+          callouts: [],
+        },
+      },
+      citations: [],
+    });
+
+    expect(part2.sections.assetIdeas.summary.length).toBeLessThanOrEqual(221);
+    expect(part2.sections.assetIdeas.recommendations[0].text.length).toBeLessThanOrEqual(171);
+    expect(part2.sections.assetIdeas.recommendations[0].why.length).toBeLessThanOrEqual(171);
+    expect(part2.sections.assetIdeas.callouts[0].text.length).toBeLessThanOrEqual(151);
   });
 
   it("uses the documented Kimi defaults", () => {

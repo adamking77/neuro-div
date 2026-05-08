@@ -63,19 +63,6 @@ export function CategoryScoutTool({
             </span>
           ) : undefined
         }
-        headerActions={
-          hasAnyResults ? (
-            <button
-              className="btn-text"
-              onClick={onDownloadResearch}
-              aria-label="Export research as Markdown"
-              style={{ fontSize: 11, color: "var(--ink-muted)" }}
-            >
-              <DownloadSimple size={11} />
-              Export
-            </button>
-          ) : undefined
-        }
       >
         <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
           Describe the customer problem below. Run the research. Read the excerpts directly, export the full file, or hand it to Distribution Strategy for the next step.
@@ -132,7 +119,23 @@ export function CategoryScoutTool({
             style={{ marginBottom: 16 }}
           />
 
-          <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={onRunAll} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <RunButton canRun={canRun} isRunning={phaseRunning} hasAnyResults={hasAnyResults} onClick={onRunAll} />
+            {hasAnyResults && (
+              <button
+                className="btn-text"
+                onClick={onDownloadResearch}
+                aria-label="Export research as Markdown"
+                style={{
+                  fontSize: 12,
+                  color: "var(--ink-muted)",
+                }}
+              >
+                <DownloadSimple size={12} />
+                Export
+              </button>
+            )}
+          </div>
         </div>
 
         <ReportView session={session} onRunPhase={onRunPhase as (phaseId: number, startDelay?: number) => Promise<void> | void} isRunning={phaseRunning} />
