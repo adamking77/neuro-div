@@ -101,8 +101,12 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
           {callouts.map((callout, i) => {
             const style = CALLOUT_STYLES[callout.type] ?? CALLOUT_STYLES.insight;
             const label = callout.type.charAt(0).toUpperCase() + callout.type.slice(1);
-            const calloutContent = buildCalloutContent(callout.text);
-            const isLong = callout.text.length > 220;
+            const legacyText = callout.text ?? "";
+            const headline = callout.headline || buildCalloutContent(legacyText).lead;
+            const support = callout.support
+              ? [callout.support]
+              : buildCalloutContent(legacyText).rest;
+            const isLong = `${headline} ${support.join(" ")}`.length > 220;
             return (
               <div
                 key={i}
@@ -146,11 +150,11 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
                     overflowWrap: "anywhere",
                   }}
                 >
-                  {calloutContent.lead}
+                  {headline}
                 </p>
-                {calloutContent.rest.length > 0 && (
+                {support.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-                    {calloutContent.rest.map((paragraph, paragraphIndex) => (
+                    {support.map((paragraph, paragraphIndex) => (
                       <p
                         key={paragraphIndex}
                         style={{

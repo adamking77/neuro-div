@@ -160,22 +160,23 @@ export function buildIntelligenceBriefPromptPart1(
     summary: "1-paragraph executive summary synthesizing the entire brief.",
     scorecard: {
       metrics: [
-        { label: "Market Opportunity", grade: "high|medium|low", rationale: "1-2 sentences" },
-        { label: "Competitive Intensity", grade: "high|medium|low", rationale: "1-2 sentences" },
-        { label: "Timing Window", grade: "high|medium|low", rationale: "1-2 sentences" },
-        { label: "Founder Fit", grade: "high|medium|low", rationale: "1-2 sentences" },
+        { label: "Market Opportunity", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
+        { label: "Competitive Intensity", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
+        { label: "Timing Window", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
+        { label: "Founder Fit", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
       ],
     },
     landscape: {
       content: "3-5 paragraphs synthesizing the market landscape. Use markdown formatting for emphasis.",
       callouts: [
-        { type: "insight|warning|opportunity", text: "1-2 sentence callout" },
+        { type: "insight|warning|opportunity", headline: "single sharp callout, max 18 words", support: "optional evidence sentence, max 22 words" },
       ],
     },
   });
 
   const system = [
     ...CORE_SYSTEM_INSTRUCTIONS,
+    "Hard display limits: scorecard metrics and callouts are compact cards, not analysis sections. Do not put multi-sentence or multi-clause analysis into takeaway, evidence, headline, or support. If a point needs more room, put it in landscape.content instead.",
     `Return ONLY a JSON object with this exact structure. Populate every field with substantive, specific content. No markdown code fences, no text outside the JSON:\n${schema}`,
   ].join("\n\n");
 
@@ -270,18 +271,18 @@ export function buildFallbackIntelligenceBriefPart1(
     summary: `Analysis of ${problem} for ${audience}. The market shows problem-aware demand with several low-contact distribution opportunities. Competitive intensity varies by channel. Founder constraints (team size: ${payload.founderConstraints.teamSize}, budget: ${payload.founderConstraints.budgetBand}) shape viable paths.`,
     scorecard: {
       metrics: [
-        { label: "Market Opportunity", grade: "medium", rationale: `Problem-aware demand exists for ${problem}, but category is not fully formed.` },
-        { label: "Competitive Intensity", grade: "medium", rationale: "Adjacent players exist but clear differentiation is possible." },
-        { label: "Timing Window", grade: "medium", rationale: "Market is receptive but not urgent. Early-mover advantage available." },
-        { label: "Founder Fit", grade: "medium", rationale: `Content mode (${payload.founderConstraints.contentMode.join(", ")}) and outreach tolerance (${payload.founderConstraints.outreachTolerance}) define feasible channels.` },
+        { label: "Market Opportunity", grade: "medium", takeaway: `Problem-aware demand exists for ${problem}.`, evidence: "The category is active, but the language is still unsettled." },
+        { label: "Competitive Intensity", grade: "medium", takeaway: "Adjacent players exist, but the wedge is still open.", evidence: "Differentiation is possible if the framing stays specific." },
+        { label: "Timing Window", grade: "medium", takeaway: "The market is receptive, but urgency is not locked in.", evidence: "Early-mover advantage is available if the category gets named clearly." },
+        { label: "Founder Fit", grade: "medium", takeaway: `Feasible channels depend on ${payload.founderConstraints.outreachTolerance} outreach tolerance.`, evidence: `Preferred creation mode is ${payload.founderConstraints.contentMode.join(", ")}.` },
       ],
     },
     landscape: {
       content: `The market for ${problem} is in an early-to-mid formation stage. Problem-aware buyers exist but the category language is not yet settled. This creates an opportunity to define the category narrative before incumbents lock it in.\n\nThe audience (${audience}) is actively searching for solutions but may not have a category name for what they need. This gap between problem awareness and category awareness is the core strategic opportunity.\n\nDistribution channels favor async, discoverable assets over high-touch sales or community-building approaches. Search-led discovery, partner surfaces, and create-once assets align with the founder's constraints and the audience's behavior.`,
       callouts: [
-        { type: "insight", text: `Buyers are searching for ${problem} solutions using pre-category language.` },
-        { type: "opportunity", text: "First-mover advantage in category definition is still available." },
-        { type: "warning", text: "Without clear differentiation, the offer may be compared to adjacent services on price alone." },
+        { type: "insight", headline: `Buyers search for ${problem} using pre-category language.` },
+        { type: "opportunity", headline: "Category definition is still available to claim." },
+        { type: "warning", headline: "Without a wedge, adjacent offers will force price comparison." },
       ],
     },
   };
@@ -393,35 +394,193 @@ function parseIntelligenceJson(text: string): unknown {
   }
 }
 
+function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function dedupeSegments(segments: string[]): string[] {
+  const seen = new Set<string>();
+  return segments.filter((segment) => {
+    const key = segment.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function splitIntoSegments(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return [];
+
+  const sentenceSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[.!?])\s+/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (sentenceSegments.length > 1) {
+    return sentenceSegments;
+  }
+
+  const clauseSegments = dedupeSegments(
+    normalized
+      .split(/(?<=[;:])\s+|(?<=,)\s+(?=[A-Z0-9])/)
+      .map((segment) => segment.trim())
+      .filter(Boolean),
+  );
+  if (clauseSegments.length > 1) {
+    return clauseSegments;
+  }
+
+  if (normalized.length <= 120) {
+    return [normalized];
+  }
+
+  const words = normalized.split(" ");
+  const chunks: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > 110 && current) {
+      chunks.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) {
+    chunks.push(current);
+  }
+
+  return dedupeSegments(chunks);
+}
+
+function truncateAtWord(text: string, maxChars: number): string {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+
+  const truncated = normalized.slice(0, maxChars + 1);
+  const lastSpace = truncated.lastIndexOf(" ");
+  const base = lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated.slice(0, maxChars);
+  return `${base.replace(/[.,;:\s]+$/, "")}…`;
+}
+
+function compactSingleLine(text: string, maxChars: number): string {
+  const firstSegment = splitIntoSegments(text)[0] ?? normalizeWhitespace(text);
+  return truncateAtWord(firstSegment, maxChars);
+}
+
+function normalizeNarrative(text: string): string {
+  const normalized = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter(Boolean);
+
+  if (normalized.length >= 2) {
+    return normalized
+      .slice(0, 5)
+      .map((paragraph) => truncateAtWord(paragraph, 320))
+      .join("\n\n");
+  }
+
+  const segments = splitIntoSegments(text);
+  if (segments.length === 0) {
+    return "";
+  }
+
+  const paragraphs: string[] = [];
+  for (let i = 0; i < segments.length && paragraphs.length < 5; i += 2) {
+    paragraphs.push(truncateAtWord(segments.slice(i, i + 2).join(" "), 320));
+  }
+
+  return paragraphs.join("\n\n");
+}
+
+function normalizeScorecardMetric(metric: {
+  label: BriefPart1["scorecard"]["metrics"][number]["label"];
+  grade: BriefPart1["scorecard"]["metrics"][number]["grade"];
+  takeaway?: string;
+  evidence?: string;
+  rationale?: string;
+}): BriefPart1["scorecard"]["metrics"][number] {
+  const source = normalizeWhitespace(metric.takeaway || metric.rationale || "");
+  const sourceSegments = splitIntoSegments(source);
+  const evidenceSource = normalizeWhitespace(metric.evidence || sourceSegments.slice(1).join(" "));
+  const takeaway = compactSingleLine(sourceSegments[0] || source, 120);
+  const evidence = evidenceSource ? compactSingleLine(evidenceSource, 150) : undefined;
+
+  return {
+    label: metric.label,
+    grade: metric.grade,
+    takeaway,
+    evidence,
+  };
+}
+
+function normalizeCallout(callout: {
+  type: BriefPart1["landscape"]["callouts"][number]["type"];
+  headline?: string;
+  support?: string;
+  text?: string;
+}): BriefPart1["landscape"]["callouts"][number] {
+  const source = normalizeWhitespace(callout.headline || callout.text || "");
+  const sourceSegments = splitIntoSegments(source);
+  const supportSource = normalizeWhitespace(callout.support || sourceSegments.slice(1).join(" "));
+  const headline = compactSingleLine(sourceSegments[0] || source, 110);
+  const support = supportSource ? compactSingleLine(supportSource, 145) : undefined;
+
+  return {
+    type: callout.type,
+    headline,
+    support,
+  };
+}
+
 function validateBriefPart1(input: unknown): BriefPart1 {
   const body = expectRecord(input, "Intelligence brief part 1 must be a JSON object");
 
-  const summary = expectString(body.summary, "summary is required");
+  const summary = normalizeNarrative(expectString(body.summary, "summary is required"));
 
   const scorecardInput = expectRecord(body.scorecard, "scorecard is required");
   const metrics = expectArray(scorecardInput.metrics, "scorecard.metrics is required").map((m, i) => {
     const metric = expectRecord(m, `scorecard.metrics[${i}] must be an object`);
-    return {
+    const takeaway = expectOptionalString(metric.takeaway);
+    const rationale = expectOptionalString(metric.rationale);
+    if (!takeaway && !rationale) {
+      throw new StrategyRequestError(400, `scorecard.metrics[${i}] requires takeaway or rationale`);
+    }
+    return normalizeScorecardMetric({
       label: expectEnum(metric.label, ["Market Opportunity", "Competitive Intensity", "Timing Window", "Founder Fit"], `scorecard.metrics[${i}].label is invalid`),
       grade: expectEnum(metric.grade, ["high", "medium", "low"], `scorecard.metrics[${i}].grade is invalid`),
-      rationale: expectString(metric.rationale, `scorecard.metrics[${i}].rationale is required`),
-    };
+      takeaway,
+      evidence: expectOptionalString(metric.evidence),
+      rationale,
+    });
   });
 
   const landscapeInput = expectRecord(body.landscape, "landscape is required");
   const callouts = expectArray(landscapeInput.callouts, "landscape.callouts is required").map((c, i) => {
     const callout = expectRecord(c, `landscape.callouts[${i}] must be an object`);
-    return {
+    const headline = expectOptionalString(callout.headline);
+    const text = expectOptionalString(callout.text);
+    if (!headline && !text) {
+      throw new StrategyRequestError(400, `landscape.callouts[${i}] requires headline or text`);
+    }
+    return normalizeCallout({
       type: expectEnum(callout.type, ["insight", "warning", "opportunity"], `landscape.callouts[${i}].type is invalid`),
-      text: expectString(callout.text, `landscape.callouts[${i}].text is required`),
-    };
+      headline,
+      support: expectOptionalString(callout.support),
+      text,
+    });
   });
 
   return {
     summary,
     scorecard: { metrics },
     landscape: {
-      content: expectString(landscapeInput.content, "landscape.content is required"),
+      content: normalizeNarrative(expectString(landscapeInput.content, "landscape.content is required")),
       callouts,
     },
   };
@@ -513,6 +672,14 @@ function expectString(input: unknown, message: string): string {
     throw new StrategyRequestError(400, message);
   }
   return input.trim();
+}
+
+function expectOptionalString(input: unknown): string | undefined {
+  if (typeof input !== "string") {
+    return undefined;
+  }
+  const trimmed = input.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 function expectNumber(input: unknown, message: string): number {

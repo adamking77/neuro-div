@@ -1,5 +1,15 @@
 import type { IntelligenceBrief } from "../types";
 
+function formatMetric(metric: IntelligenceBrief["scorecard"]["metrics"][number]): string {
+  const takeaway = metric.takeaway || metric.rationale || "";
+  return metric.evidence ? `${takeaway} Evidence: ${metric.evidence}` : takeaway;
+}
+
+function formatCallout(callout: IntelligenceBrief["landscape"]["callouts"][number]): string {
+  const headline = callout.headline || callout.text || "";
+  return callout.support ? `${headline} ${callout.support}` : headline;
+}
+
 export function buildIntelligenceMarkdown(brief: IntelligenceBrief): string {
   const sections: string[] = [];
 
@@ -18,7 +28,7 @@ export function buildIntelligenceMarkdown(brief: IntelligenceBrief): string {
   sections.push(`## 01 — Situation Assessment`);
   sections.push("");
   for (const metric of brief.scorecard.metrics) {
-    sections.push(`**${metric.label}:** ${metric.grade.toUpperCase()} — ${metric.rationale}`);
+    sections.push(`**${metric.label}:** ${metric.grade.toUpperCase()} — ${formatMetric(metric)}`);
   }
   sections.push("");
 
@@ -30,7 +40,7 @@ export function buildIntelligenceMarkdown(brief: IntelligenceBrief): string {
   if (brief.landscape.callouts.length > 0) {
     for (const callout of brief.landscape.callouts) {
       const emoji = callout.type === "insight" ? "💡" : callout.type === "warning" ? "⚠️" : "🎯";
-      sections.push(`> ${emoji} **${callout.type.toUpperCase()}:** ${callout.text}`);
+      sections.push(`> ${emoji} **${callout.type.toUpperCase()}:** ${formatCallout(callout)}`);
     }
     sections.push("");
   }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildIntelligenceMarkdown } from "../src/lib/intelligence";
+import { parseIntelligenceBriefPart1 } from "../api/_lib/intelligence-api";
 import { POST as postDeterministicAnalysis } from "../app/api/intelligence-analysis/route";
 import { POST as postDeterministicSnapshot } from "../app/api/intelligence-snapshot-v1/route";
 import type { IntelligenceBrief } from "../src/types";
@@ -9,17 +10,17 @@ const mockBrief: IntelligenceBrief = {
   summary: "The market for async project management tools shows strong problem-aware demand among solo operators.",
   scorecard: {
     metrics: [
-      { label: "Market Opportunity", grade: "high", rationale: "Problem-aware search demand is growing 40% YoY." },
-      { label: "Competitive Intensity", grade: "medium", rationale: "Several players exist but none focus on the PDA-friendly niche." },
-      { label: "Timing Window", grade: "high", rationale: "Remote work normalization creates urgency." },
-      { label: "Founder Fit", grade: "medium", rationale: "Content creation mode matches founder strengths." },
+      { label: "Market Opportunity", grade: "high", takeaway: "Problem-aware demand is clearly present.", evidence: "Search demand is growing 40% YoY." },
+      { label: "Competitive Intensity", grade: "medium", takeaway: "Several players exist, but the niche is still open.", evidence: "No incumbent focuses on the PDA-friendly segment." },
+      { label: "Timing Window", grade: "high", takeaway: "The timing is favorable for a sharper wedge.", evidence: "Remote work normalization increases urgency." },
+      { label: "Founder Fit", grade: "medium", takeaway: "The model fits founder strengths if distribution stays async.", evidence: "Content creation mode aligns better than direct outreach." },
     ],
   },
   landscape: {
     content: "The project management space is crowded with incumbents like Asana and Notion. However, the solo operator segment remains underserved.\n\nMost tools are built for teams, creating friction for individual users who need simplicity over collaboration features.",
     callouts: [
-      { type: "insight", text: "Solo operators are actively searching for simpler alternatives." },
-      { type: "warning", text: "Incumbents could pivot to this segment quickly." },
+      { type: "insight", headline: "Solo operators are actively searching for simpler alternatives." },
+      { type: "warning", headline: "Incumbents could pivot to this segment quickly." },
     ],
   },
   positioning: {
@@ -128,7 +129,8 @@ describe("buildIntelligenceMarkdown", () => {
     for (const metric of mockBrief.scorecard.metrics) {
       expect(md).toContain(metric.label);
       expect(md).toContain(metric.grade.toUpperCase());
-      expect(md).toContain(metric.rationale);
+      expect(md).toContain(metric.takeaway);
+      expect(md).toContain(metric.evidence || "");
     }
   });
 
@@ -138,6 +140,60 @@ describe("buildIntelligenceMarkdown", () => {
     expect(md).toContain(mockBrief.landscape.content);
     expect(md).toContain("INSIGHT");
     expect(md).toContain("WARNING");
+    expect(md).toContain(mockBrief.landscape.callouts[0].headline);
+  });
+
+  it("compacts overlong scorecard and callout fields during parse", () => {
+    const parsed = parseIntelligenceBriefPart1({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              summary: "Sentence one explains the situation. Sentence two explains why the wedge matters. Sentence three explains the operating constraint.",
+              scorecard: {
+                metrics: [
+                  {
+                    label: "Market Opportunity",
+                    grade: "high",
+                    rationale: "Demand is clear across multiple buyer signals and repeated search patterns. Teams are already describing the pain in fragmented but consistent language. This means the category is active even if the label is not stable.",
+                  },
+                  {
+                    label: "Competitive Intensity",
+                    grade: "medium",
+                    rationale: "Several adjacent players exist. None owns this specific wedge.",
+                  },
+                  {
+                    label: "Timing Window",
+                    grade: "medium",
+                    takeaway: "The timing window is still open for a sharper frame.",
+                    evidence: "The category language is still unstable, which leaves room to define comparisons.",
+                  },
+                  {
+                    label: "Founder Fit",
+                    grade: "low",
+                    rationale: "The channel mix will punish a founder who needs low-contact distribution and bounded effort. High-maintenance outreach will not hold.",
+                  },
+                ],
+              },
+              landscape: {
+                content: "The market is active but fragmented. Buyers can describe the pain, but they cannot reliably name the category. Larger players still speak in adjacent language.",
+                callouts: [
+                  {
+                    type: "insight",
+                    text: "Buyers are already looking for a solution, but their language is inconsistent and pre-category. That makes message ownership unusually valuable. It also means the first clear explanation can reset the comparison set.",
+                  },
+                ],
+              },
+            }),
+          },
+        },
+      ],
+    });
+
+    expect(parsed.scorecard.metrics[0].takeaway.length).toBeLessThanOrEqual(121);
+    expect(parsed.scorecard.metrics[0].evidence?.length ?? 0).toBeLessThanOrEqual(151);
+    expect(parsed.landscape.callouts[0].headline.length).toBeLessThanOrEqual(111);
+    expect(parsed.landscape.callouts[0].support?.length ?? 0).toBeLessThanOrEqual(146);
   });
 
   it("includes positioning table as markdown", () => {

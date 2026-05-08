@@ -38,6 +38,8 @@ export function IntelligenceScorecard({ metrics }: Props) {
     >
       {metrics.map((metric) => {
         const s = GRADE_STYLES[metric.grade] ?? GRADE_STYLES.medium;
+        const takeaway = metric.takeaway || metric.rationale || "";
+        const evidence = metric.evidence;
         return (
           <div
             key={metric.label}
@@ -90,16 +92,31 @@ export function IntelligenceScorecard({ metrics }: Props) {
             </div>
             <p
               style={{
-                fontSize: 12.5,
-                color: "var(--ink-light)",
-                lineHeight: 1.72,
+                fontSize: 13,
+                color: "var(--ink)",
+                lineHeight: 1.68,
                 margin: 0,
-                maxWidth: 42 + "ch",
+                maxWidth: 38 + "ch",
                 overflowWrap: "anywhere",
+                fontWeight: 500,
               }}
             >
-              {metric.rationale}
+              {takeaway}
             </p>
+            {evidence && (
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--ink-light)",
+                  lineHeight: 1.68,
+                  margin: "10px 0 0",
+                  maxWidth: 42 + "ch",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {evidence}
+              </p>
+            )}
           </div>
         );
       })}

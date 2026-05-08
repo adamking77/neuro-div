@@ -177,12 +177,18 @@ export interface StrategyDraftResponse extends StrategyDraft {}
 export interface IntelligenceScorecardMetric {
   label: string;
   grade: "high" | "medium" | "low";
-  rationale: string;
+  takeaway: string;
+  evidence?: string;
+  /** Legacy field retained for older saved briefs. */
+  rationale?: string;
 }
 
 export interface IntelligenceLandscapeCallout {
   type: "insight" | "warning" | "opportunity";
-  text: string;
+  headline: string;
+  support?: string;
+  /** Legacy field retained for older saved briefs. */
+  text?: string;
 }
 
 export interface IntelligenceComparisonRow {

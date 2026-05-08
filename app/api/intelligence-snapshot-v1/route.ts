@@ -45,24 +45,30 @@ function buildDeterministicIntelligenceBrief(payload: StrategyDraftRequestPayloa
         {
           label: "Market Opportunity",
           grade: payload.phaseResearch.length > 0 ? "high" : "medium",
-          rationale: evidenceLine,
+          takeaway: "Demand is real, but the category language is still loose.",
+          evidence: evidenceLine,
         },
         {
           label: "Competitive Intensity",
           grade: payload.knownPlayers.trim() ? "medium" : "low",
-          rationale: payload.knownPlayers.trim()
-            ? `Known alternatives already exist (${payload.knownPlayers.trim()}), but the wedge is still definable.`
-            : "No named incumbent set was provided, which suggests room to sharpen the wedge before the field hardens.",
+          takeaway: payload.knownPlayers.trim()
+            ? "Alternatives exist, but the wedge is still definable."
+            : "The field is not yet crowded with named incumbents.",
+          evidence: payload.knownPlayers.trim()
+            ? `Known alternatives already exist: ${payload.knownPlayers.trim()}.`
+            : "No incumbent set was named, which suggests room to sharpen the wedge before the field hardens.",
         },
         {
           label: "Timing Window",
           grade: "medium",
-          rationale: "The category appears early enough that clearer framing and better problem language can still shape buyer expectations.",
+          takeaway: "The framing window is still open.",
+          evidence: "Clearer problem language can still shape how buyers compare options.",
         },
         {
           label: "Founder Fit",
           grade: "medium",
-          rationale: `The viable route depends on ${payload.founderConstraints.outreachTolerance} outreach tolerance and a ${contentModeText} creation model.`,
+          takeaway: "The viable route stays low-contact and asset-led.",
+          evidence: `It depends on ${payload.founderConstraints.outreachTolerance} outreach tolerance and a ${contentModeText} creation model.`,
         },
       ],
     },
@@ -73,9 +79,9 @@ function buildDeterministicIntelligenceBrief(payload: StrategyDraftRequestPayloa
         `Given the founder constraints in this project, the market should be approached through low-contact discovery systems rather than high-touch sales or social cadence. Searchable resources, partner surfaces, and create-once assets remain the most realistic entry points.`,
       ].join("\n\n"),
       callouts: [
-        { type: "insight", text: evidenceLine },
-        { type: "opportunity", text: "There is still room to shape how the problem is named and compared." },
-        { type: "warning", text: "If the offer stays vague, adjacent competitors will absorb demand and force price-based comparison." },
+        { type: "insight", headline: "Buyers are already searching with unstable category language.", support: evidenceLine },
+        { type: "opportunity", headline: "There is still room to shape how the problem gets named." },
+        { type: "warning", headline: "If the offer stays vague, adjacent competitors will win the comparison." },
       ],
     },
     positioning: {
