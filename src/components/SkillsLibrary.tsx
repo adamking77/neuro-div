@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
-import { getSkillBundleApiPath } from "@/lib/skill-routes";
+import { getSkillSourceApiPath } from "@/lib/skill-routes";
 
 interface SkillCard {
   name: string;
@@ -60,10 +60,10 @@ export function SkillsLibrary() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [errorSlug, setErrorSlug] = useState<string | null>(null);
 
-  async function fetchSkillBundle(skill: SkillCard) {
-    const response = await fetch(getSkillBundleApiPath(skill.slug), { cache: "no-store" });
+  async function fetchSkillSource(skill: SkillCard) {
+    const response = await fetch(getSkillSourceApiPath(skill.slug), { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(`Failed to load skill bundle (${response.status})`);
+      throw new Error(`Failed to load skill source (${response.status})`);
     }
 
     return response.text();
@@ -71,8 +71,8 @@ export function SkillsLibrary() {
 
   async function handleCopy(skill: SkillCard) {
     try {
-      const bundle = await fetchSkillBundle(skill);
-      await navigator.clipboard.writeText(bundle);
+      const source = await fetchSkillSource(skill);
+      await navigator.clipboard.writeText(source);
       setErrorSlug((current) => (current === skill.slug ? null : current));
       setCopiedSlug(skill.slug);
       setTimeout(() => setCopiedSlug((current) => (current === skill.slug ? null : current)), 2000);
@@ -83,12 +83,12 @@ export function SkillsLibrary() {
 
   async function handleDownload(skill: SkillCard) {
     try {
-      const bundle = await fetchSkillBundle(skill);
-      const blob = new Blob([bundle], { type: "text/plain;charset=utf-8" });
+      const source = await fetchSkillSource(skill);
+      const blob = new Blob([source], { type: "text/markdown;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${skill.slug}-skill-package.txt`;
+      link.download = `${skill.slug}-SKILL.md`;
       document.body.appendChild(link);
       link.click();
       link.remove();

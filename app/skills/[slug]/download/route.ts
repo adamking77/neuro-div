@@ -1,4 +1,4 @@
-import { buildSkillBundle, getSkillBySlug } from "@/lib/skills";
+import { getSkillBySlug, readSkillSource } from "@/lib/skills";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -8,11 +8,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     return new Response("Skill not found", { status: 404 });
   }
 
-  const bundle = await buildSkillBundle(skill);
-  return new Response(bundle, {
+  const source = await readSkillSource(skill);
+  return new Response(source, {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "content-disposition": `attachment; filename="${skill.slug}-skill-package.txt"`,
+      "content-type": "text/markdown; charset=utf-8",
+      "content-disposition": `attachment; filename="${skill.slug}-SKILL.md"`,
       "cache-control": "public, max-age=300",
     },
   });

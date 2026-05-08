@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { StructuredData } from "@/components/structured-data";
-import { getSkillBundleApiPath, getSkillSourceApiPath } from "@/lib/skill-routes";
+import { getSkillSourceApiPath } from "@/lib/skill-routes";
 import { absoluteUrl, buildMetadata } from "@/lib/site";
 import { getSkillBySlug, listSkills, readSkillSource } from "@/lib/skills";
 
@@ -67,7 +67,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
 
         <div className="skill-actions">
           <a href={getSkillSourceApiPath(skill.slug)} className="button-link secondary">Open raw source</a>
-          <a href={getSkillBundleApiPath(skill.slug)} className="button-link primary">Download bundle</a>
+          <a href={`/skills/${skill.slug}/download`} className="button-link primary">Download skill</a>
         </div>
 
         <div className="content-columns">
@@ -100,7 +100,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
             <ul className="plain-list">
               <li><Link href={`/skills/${skill.slug}`}>Detail page</Link></li>
               <li><a href={getSkillSourceApiPath(skill.slug)}>Raw source</a></li>
-              <li><a href={getSkillBundleApiPath(skill.slug)}>Bundle download</a></li>
+              <li><a href={`/skills/${skill.slug}/download`}>Download skill</a></li>
             </ul>
           </div>
         </div>
