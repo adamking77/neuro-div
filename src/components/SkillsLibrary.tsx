@@ -57,17 +57,45 @@ const SKILLS: SkillCard[] = [
 
 export function SkillsLibrary() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [errorSlug, setErrorSlug] = useState<string | null>(null);
 
-  async function handleCopy(skill: SkillCard) {
+  async function fetchSkillBundle(skill: SkillCard) {
     const response = await fetch(`/skills/${skill.slug}/download`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Failed to load skill bundle (${response.status})`);
     }
 
-    const bundle = await response.text();
-    await navigator.clipboard.writeText(bundle);
-    setCopiedSlug(skill.slug);
-    setTimeout(() => setCopiedSlug((current) => (current === skill.slug ? null : current)), 2000);
+    return response.text();
+  }
+
+  async function handleCopy(skill: SkillCard) {
+    try {
+      const bundle = await fetchSkillBundle(skill);
+      await navigator.clipboard.writeText(bundle);
+      setErrorSlug((current) => (current === skill.slug ? null : current));
+      setCopiedSlug(skill.slug);
+      setTimeout(() => setCopiedSlug((current) => (current === skill.slug ? null : current)), 2000);
+    } catch {
+      setErrorSlug(skill.slug);
+    }
+  }
+
+  async function handleDownload(skill: SkillCard) {
+    try {
+      const bundle = await fetchSkillBundle(skill);
+      const blob = new Blob([bundle], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${skill.slug}-skill-package.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setErrorSlug((current) => (current === skill.slug ? null : current));
+    } catch {
+      setErrorSlug(skill.slug);
+    }
   }
 
   return (
@@ -75,6 +103,7 @@ export function SkillsLibrary() {
 <div style={{ display: "grid", gap: 18 }}>
         {SKILLS.map((skill, index) => {
           const isCopied = copiedSlug === skill.slug;
+          const hasError = errorSlug === skill.slug;
           return (
             <div key={skill.slug} style={{ border: "1px solid var(--rule)", padding: "18px 18px 16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12 }}>
@@ -97,23 +126,31 @@ export function SkillsLibrary() {
                     </p>
                   </div>
                   {skill.status === "Available" && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                      <button
-                        className="btn-text"
-                        onClick={() => void handleCopy(skill)}
-                        style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}
-                      >
-                        {isCopied ? <Check size={12} /> : <Copy size={12} />}
-                        {isCopied ? "Copied" : "Copy skill"}
-                      </button>
-                      <a
-                        href={`/skills/${skill.slug}/download`}
-                        style={{ fontSize: 12, color: "var(--ink-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}
-                      >
-                        <DownloadSimple size={12} />
-                        Download skill
-                      </a>
-                    </div>
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                        <button
+                          className="btn-text"
+                          onClick={() => void handleCopy(skill)}
+                          style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}
+                        >
+                          {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                          {isCopied ? "Copied" : "Copy skill"}
+                        </button>
+                        <button
+                          className="btn-text"
+                          onClick={() => void handleDownload(skill)}
+                          style={{ fontSize: 12, color: "var(--ink-muted)" }}
+                        >
+                          <DownloadSimple size={12} />
+                          Download skill
+                        </button>
+                      </div>
+                      {hasError && (
+                        <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--terracotta)", lineHeight: 1.5 }}>
+                          Could not load this skill package. Try again.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
