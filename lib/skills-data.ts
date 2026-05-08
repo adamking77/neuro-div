@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-const SKILLS_ROOT = path.join(process.cwd(), "skills");
+const SKILLS_ROOT = path.join(process.cwd(), "public", "skills");
 
 export const PUBLIC_SKILL_SLUGS = [
   "nd-context-builder",

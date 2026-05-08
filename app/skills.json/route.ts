@@ -1,4 +1,4 @@
-import { getSkillDownloadApiPath, getSkillSourceApiPath } from "@/lib/skill-routes";
+import { getSkillDownloadPath, getSkillSourcePath } from "@/lib/skill-routes";
 import { absoluteUrl } from "@/lib/site";
 import { listSkills } from "@/lib/skills";
 
@@ -15,8 +15,8 @@ export async function GET() {
       tags: skill.tags,
       dependencies: skill.dependencies,
       relatedSkills: skill.relatedSkills,
-      sourceUrl: absoluteUrl(getSkillSourceApiPath(skill.slug)),
-      downloadUrl: absoluteUrl(getSkillDownloadApiPath(skill.slug)),
+      sourceUrl: absoluteUrl(getSkillSourcePath(skill.slug)),
+      downloadUrl: absoluteUrl(getSkillDownloadPath(skill.slug)),
       detailUrl: absoluteUrl(`/skills/${skill.slug}`),
     })),
   });

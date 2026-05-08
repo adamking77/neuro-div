@@ -1,0 +1,4 @@
+interface:
+  display_name: "Distribution Strategy"
+  short_description: "Turn research into an ND strategy artifact."
+  default_prompt: "Use $distribution-strategy to turn this research and ND context into a strategy artifact."

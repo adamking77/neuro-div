@@ -1,0 +1,4 @@
+interface:
+  display_name: "ND Process Designer"
+  short_description: "Turn a goal into an ND process artifact."
+  default_prompt: "Use $nd-process-designer to build a trigger-based process artifact for this goal."
