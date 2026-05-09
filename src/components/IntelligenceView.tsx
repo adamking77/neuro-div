@@ -1,4 +1,3 @@
-import { WarningCircle } from "@phosphor-icons/react";
 import type { IntelligenceBrief, IntelligenceStatus } from "../types";
 import { IntelligenceScorecard } from "./IntelligenceScorecard";
 import { IntelligenceNarrative } from "./IntelligenceNarrative";
@@ -6,6 +5,7 @@ import { IntelligenceTable } from "./IntelligenceTable";
 import { IntelligenceRiskMatrix } from "./IntelligenceRiskMatrix";
 import { IntelligenceTimeline } from "./IntelligenceTimeline";
 import { IntelligenceResources } from "./IntelligenceResources";
+import { MetaLabel, SectionNumber, EmptyState, ErrorState, LoadingState } from "./ui";
 
 interface Props {
   brief: IntelligenceBrief | null;
@@ -23,17 +23,7 @@ function Section({ label, number, children }: SectionProps) {
   return (
     <div style={{ marginBottom: 40 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            fontFamily: "var(--font-mono)",
-            color: "var(--teal)",
-            letterSpacing: "0.05em",
-          }}
-        >
-          {number}
-        </span>
+        <SectionNumber number={number} color="teal" />
         <h3
           style={{
             fontSize: 15,
@@ -97,109 +87,33 @@ function chunkParagraphs(text: string, sentencesPerParagraph: number) {
   return paragraphs;
 }
 
-function LoadingStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ width: 18, height: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {done ? (
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--teal)",
-              display: "block",
-              opacity: 0.5,
-            }}
-          />
-        ) : active ? (
-          <span className="spinner" />
-        ) : (
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              border: "1px solid var(--rule)",
-              display: "block",
-              opacity: 0.4,
-            }}
-          />
-        )}
-      </div>
-      <span
-        style={{
-          fontSize: 13,
-          fontFamily: "var(--font-mono)",
-          color: active ? "var(--ink)" : done ? "var(--ink-muted)" : "var(--ink-muted)",
-          opacity: active ? 1 : done ? 0.5 : 0.35,
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
 export function IntelligenceView({ brief, status, error }: Props) {
   if (status === "researching" || status === "drafting") {
     return (
-      <div style={{ padding: "48px 0" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 340 }}>
-          <LoadingStep
-            label="Market research"
-            done={status === "drafting"}
-            active={status === "researching"}
-          />
-          <LoadingStep
-            label="Writing the brief"
-            done={false}
-            active={status === "drafting"}
-          />
-        </div>
-        <p style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 20, opacity: 0.6 }}>
-          This takes 60–120 seconds.
-        </p>
-      </div>
+      <LoadingState
+        steps={[
+          { label: "Market research", done: status === "drafting", active: status === "researching" },
+          { label: "Writing the brief", done: false, active: status === "drafting" },
+        ]}
+      />
     );
   }
 
   if (error) {
     return (
-      <div
-        style={{
-          padding: "40px 24px",
-          textAlign: "center",
-          background: "rgba(180, 107, 88, 0.06)",
-          border: "1px solid rgba(180, 107, 88, 0.2)",
-        }}
-      >
-        <WarningCircle size={24} color="var(--terracotta)" style={{ marginBottom: 10 }} />
-        <p style={{ fontSize: 13, color: "var(--terracotta)", margin: "0 0 6px", fontWeight: 600 }}>
-          Intelligence brief failed
-        </p>
-        <p style={{ fontSize: 12, color: "var(--ink-light)", margin: 0 }}>{error}</p>
-      </div>
+      <ErrorState
+        title="Intelligence brief failed"
+        message={error}
+      />
     );
   }
 
   if (!brief) {
     return (
-      <div style={{ padding: "60px 20px", textAlign: "center" }}>
-        <p
-          style={{
-            fontSize: 14,
-            color: "var(--ink)",
-            margin: "0 0 6px",
-            fontWeight: 500,
-          }}
-        >
-          Nothing here yet
-        </p>
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0, maxWidth: 400, marginInline: "auto", lineHeight: 1.6 }}>
-          Generate a brief to see where you actually stand — market position, competitive gaps, where to show up, and a 90-day roadmap.
-        </p>
-      </div>
+      <EmptyState
+        title="Nothing here yet"
+        description="Generate a brief to see where you actually stand — market position, competitive gaps, where to show up, and a 90-day roadmap."
+      />
     );
   }
 
@@ -212,7 +126,7 @@ export function IntelligenceView({ brief, status, error }: Props) {
     if (grade === "low") {
       return { background: "rgba(180,107,88,0.08)", color: "var(--terracotta)", border: "1px solid rgba(180,107,88,0.2)" };
     }
-    return { background: "rgba(196,164,132,0.12)", color: "#966f00", border: "1px solid rgba(196,164,132,0.25)" };
+    return { background: "var(--warning-pill)", color: "var(--warning-deep)", border: "1px solid rgba(196,164,132,0.25)" };
   };
 
   return (
@@ -227,19 +141,7 @@ export function IntelligenceView({ brief, status, error }: Props) {
           marginBottom: 16,
         }}
       >
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            fontFamily: "var(--font-mono)",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            color: "var(--teal)",
-            margin: "0 0 14px",
-          }}
-        >
-          Executive Summary
-        </p>
+        <MetaLabel style={{ color: "var(--teal)", marginBottom: 14 }}>Executive Summary</MetaLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 760 }}>
           {summaryParagraphs.map((paragraph, index) => (
             <p
@@ -261,9 +163,7 @@ export function IntelligenceView({ brief, status, error }: Props) {
       {/* Key Takeaways */}
       {brief.scorecard.metrics.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 32, alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            Key takeaways
-          </span>
+          <MetaLabel style={{ margin: 0 }}>Key takeaways</MetaLabel>
           {brief.scorecard.metrics.slice(0, 4).map((metric) => (
             <span
               key={metric.label}
@@ -347,9 +247,9 @@ export function IntelligenceView({ brief, status, error }: Props) {
       {/* Generated timestamp */}
       <div style={{ textAlign: "center", padding: "20px 0 40px" }}>
         <span
+          className="mono"
           style={{
             fontSize: 10,
-            fontFamily: "var(--font-mono)",
             color: "var(--ink-muted)",
             opacity: 0.5,
           }}

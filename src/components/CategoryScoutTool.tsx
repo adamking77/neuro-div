@@ -6,6 +6,7 @@ import { ArrowCounterClockwise, CaretDown, Check, Copy, DownloadSimple } from "@
 import { PHASES } from "../phases";
 import { ReportView } from "./ReportView";
 import { RunButton, ToolSection } from "./app-shell";
+import { MetaLabel } from "./ui";
 import type { SessionState } from "../types";
 
 export function CategoryScoutTool({
@@ -69,21 +70,11 @@ export function CategoryScoutTool({
         </p>
 
         <div className="input-grid" style={{ marginBottom: 30 }}>
-          <label
-            htmlFor="problem-input"
-            style={{
-              display: "block",
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--ink-muted)",
-              marginBottom: 6,
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Problem Statement
-          </label>
+          <MetaLabel>
+            <label htmlFor="problem-input" style={{ cursor: "pointer" }}>
+              Problem Statement
+            </label>
+          </MetaLabel>
           <textarea
             id="problem-input"
             value={session.problem}
@@ -93,23 +84,12 @@ export function CategoryScoutTool({
             style={{ marginBottom: 8 }}
           />
 
-          <label
-            htmlFor="known-players-input"
-            style={{
-              display: "block",
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--ink-muted)",
-              marginBottom: 6,
-              fontFamily: "var(--font-mono)",
-              marginTop: 8,
-            }}
-          >
-            Known Players{" "}
-            <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>(optional)</span>
-          </label>
+          <MetaLabel style={{ marginTop: 8 }}>
+            <label htmlFor="known-players-input" style={{ cursor: "pointer" }}>
+              Known Players{" "}
+              <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, opacity: 0.6 }}>(optional)</span>
+            </label>
+          </MetaLabel>
           <input
             id="known-players-input"
             type="text"
@@ -145,19 +125,7 @@ export function CategoryScoutTool({
             <div style={{ padding: "20px 0" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
                 <div>
-                  <p
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 500,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: "var(--ink-muted)",
-                      margin: "0 0 5px",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    Export results
-                  </p>
+                  <MetaLabel style={{ marginBottom: 5 }}>Export results</MetaLabel>
                   <p style={{ fontSize: 14, color: "var(--ink-light)", margin: 0, lineHeight: 1.7 }}>
                     Download the research file, then pass it to any AI agent using the category design brief prompt below.
                   </p>

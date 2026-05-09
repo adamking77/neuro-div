@@ -13,10 +13,10 @@ const LEVEL_STYLES: Record<string, { bg: string; border: string; dot: string; te
     label: "Critical",
   },
   watch: {
-    bg: "rgba(196, 164, 132, 0.08)",
+    bg: "var(--warning-bg)",
     border: "rgba(196, 164, 132, 0.3)",
-    dot: "#b8860b",
-    text: "#966f00",
+    dot: "var(--warning)",
+    text: "var(--warning-deep)",
     label: "Watch",
   },
   managed: {

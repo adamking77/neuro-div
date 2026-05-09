@@ -6,7 +6,7 @@ import type { StrategyCitation, StrategySectionContent } from "../types";
 
 const EFFORT_STYLES: Record<string, { bg: string; text: string }> = {
   low: { bg: "rgba(91, 138, 138, 0.12)", text: "var(--teal)" },
-  medium: { bg: "rgba(196, 164, 132, 0.18)", text: "#966f00" },
+  medium: { bg: "var(--warning-pill)", text: "var(--warning-deep)" },
   high: { bg: "rgba(180, 107, 88, 0.14)", text: "var(--terracotta)" },
 };
 
@@ -22,9 +22,9 @@ const CALLOUT_STYLES: Record<string, { border: string; bg: string; icon: React.R
     icon: <WarningCircle size={13} weight="bold" color="var(--terracotta)" />,
   },
   opportunity: {
-    border: "#b8860b",
+    border: "var(--warning)",
     bg: "rgba(196, 164, 132, 0.05)",
-    icon: <ArrowRight size={13} weight="bold" color="#966f00" />,
+    icon: <ArrowRight size={13} weight="bold" color="var(--warning-deep)" />,
   },
 };
 

@@ -90,7 +90,7 @@ export function ResearchSynthesis({ session }: { session: SessionState }) {
 
   const signalColors: Record<string, { bg: string; text: string; border: string }> = {
     teal: { bg: "rgba(91,138,138,0.08)", text: "var(--teal-deep)", border: "rgba(91,138,138,0.2)" },
-    medium: { bg: "rgba(196,164,132,0.1)", text: "#966f00", border: "rgba(196,164,132,0.25)" },
+    medium: { bg: "var(--warning-bg)", text: "var(--warning-deep)", border: "var(--warning-pill)" },
     terracotta: { bg: "rgba(180,107,88,0.08)", text: "var(--terracotta)", border: "rgba(180,107,88,0.2)" },
   };
   const sc = signalColors[signal.variant];

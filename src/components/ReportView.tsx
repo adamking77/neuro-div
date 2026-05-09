@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowClockwise, WarningCircle, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import { Skeleton } from "@heroui/react";
 import type { SessionState, PhaseResult } from "../types";
 import { PHASES } from "../phases";
 import { PublicationTimeline, ScoreDistribution } from "./PhaseCharts";
 import { HighlightText } from "./HighlightText";
 import { ResearchSynthesis } from "./ResearchSynthesis";
+import { SectionNumber, EmptyState, ErrorState } from "./ui";
 
 interface Props {
   session: SessionState;
@@ -18,21 +19,9 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
   const hasAny = Object.values(session.phases).some((p) => p.status !== "idle");
 
   if (!hasAny) return (
-    <div style={{ padding: "64px 0" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <p style={{ fontSize: 14, color: "var(--ink-muted)", fontFamily: "var(--font-display)", margin: 0 }}>
-          Enter a problem above and hit Run.
-        </p>
-      </div>
-    </div>
+    <EmptyState
+      title="Enter a problem above and hit Run."
+    />
   );
 
   const hasDoneResults = Object.values(session.phases).some((p) => p.status === "done" && p.results.length > 0);
@@ -69,9 +58,7 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
 
       {/* Index number */}
       <div style={{ paddingTop: 3, flexShrink: 0 }}>
-        <span className="mono" style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--ink-muted)" }}>
-          {String(phaseId).padStart(2, "0")}
-        </span>
+        <SectionNumber number={String(phaseId).padStart(2, "0")} />
       </div>
 
       {/* Content */}
@@ -119,18 +106,11 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
         {result.status === "running" && <SectionSkeleton />}
 
         {result.status === "error" && result.error && (
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <WarningCircle size={13} style={{ color: "var(--terracotta)", flexShrink: 0, marginTop: 1 }} />
-            <p className="mono" style={{ fontSize: 12, color: "var(--terracotta)", margin: 0, lineHeight: 1.5 }}>
-              {result.error}
-            </p>
-          </div>
+          <ErrorState title={result.error} />
         )}
 
         {result.status === "done" && result.results.length === 0 && (
-          <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>
-            No results — try refining the problem statement.
-          </p>
+          <EmptyState title="No results" description="Try refining the problem statement." />
         )}
 
         {result.status === "done" && result.results.length > 0 && (

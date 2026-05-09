@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ExaResult } from "../types";
+import { MetaLabel } from "./ui";
 
 interface TimelineProps { results: ExaResult[] }
 
@@ -59,12 +60,7 @@ export function PublicationTimeline({ results }: TimelineProps) {
       {/* Header row: question + verdict side by side */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div>
-          <p style={{
-            fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase",
-            color: "var(--ink-muted)", margin: "0 0 3px", fontFamily: "var(--font-mono)",
-          }}>
-            Is this topic gaining traction?
-          </p>
+          <MetaLabel style={{ marginBottom: 3 }}>Is this topic gaining traction?</MetaLabel>
           <p style={{ fontSize: 12, color: "var(--ink-light)", margin: 0, lineHeight: 1.5 }}>
             {recencyPct}% of sources published in the last 2 years
           </p>
@@ -168,12 +164,7 @@ export function ScoreDistribution({ results }: ScoreProps) {
       border: "1px solid var(--rule)",
     }}>
       {/* Question header */}
-      <p style={{
-        fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase",
-        color: "var(--ink-muted)", margin: "0 0 10px", fontFamily: "var(--font-mono)",
-      }}>
-        How useful are these results?
-      </p>
+      <MetaLabel style={{ marginBottom: 10 }}>How useful are these results?</MetaLabel>
 
       <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
         {/* Tier bars */}

@@ -1,3 +1,5 @@
+import { MetaLabel } from "./ui";
+
 interface Props {
   time: string[];
   budget: string[];
@@ -11,19 +13,7 @@ function ResourceBlock({ label, items }: { label: string; items: string[] }) {
 
   return (
     <div>
-      <p
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          fontFamily: "var(--font-mono)",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          color: "var(--ink-muted)",
-          margin: "0 0 8px",
-        }}
-      >
-        {label}
-      </p>
+      <MetaLabel style={{ marginBottom: 8 }}>{label}</MetaLabel>
       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>
         {items.map((item, i) => (
           <li

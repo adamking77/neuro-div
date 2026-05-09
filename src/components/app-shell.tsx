@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PencilSimple, Plus, Trash, X } from "@phosphor-icons/react";
 import type { SavedProject } from "../lib/storage";
+import { MetaLabel, SectionNumber } from "./ui";
 
 export function RunButton({
   canRun,
@@ -32,7 +33,7 @@ export function RunButton({
         border: "none",
         borderRadius: 999,
         cursor: canRun ? "pointer" : "not-allowed",
-        background: canRun ? (hovered ? "#3D6B6B" : "#5B8A8A") : "rgba(91, 138, 138, 0.4)",
+        background: canRun ? (hovered ? "var(--teal-deep)" : "var(--teal)") : "rgba(91, 138, 138, 0.4)",
         color: "#fff",
         transition: "background 0.15s",
         display: "inline-flex",
@@ -82,12 +83,9 @@ export function ToolSection({
           }}
         >
           {number && (
-            <span
-              className="mono"
-              style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-muted)", flexShrink: 0, paddingTop: 5 }}
-            >
-              {number}
-            </span>
+            <div style={{ flexShrink: 0, paddingTop: 5 }}>
+              <SectionNumber number={number} />
+            </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
@@ -192,18 +190,7 @@ export function ProjectDrawer({
                 borderBottom: "1px solid var(--rule)",
               }}
             >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--ink-muted)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                Projects
-              </span>
+              <MetaLabel style={{ margin: 0 }}>Projects</MetaLabel>
               <button className="btn-text" onClick={onClose} aria-label="Close projects">
                 <X size={14} />
               </button>

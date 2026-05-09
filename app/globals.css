@@ -8,6 +8,10 @@
   --teal: #5b8a8a;
   --teal-deep: #3d6b6b;
   --terracotta: #c4725a;
+  --warning: #b8860b;
+  --warning-deep: #966f00;
+  --warning-bg: rgba(196, 164, 132, 0.08);
+  --warning-pill: rgba(196, 164, 132, 0.15);
   --rule: rgba(26, 26, 24, 0.1);
   --surface: rgba(255, 255, 255, 0.58);
   --surface-strong: rgba(255, 255, 255, 0.82);

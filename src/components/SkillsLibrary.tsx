@@ -1,9 +1,9 @@
 'use client';
 
-import type { CSSProperties } from "react";
 import { useState } from "react";
 import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
 import { getSkillDownloadPath } from "@/lib/skill-routes";
+import { MetaLabel, SectionNumber } from "./ui";
 
 interface SkillCard {
   name: string;
@@ -108,9 +108,9 @@ export function SkillsLibrary() {
           return (
             <div key={skill.slug} style={{ border: "1px solid var(--rule)", padding: "18px 18px 16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12 }}>
-                <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.1em", paddingTop: 2 }}>
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                <div style={{ paddingTop: 2 }}>
+                  <SectionNumber number={String(index + 1).padStart(2, "0")} />
+                </div>
                 <div>
                   <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.2 }}>
                     {skill.name}
@@ -119,7 +119,7 @@ export function SkillsLibrary() {
                     {skill.summary}
                   </p>
                   <div style={{ marginBottom: 16 }}>
-                    <p style={metaLabelStyle}>Package includes</p>
+                    <MetaLabel style={{ marginBottom: 10 }}>Package includes</MetaLabel>
                     <p style={{ margin: 0, fontSize: 12, color: "var(--ink-muted)", lineHeight: 1.8 }}>
                       {`skills/${skill.slug}/SKILL.md`}
                       {skill.includesAgent ? " · agents/openai.yaml" : ""}
@@ -163,12 +163,4 @@ export function SkillsLibrary() {
   );
 }
 
-const metaLabelStyle: CSSProperties = {
-  fontSize: 10,
-  fontWeight: 500,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--ink-muted)",
-  margin: "0 0 8px",
-  fontFamily: "var(--font-mono)",
-};
+

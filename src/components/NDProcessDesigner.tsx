@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, Copy, DownloadSimple, PencilSimple, Trash } from "@phosphor-icons/react";
+import { MetaLabel, PrimaryButton, SectionNumber } from "./ui";
 import type { NDProfileContext, ProcessDesignerInputs, ProcessMove, ProcessPlan } from "../types";
 import { loadNDProfileContext } from "../lib/nd-profile";
 import {
@@ -30,24 +31,6 @@ const STEP_LABELS: Record<StepId, string> = {
   context: "What you're working with",
   boundaries: "What to protect",
   done: "Your process is ready",
-};
-
-const primaryActionButtonStyle: React.CSSProperties = {
-  fontFamily: "var(--font-display)",
-  fontSize: 15,
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  padding: "10px 52px",
-  border: "none",
-  borderRadius: 999,
-  cursor: "pointer",
-  background: "var(--teal)",
-  color: "#fff",
-  transition: "background 0.15s",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  userSelect: "none",
 };
 
 export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuilder: () => void }) {
@@ -336,12 +319,9 @@ function IntroStep({
           : "No profile found. This will still work. It will ask a few extra questions to fill the gap. Build your profile first if you want the process shaped around you from the start."}
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: hasSavedProcesses ? 40 : 0 }}>
-        <button
-          onClick={onBegin}
-          style={primaryActionButtonStyle}
-        >
+        <PrimaryButton onClick={onBegin}>
           {hasExisting ? "Continue where I left off" : "Begin"}
-        </button>
+        </PrimaryButton>
         <button onClick={onOpenContextBuilder} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
           {hasProfile ? "Update profile" : "Open Context Builder first"}
         </button>
@@ -512,20 +492,7 @@ function BoundaryRow({ label, items }: { label: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-      <span
-        style={{
-          fontSize: 10,
-          fontFamily: "var(--font-mono)",
-          color: "var(--ink-muted)",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-          minWidth: 110,
-          flexShrink: 0,
-        }}
-      >
-        {label}
-      </span>
+      <MetaLabel style={{ whiteSpace: "nowrap", minWidth: 110, flexShrink: 0, margin: 0 }}>{label}</MetaLabel>
       <span style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.5 }}>
         {items.join(" · ")}
       </span>
@@ -536,9 +503,7 @@ function BoundaryRow({ label, items }: { label: string; items: string[] }) {
 function ProcessGlanceCard({ plan }: { plan: ProcessPlan }) {
   return (
     <div style={{ border: "1px solid var(--rule)", padding: "22px 24px", marginBottom: 28 }}>
-      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--teal)", margin: "0 0 10px", fontFamily: "var(--font-mono)" }}>
-        Process at a glance
-      </p>
+      <MetaLabel style={{ color: "var(--teal)", marginBottom: 10 }}>Process at a glance</MetaLabel>
       <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
         {plan.goal}
       </h3>
@@ -589,13 +554,10 @@ function DoneStep({
       <ProcessGlanceCard plan={plan} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
-        <button
-          onClick={onDownload}
-          style={primaryActionButtonStyle}
-        >
+        <PrimaryButton onClick={onDownload}>
           <DownloadSimple size={14} />
           Download process
-        </button>
+        </PrimaryButton>
         <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>
           {copiedBrief ? <Check size={12} /> : <Copy size={12} />}
           {copiedBrief ? "Copied brief" : "Copy agent brief"}
@@ -609,7 +571,7 @@ function DoneStep({
       </div>
 
       <div style={{ marginBottom: 32 }}>
-        <p style={metaLabelStyle}>Saved as</p>
+        <MetaLabel>Saved as</MetaLabel>
         <p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{currentArtifactName}</p>
       </div>
 
@@ -651,7 +613,7 @@ function ReadableProcessView({
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <p style={metaLabelStyle}>Readable view</p>
+        <MetaLabel>Readable view</MetaLabel>
         <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
           {plan.goal}
         </h3>
@@ -661,9 +623,7 @@ function ReadableProcessView({
       </div>
 
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", margin: "0 0 14px", fontFamily: "var(--font-mono)" }}>
-          Boundaries
-        </p>
+        <MetaLabel style={{ marginBottom: 14 }}>Boundaries</MetaLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <BoundaryRow label="Working with" items={plan.workingWith} />
           <BoundaryRow label="Protected" items={plan.protectedConditions} />
@@ -678,7 +638,7 @@ function ReadableProcessView({
         <div style={{ display: "grid", gap: 14 }}>
           {plan.checkInModes.map((mode) => (
             <div key={mode.label} style={simpleCardStyle}>
-              <p style={metaLabelStyle}>{mode.label}</p>
+              <MetaLabel>{mode.label}</MetaLabel>
               <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
             </div>
           ))}
@@ -693,9 +653,9 @@ function ReadableProcessView({
           {plan.blocks.map((block, index) => (
             <div key={block.id}>
               <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12, marginBottom: 12 }}>
-                <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.1em", paddingTop: 2 }}>
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                <div style={{ paddingTop: 2 }}>
+                  <SectionNumber number={String(index + 1).padStart(2, "0")} />
+                </div>
                 <div>
                   <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
                     {block.title}
@@ -791,7 +751,7 @@ function SectionBlock({
   return (
     <div style={{ marginTop: 34 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
-        <p style={{ ...metaLabelStyle, margin: 0 }}>{title}</p>
+        <MetaLabel style={{ margin: 0 }}>{title}</MetaLabel>
         {headerActions}
       </div>
       <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6 }}>{subtitle}</p>
@@ -817,7 +777,7 @@ function SavedProcessesSection({
 
   return (
     <div style={{ marginTop: 40 }}>
-      <p style={metaLabelStyle}>Saved processes</p>
+      <MetaLabel>Saved processes</MetaLabel>
       <div style={{ display: "grid", gap: 12 }}>
         {artifacts.map((artifact) => {
           const isCurrent = artifact.id === currentArtifactId;
@@ -883,21 +843,7 @@ function MoveLine({ label, value }: { label: string; value: string }) {
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      style={{
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        color: "var(--ink-muted)",
-        margin: "0 0 10px",
-        fontFamily: "var(--font-mono)",
-      }}
-    >
-      {children}
-    </p>
-  );
+  return <MetaLabel style={{ marginBottom: 10 }}>{children}</MetaLabel>;
 }
 
 function FieldHint({ children }: { children: React.ReactNode }) {
@@ -934,26 +880,13 @@ function StepNav({
         </button>
       )}
       {onContinue && (
-        <button
-          onClick={onContinue}
-          style={primaryActionButtonStyle}
-        >
+        <PrimaryButton onClick={onContinue}>
           {continueLabel}
-        </button>
+        </PrimaryButton>
       )}
     </div>
   );
 }
-
-const metaLabelStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 500,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--ink-muted)",
-  margin: "0 0 10px",
-  fontFamily: "var(--font-mono)",
-};
 
 const simpleCardStyle: React.CSSProperties = {
   border: "1px solid var(--rule)",

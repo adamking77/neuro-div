@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Skeleton, Spinner } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import { ArrowClockwise, CaretDown, Check, DownloadSimple, WarningCircle, X } from "@phosphor-icons/react";
+import { MetaLabel, PrimaryButton } from "./ui";
 import {
   STRATEGY_SECTIONS,
   getCompletedResearchCount,
@@ -486,13 +487,14 @@ function ConfigDrawer({
         </button>
 
         {!isOpen && (
-          <GenerateButton
-            canGenerate={canGenerate}
-            buttonLabel={buttonLabel}
-            isArmed={isArmed}
-            strategyRunning={strategyRunning}
-            onGenerate={onGenerate}
-          />
+          <PrimaryButton
+            onClick={onGenerate}
+            disabled={!canGenerate}
+            armed={isArmed}
+            loading={strategyRunning}
+          >
+            {buttonLabel}
+          </PrimaryButton>
         )}
       </div>
 
@@ -641,7 +643,7 @@ function ReadinessIndicators({
           padding: "2px 7px",
           borderRadius: 999,
           background: readiness.confidence === "strong" ? "rgba(91, 138, 138, 0.12)" : "rgba(196, 164, 132, 0.14)",
-          color: readiness.confidence === "strong" ? "var(--teal)" : "#966f00",
+          color: readiness.confidence === "strong" ? "var(--teal)" : "var(--warning-deep)",
         }}
       >
         {readiness.confidence}
@@ -666,57 +668,6 @@ function MiniPill({ label }: { label: string }) {
     >
       {label}
     </span>
-  );
-}
-
-function GenerateButton({
-  canGenerate,
-  buttonLabel,
-  isArmed,
-  strategyRunning,
-  onGenerate,
-}: {
-  canGenerate: boolean;
-  buttonLabel: string;
-  isArmed?: boolean;
-  strategyRunning: boolean;
-  onGenerate: () => void;
-}) {
-  return (
-    <button
-      onClick={canGenerate ? onGenerate : undefined}
-      disabled={!canGenerate}
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 15,
-        fontWeight: 600,
-        letterSpacing: "0.01em",
-        padding: "10px 52px",
-        border: "none",
-        borderRadius: 999,
-        cursor: canGenerate ? "pointer" : "not-allowed",
-        background: !canGenerate
-          ? "rgba(91, 138, 138, 0.4)"
-          : isArmed
-            ? "var(--ink-light)"
-            : "var(--teal)",
-        color: "#fff",
-        transition: "background 0.15s",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        flexShrink: 0,
-      }}
-    >
-      {strategyRunning ? (
-        <>
-          <Spinner size="sm" color="current" />
-          <span>{buttonLabel}</span>
-        </>
-      ) : (
-        buttonLabel
-      )}
-    </button>
   );
 }
 
@@ -1013,12 +964,13 @@ function InputForm({
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 34 }}>
-        <GenerateButton
-          canGenerate={canGenerate}
-          buttonLabel={buttonLabel}
-          strategyRunning={strategyRunning}
-          onGenerate={onGenerate}
-        />
+        <PrimaryButton
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          loading={strategyRunning}
+        >
+          {buttonLabel}
+        </PrimaryButton>
       </div>
     </div>
   );
@@ -1754,41 +1706,17 @@ function EmptyStrategyState({
 }
 
 function GroupLabel({ label }: { label: string }) {
-  return (
-    <p
-      style={{
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        color: "var(--ink-muted)",
-        fontFamily: "var(--font-mono)",
-        margin: "0 0 22px",
-        opacity: 0.65,
-      }}
-    >
-      {label}
-    </p>
-  );
+  return <MetaLabel style={{ marginBottom: 22, opacity: 0.65 }}>{label}</MetaLabel>;
 }
 
 function FieldLabel({ label, required = false }: { label: string; required?: boolean }) {
   return (
-    <label
-      style={{
-        display: "block",
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        color: "var(--ink-muted)",
-        marginBottom: 9,
-        fontFamily: "var(--font-mono)",
-      }}
-    >
-      {label}
-      {required && <span style={{ color: "var(--terracotta)", marginLeft: 4 }}>*</span>}
-    </label>
+    <MetaLabel style={{ marginBottom: 9, display: "block" }}>
+      <label style={{ cursor: "pointer" }}>
+        {label}
+        {required && <span style={{ color: "var(--terracotta)", marginLeft: 4 }}>*</span>}
+      </label>
+    </MetaLabel>
   );
 }
 

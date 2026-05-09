@@ -10,13 +10,13 @@ interface Props {
 
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: "var(--teal)",
-  neutral: "#b8860b",
+  neutral: "var(--warning)",
   negative: "var(--terracotta)",
 };
 
 const VERDICT_COLORS: Record<string, { bg: string; text: string }> = {
   prioritize: { bg: "rgba(91, 138, 138, 0.12)", text: "var(--teal)" },
-  test: { bg: "rgba(196, 164, 132, 0.12)", text: "#b8860b" },
+  test: { bg: "var(--warning-pill)", text: "var(--warning)" },
   defer: { bg: "rgba(180, 107, 88, 0.12)", text: "var(--terracotta)" },
 };
 
@@ -98,7 +98,7 @@ export function IntelligenceTable({ headers, rows, sentimentKey }: Props) {
                         <span
                           style={{
                             fontWeight: 700,
-                            color: value >= 4 ? "var(--teal)" : value >= 3 ? "#b8860b" : "var(--terracotta)",
+                            color: value >= 4 ? "var(--teal)" : value >= 3 ? "var(--warning)" : "var(--terracotta)",
                           }}
                         >
                           {value}

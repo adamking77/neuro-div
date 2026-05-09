@@ -8,7 +8,7 @@ interface Props {
 const CALLOUT_STYLES: Record<string, { border: string; bg: string; icon: string }> = {
   insight: { border: "var(--teal)", bg: "rgba(91, 138, 138, 0.06)", icon: "●" },
   warning: { border: "var(--terracotta)", bg: "rgba(180, 107, 88, 0.06)", icon: "▲" },
-  opportunity: { border: "#b8860b", bg: "rgba(196, 164, 132, 0.08)", icon: "◆" },
+  opportunity: { border: "var(--warning)", bg: "var(--warning-bg)", icon: "◆" },
 };
 
 function splitIntoSentences(text: string): string[] {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, DownloadSimple, CaretDown } from "@phosphor-icons/react";
+import { MetaLabel, PrimaryButton } from "./ui";
 import type {
   NDProfile,
   NDTrait,
@@ -42,30 +43,6 @@ const STEP_LABELS: Record<StepId, string> = {
   history: "What you've tried",
   info: "How you take in information",
   done: "Your profile is ready",
-};
-
-const primaryActionButtonStyle: React.CSSProperties = {
-  fontFamily: "var(--font-display)",
-  fontSize: 15,
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  padding: "10px 52px",
-  border: "none",
-  borderRadius: 999,
-  cursor: "pointer",
-  background: "var(--teal)",
-  color: "#fff",
-  transition: "background 0.15s",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  userSelect: "none",
-};
-
-const disabledPrimaryActionButtonStyle: React.CSSProperties = {
-  ...primaryActionButtonStyle,
-  cursor: "not-allowed",
-  background: "rgba(91, 138, 138, 0.4)",
 };
 
 // Reusable checkbox group
@@ -201,21 +178,7 @@ function RadioGroup<T extends string>({
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{
-      fontSize: 10,
-      fontWeight: 500,
-      letterSpacing: "0.12em",
-      textTransform: "uppercase",
-      color: "var(--ink-muted)",
-      margin: "0 0 10px",
-      fontFamily: "var(--font-mono)",
-    }}>
-      {children}
-    </p>
-  );
-}
+
 
 function FieldHint({ children }: { children: React.ReactNode }) {
   return (
@@ -259,13 +222,9 @@ function StepNav({
         </button>
       )}
       {onContinue && (
-        <button
-          onClick={onContinue}
-          disabled={continueDisabled}
-          style={continueDisabled ? disabledPrimaryActionButtonStyle : primaryActionButtonStyle}
-        >
+        <PrimaryButton onClick={onContinue} disabled={continueDisabled}>
           {continueLabel}
-        </button>
+        </PrimaryButton>
       )}
     </div>
   );
@@ -285,12 +244,9 @@ function IntroStep({ onBegin, hasExisting }: { onBegin: () => void; hasExisting:
         10 to 15 minutes. Stop whenever. Skip anything you do not want to answer.
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <button
-          onClick={onBegin}
-          style={primaryActionButtonStyle}
-        >
+        <PrimaryButton onClick={onBegin}>
           {hasExisting ? "Continue where I left off" : "Begin"}
-        </button>
+        </PrimaryButton>
         {hasExisting && (
           <button
             onClick={() => {
@@ -361,7 +317,7 @@ function TraitsStep({
 
       {selected.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <FieldLabel>How do these actually show up for you?</FieldLabel>
+          <MetaLabel>How do these actually show up for you?</MetaLabel>
           <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: "0 0 16px", lineHeight: 1.6 }}>
             Select what applies. These become the specific instructions in your profile.
           </p>
@@ -381,7 +337,7 @@ function TraitsStep({
       )}
 
       <Field>
-        <FieldLabel>Anything else about how these show up for you?</FieldLabel>
+        <MetaLabel>Anything else about how these show up for you?</MetaLabel>
         <textarea
           value={profile.traits.notes}
           onChange={(e) => onChange({ notes: e.target.value })}
@@ -426,7 +382,7 @@ function ActivationStep({
       </p>
 
       <Field>
-        <FieldLabel>What pulls you in</FieldLabel>
+        <MetaLabel>What pulls you in</MetaLabel>
         <CheckGroup options={activationOptions} selected={profile.activation.patterns} onChange={togglePattern} />
         {showOtherField && (
           <div style={{ marginTop: 12 }}>
@@ -442,7 +398,7 @@ function ActivationStep({
       </Field>
 
       <Field>
-        <FieldLabel>What does a good working session feel like?</FieldLabel>
+        <MetaLabel>What does a good working session feel like?</MetaLabel>
         <textarea
           value={profile.activation.goodDayDescription}
           onChange={(e) => onChange({ goodDayDescription: e.target.value })}
@@ -487,7 +443,7 @@ function ShutdownStep({
       </p>
 
       <Field>
-        <FieldLabel>Task types that cause avoidance</FieldLabel>
+        <MetaLabel>Task types that cause avoidance</MetaLabel>
         <CheckGroup options={shutdownOptions} selected={profile.shutdown.triggers} onChange={toggleTrigger} />
         {showOtherField && (
           <div style={{ marginTop: 12 }}>
@@ -503,7 +459,7 @@ function ShutdownStep({
       </Field>
 
       <Field>
-        <FieldLabel>What does shutdown or avoidance actually look like?</FieldLabel>
+        <MetaLabel>What does shutdown or avoidance actually look like?</MetaLabel>
         <textarea
           value={profile.shutdown.shutdownDescription}
           onChange={(e) => onChange({ shutdownDescription: e.target.value })}
@@ -548,7 +504,7 @@ function TimeStep({
       </p>
 
       <Field>
-        <FieldLabel>Which of these sound like you?</FieldLabel>
+        <MetaLabel>Which of these sound like you?</MetaLabel>
         <CheckGroup options={timeOptions} selected={profile.timeEnergy.patterns} onChange={togglePattern} />
         {showOtherField && (
           <div style={{ marginTop: 12 }}>
@@ -564,7 +520,7 @@ function TimeStep({
       </Field>
 
       <Field>
-        <FieldLabel>When do you actually tend to sit down and work?</FieldLabel>
+        <MetaLabel>When do you actually tend to sit down and work?</MetaLabel>
         <textarea
           value={profile.timeEnergy.activationWindows}
           onChange={(e) => onChange({ activationWindows: e.target.value })}
@@ -575,7 +531,7 @@ function TimeStep({
       </Field>
 
       <Field>
-        <FieldLabel>When do you know you'll be unavailable?</FieldLabel>
+        <MetaLabel>When do you know you'll be unavailable?</MetaLabel>
         <textarea
           value={profile.timeEnergy.unavailablePeriods}
           onChange={(e) => onChange({ unavailablePeriods: e.target.value })}
@@ -610,7 +566,7 @@ function HistoryStep({
       </p>
 
       <Field>
-        <FieldLabel>What systems or approaches have you tried?</FieldLabel>
+        <MetaLabel>What systems or approaches have you tried?</MetaLabel>
         <textarea
           value={profile.history.triedSystems}
           onChange={(e) => onChange({ triedSystems: e.target.value })}
@@ -621,7 +577,7 @@ function HistoryStep({
       </Field>
 
       <Field>
-        <FieldLabel>What worked, even partially?</FieldLabel>
+        <MetaLabel>What worked, even partially?</MetaLabel>
         <textarea
           value={profile.history.whatWorked}
           onChange={(e) => onChange({ whatWorked: e.target.value })}
@@ -632,7 +588,7 @@ function HistoryStep({
       </Field>
 
       <Field>
-        <FieldLabel>What fell apart?</FieldLabel>
+        <MetaLabel>What fell apart?</MetaLabel>
         <textarea
           value={profile.history.whatFailed}
           onChange={(e) => onChange({ whatFailed: e.target.value })}
@@ -687,7 +643,7 @@ function InfoStep({
       </p>
 
       <Field>
-        <FieldLabel>When taking in information, what works best?</FieldLabel>
+        <MetaLabel>When taking in information, what works best?</MetaLabel>
         <RadioGroup
           options={densityOptions}
           selected={profile.infoConditions.density}
@@ -696,7 +652,7 @@ function InfoStep({
       </Field>
 
       <Field>
-        <FieldLabel>Format that works best for you</FieldLabel>
+        <MetaLabel>Format that works best for you</MetaLabel>
         <CheckGroup options={formatOptions} selected={profile.infoConditions.formats} onChange={toggleFormat} />
         {showFormatOther && (
           <div style={{ marginTop: 12 }}>
@@ -712,7 +668,7 @@ function InfoStep({
       </Field>
 
       <Field>
-        <FieldLabel>What conditions help you actually work?</FieldLabel>
+        <MetaLabel>What conditions help you actually work?</MetaLabel>
         <CheckGroup options={conditionOptions} selected={profile.infoConditions.supportConditions} onChange={toggleCondition} />
         {showConditionOther && (
           <div style={{ marginTop: 12 }}>
@@ -773,19 +729,7 @@ function SummaryCard({ label, children, variant = "default" }: {
   };
   return (
     <div style={{ border: `1px solid ${borderColors[variant]}`, padding: "16px 18px" }}>
-      <p
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: labelColors[variant],
-          margin: "0 0 12px",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
-        {label}
-      </p>
+      <MetaLabel color={labelColors[variant]} style={{ fontWeight: 600, marginBottom: 12 }}>{label}</MetaLabel>
       {children}
     </div>
   );
@@ -1017,13 +961,10 @@ function DoneStep({
           <ProfileSummaryView profile={profile} />
 
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 32, marginBottom: 24, flexWrap: "wrap" }}>
-            <button
-              onClick={downloadProfile}
-              style={primaryActionButtonStyle}
-            >
+            <PrimaryButton onClick={downloadProfile}>
               <DownloadSimple size={14} />
               Download profile
-            </button>
+            </PrimaryButton>
             <button
               onClick={() => setShowRaw((s) => !s)}
               className="btn-text"

@@ -1,4 +1,5 @@
 import type { StrategyScorecard as StrategyScorecardType } from "../types";
+import { MetaLabel } from "./ui";
 
 interface Props {
   scorecard: StrategyScorecardType;
@@ -12,10 +13,10 @@ const GRADE_STYLES: Record<string, { border: string; bg: string; pill: string; t
     text: "var(--teal)",
   },
   medium: {
-    border: "#b8860b",
+    border: "var(--warning)",
     bg: "rgba(196, 164, 132, 0.05)",
     pill: "rgba(196, 164, 132, 0.18)",
-    text: "#966f00",
+    text: "var(--warning-deep)",
   },
   low: {
     border: "var(--terracotta)",
@@ -39,19 +40,7 @@ export function StrategyScorecard({ scorecard }: Props) {
               padding: "14px 16px",
             }}
           >
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 500,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--ink-muted)",
-                margin: "0 0 10px",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {metric.label}
-            </p>
+            <MetaLabel style={{ marginBottom: 10 }}>{metric.label}</MetaLabel>
             <span
               style={{
                 display: "inline-block",

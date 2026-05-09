@@ -1,4 +1,5 @@
 import type { IntelligenceScorecardMetric } from "../types";
+import { MetaLabel } from "./ui";
 
 interface Props {
   metrics: IntelligenceScorecardMetric[];
@@ -12,10 +13,10 @@ const GRADE_STYLES: Record<string, { border: string; bg: string; pill: string; t
     text: "var(--teal)",
   },
   medium: {
-    border: "#b8860b",
-    bg: "rgba(196, 164, 132, 0.05)",
-    pill: "rgba(196, 164, 132, 0.18)",
-    text: "#966f00",
+    border: "var(--warning)",
+    bg: "var(--warning-bg)",
+    pill: "var(--warning-pill)",
+    text: "var(--warning-deep)",
   },
   low: {
     border: "var(--terracotta)",
@@ -59,19 +60,7 @@ export function IntelligenceScorecard({ metrics }: Props) {
                 marginBottom: 12,
               }}
             >
-              <p
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--ink-muted)",
-                  margin: 0,
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                {metric.label}
-              </p>
+              <MetaLabel style={{ margin: 0 }}>{metric.label}</MetaLabel>
               <span
                 style={{
                   display: "inline-block",
