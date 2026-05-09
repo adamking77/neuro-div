@@ -148,7 +148,7 @@ export default function App({
       }
 
       // Generate AI synthesis from results
-      let synthesis: { verdict: string; evidence: string; implication: string } | undefined;
+      let synthesis: { summary: string; verdict: string; evidence: string; implication: string } | undefined;
       if (allResults.length > 0) {
         try {
           const synthResponse = await fetch("/api/phase-synthesis", {
@@ -157,7 +157,7 @@ export default function App({
             body: JSON.stringify({ phaseId, problem: session.problem, results: allResults }),
           });
           if (synthResponse.ok) {
-            synthesis = await synthResponse.json() as { verdict: string; evidence: string; implication: string };
+            synthesis = await synthResponse.json() as { summary: string; verdict: string; evidence: string; implication: string };
           }
         } catch {
           // Synthesis is optional; don't fail the phase if it errors

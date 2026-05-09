@@ -11,6 +11,7 @@ export interface ExaResult {
 export type PhaseStatus = "idle" | "running" | "done" | "error";
 
 export interface PhaseSynthesis {
+  summary: string;
   verdict: string;
   evidence: string;
   implication: string;

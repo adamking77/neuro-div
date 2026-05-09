@@ -8,6 +8,7 @@ interface PhaseSynthesisRequest {
 }
 
 interface PhaseSynthesisResponse {
+  summary: string;
   verdict: string;
   evidence: string;
   implication: string;
@@ -118,21 +119,22 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
     return `[${i + 1}] ${r.title || "Untitled"}\n    ${highlight}${r.highlights![0].length > 300 ? "..." : ""}`;
   }).join("\n\n");
 
-  const system = `You are a category design research assistant. Your job is to analyze search results and tell the user what conclusion to draw about their problem statement.
+  const system = `You are a category design research assistant. Your job is to analyze search results and summarize what was found for the user.
 
 Be direct, specific, and honest. If the results are thin or don't match what the phase is looking for, say so clearly.
 
 You must respond in exactly this format:
 
-VERDICT: [Yes / No / Partially — followed by a one-sentence reason]
+SUMMARY: [2-3 sentences describing what was found across the sources — the patterns, the sources, the specific language or evidence. Be concrete.]
+VERDICT: [Yes / No / Partially — followed by a one-sentence reason answering the research question]
 EVIDENCE: [The single most specific concrete finding — include a direct quote, named source, or specific detail]
 IMPLICATION: [What this means for the user's idea — one sentence telling them what to conclude or do next]
 
 Rules:
+- SUMMARY must describe the actual findings: what kinds of sources, what patterns you see, what language or evidence appears
 - VERDICT must start with Yes, No, or Partially
 - Never use hedging language like "it seems," "perhaps," "might," or "could indicate"
 - If results are weak, be honest — don't invent evidence
-- Keep each line to one sentence maximum
 - Be specific: use quotes, names, numbers from the sources`;
 
   const user = `Phase: ${phaseName}
@@ -152,6 +154,7 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   // Default fallback
   const fallback: PhaseSynthesisResponse = {
+    summary: "Analysis incomplete — could not generate findings summary from results.",
     verdict: "Partially — analysis incomplete",
     evidence: "Could not extract specific findings from results.",
     implication: "Review the source list below for direct evidence.",
@@ -159,12 +162,14 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   if (!content) return fallback;
   
-  // Parse VERDICT, EVIDENCE, IMPLICATION lines
-  const verdictMatch = content.match(/VERDICT:\s*(.+?)(?=\n|$)/i);
-  const evidenceMatch = content.match(/EVIDENCE:\s*(.+?)(?=\n|$)/i);
-  const implicationMatch = content.match(/IMPLICATION:\s*(.+?)(?=\n|$)/i);
+  // Parse SUMMARY, VERDICT, EVIDENCE, IMPLICATION lines
+  const summaryMatch = content.match(/SUMMARY:\s*(.+?)(?=\n(?:VERDICT|EVIDENCE|IMPLICATION):|$)/is);
+  const verdictMatch = content.match(/VERDICT:\s*(.+?)(?=\n(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
+  const evidenceMatch = content.match(/EVIDENCE:\s*(.+?)(?=\n(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
+  const implicationMatch = content.match(/IMPLICATION:\s*(.+?)(?=\n(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
   
   return {
+    summary: summaryMatch?.[1]?.trim() || fallback.summary,
     verdict: verdictMatch?.[1]?.trim() || fallback.verdict,
     evidence: evidenceMatch?.[1]?.trim() || fallback.evidence,
     implication: implicationMatch?.[1]?.trim() || fallback.implication,

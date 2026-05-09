@@ -253,6 +253,11 @@ function PhaseSynthesisDisplay({ synthesis }: { synthesis: PhaseSynthesis }) {
         </div>
         
         <div style={{ minWidth: 0, flex: 1 }}>
+          {/* Summary — the main findings description */}
+          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: "0 0 12px" }}>
+            {synthesis.summary}
+          </p>
+          
           {/* Verdict line */}
           <div style={{ marginBottom: 8 }}>
             <span
