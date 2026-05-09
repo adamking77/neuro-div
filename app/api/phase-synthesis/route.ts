@@ -126,8 +126,13 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[phase-synthesis] Kimi API error", { status: response.status, error: errorText });
-      return Response.json({ error: `Kimi API error ${response.status}: ${errorText}` }, { status: response.status });
+      console.error("[phase-synthesis] Kimi API error", { 
+        status: response.status, 
+        statusText: response.statusText,
+        error: errorText.slice(0, 500),
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      return Response.json({ error: `Kimi API error ${response.status}: ${errorText.slice(0, 200)}` }, { status: response.status });
     }
 
     const data = await response.json() as KimiResponse;
