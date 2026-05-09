@@ -27,6 +27,7 @@ interface KimiResponse {
     message?: {
       role?: string;
       content?: string | null;
+      reasoning_content?: string | null;
     };
     finish_reason?: string;
   }>;
@@ -206,7 +207,8 @@ Analyze these results and answer the research question.`;
 }
 
 function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
-  const content = data.choices?.[0]?.message?.content?.trim() || "";
+  const message = data.choices?.[0]?.message;
+  const content = message?.content?.trim() || message?.reasoning_content?.trim() || "";
   
   const fallback: PhaseSynthesisResponse = {
     summary: "Analysis incomplete — could not generate findings summary from results.",
