@@ -176,25 +176,21 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
     return `[${i + 1}] ${r.title || "Untitled"}\n    ${highlight}${r.highlights![0].length > 300 ? "..." : ""}`;
   }).join("\n\n");
 
-  const system = `You are a category design research assistant. Your job is to analyze search results and summarize what was found for the user.
+  const system = `You are a category design research assistant. Analyze search results and provide a structured response.
 
-Be direct, specific, and honest. If the results are thin or don't match what the phase is looking for, say so clearly.
+CRITICAL: Write ONLY the four sections below. No thinking, no analysis, no checklist. Just the four sections with real content.
 
-You must respond in exactly this format:
-
-SUMMARY: (write 2-3 sentences describing what was found across the sources — the patterns, the sources, the specific language or evidence. Be concrete.)
-VERDICT: (write Yes / No / Partially — followed by a one-sentence reason answering the research question)
-EVIDENCE: (write the single most specific concrete finding — include a direct quote, named source, or specific detail)
-IMPLICATION: (write what this means for the user's idea — one sentence telling them what to conclude or do next)
-
-IMPORTANT: Do NOT output template placeholders like [2-3 sentences] or [Yes/No/Partially]. Write the actual content.
+SUMMARY: (real content here — 2-3 sentences about what was found)
+VERDICT: (real content here — Yes/No/Partially plus one sentence reason)
+EVIDENCE: (real content here — most specific finding with direct quote)
+IMPLICATION: (real content here — what the user should conclude or do)
 
 Rules:
-- SUMMARY must describe the actual findings: what kinds of sources, what patterns you see, what language or evidence appears
 - VERDICT must start with Yes, No, or Partially
-- Never use hedging language like "it seems," "perhaps," "might," or "could indicate"
+- Never use hedging like "it seems," "perhaps," "might"
 - If results are weak, be honest — don't invent evidence
-- Be specific: use quotes, names, numbers from the sources`;
+- Use quotes, names, numbers from sources
+- NEVER output placeholders, templates, or brackets like [2-3 sentences] — only real sentences`;
 
   const user = `Phase: ${phaseName}
 Research question: ${phaseQuestion}
