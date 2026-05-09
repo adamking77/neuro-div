@@ -74,20 +74,43 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.KIMI_API_KEY;
+    const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1";
+    const model = process.env.KIMI_MODEL || "kimi-k2-6";
+    
+    console.info("[phase-synthesis] env check", { 
+      hasKey: !!apiKey, 
+      keyLength: apiKey?.length,
+      baseUrl: baseUrl.slice(0, 30),
+      model 
+    });
+    
     if (!apiKey) {
       console.error("[phase-synthesis] KIMI_API_KEY not configured");
       return Response.json({ error: "KIMI_API_KEY not configured" }, { status: 500 });
     }
     
-    const model = process.env.KIMI_MODEL || "kimi-k2-6";
-    const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1";
-    
-    console.info("[phase-synthesis] calling Kimi", { model, baseUrl: baseUrl.slice(0, 20) + "..." });
+    console.info("[phase-synthesis] calling Kimi", { model, baseUrl: baseUrl.slice(0, 30) });
 
     const prompt = buildPhaseSynthesisPrompt(body.phaseId, body.problem, body.results);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const requestBody = {
+      model,
+      max_tokens: 400,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: prompt.system },
+        { role: "user", content: prompt.user },
+      ],
+    };
+    
+    console.info("[phase-synthesis] request details", { 
+      url: `${baseUrl}/chat/completions`,
+      model,
+      messagesCount: requestBody.messages.length
+    });
     
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
@@ -95,15 +118,7 @@ export async function POST(req: Request) {
         authorization: `Bearer ${apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: 400,
-        temperature: 0.7,
-        messages: [
-          { role: "system", content: prompt.system },
-          { role: "user", content: prompt.user },
-        ],
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
     
