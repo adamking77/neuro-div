@@ -16,6 +16,7 @@ interface KimiResponse {
     message?: {
       role?: string;
       content?: string | null;
+      reasoning_content?: string | null;
     };
     finish_reason?: string;
   }>;

@@ -186,8 +186,8 @@ export function getKimiConfig(env: Record<string, string | undefined>) {
 
   return {
     apiKey,
-    model: env.KIMI_MODEL || "kimi-k2-6",
-    baseUrl: env.KIMI_BASE_URL || "https://api.moonshot.cn/v1",
+    model: env.KIMI_MODEL || "kimi-k2.6",
+    baseUrl: env.KIMI_BASE_URL || "https://api.moonshot.ai/v1",
   };
 }
 
