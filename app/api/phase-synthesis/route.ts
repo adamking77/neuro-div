@@ -279,7 +279,13 @@ function extractFinalSections(text: string): PhaseSynthesisResponse | null {
   const summary = text.slice(sPos + 8, vPos).trim();
   const verdict = text.slice(vPos + 8, ePos).trim();
   const evidence = text.slice(ePos + 9, iPos).trim();
-  const implication = text.slice(iPos + 12).trim();
+  let implication = text.slice(iPos + 12).trim();
+  
+  // Truncate implication if model appends meta-text after it
+  const metaStart = implication.search(/\n\n(?:Wait,|Actually,|Let me|Now let me|I need|I will|I should|I think|Check:|So,|First,|Second,)/i);
+  if (metaStart > 0) {
+    implication = implication.slice(0, metaStart).trim();
+  }
   
   // Validate: skip meta-text
   const isMeta = (s: string) => {
