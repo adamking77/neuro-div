@@ -639,7 +639,7 @@ function ReadableProcessView({
           {plan.checkInModes.map((mode) => (
             <div key={mode.label} style={simpleCardStyle}>
               <MetaLabel>{mode.label}</MetaLabel>
-              <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
+              <p style={{ margin: "0 0 8px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
             </div>
           ))}
         </div>
@@ -660,7 +660,7 @@ function ReadableProcessView({
                   <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
                     {block.title}
                   </h4>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
+                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
                 </div>
               </div>
               <div style={{ display: "grid", gap: 14 }}>
@@ -816,6 +816,12 @@ function SavedProcessesSection({
 }
 
 function MoveCard({ move }: { move: ProcessMove }) {
+  const lines = [
+    { label: "Trigger", value: move.trigger },
+    { label: "Action", value: move.action },
+    { label: "Done signal", value: move.doneSignal },
+    { label: "Why this fits you", value: move.whyItFits },
+  ];
   return (
     <div style={simpleCardStyle}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
@@ -826,19 +832,20 @@ function MoveCard({ move }: { move: ProcessMove }) {
           {move.effort}
         </span>
       </div>
-      <MoveLine label="Trigger" value={move.trigger} />
-      <MoveLine label="Action" value={move.action} />
-      <MoveLine label="Done signal" value={move.doneSignal} />
-      <MoveLine label="Why this fits you" value={move.whyItFits} />
+      {lines.map((line, i) => (
+        <p
+          key={line.label}
+          style={{
+            margin: i === lines.length - 1 ? 0 : "0 0 7px",
+            fontSize: 14,
+            color: "var(--ink-light)",
+            lineHeight: 1.7,
+          }}
+        >
+          <span style={{ color: "var(--ink)", fontWeight: 500 }}>{line.label}:</span> {line.value}
+        </p>
+      ))}
     </div>
-  );
-}
-
-function MoveLine({ label, value }: { label: string; value: string }) {
-  return (
-    <p style={{ margin: "0 0 7px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-      <span style={{ color: "var(--ink)", fontWeight: 500 }}>{label}:</span> {value}
-    </p>
   );
 }
 

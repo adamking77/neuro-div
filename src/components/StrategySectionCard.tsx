@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CaretDown, Check, Info, WarningCircle } from "@phosphor-icons/react";
 import { STRATEGY_SECTIONS } from "../lib/strategy";
+import { SectionNumber } from "./ui";
 import type { StrategyCitation, StrategySectionContent } from "../types";
 
 const EFFORT_STYLES: Record<string, { bg: string; text: string }> = {
@@ -53,18 +54,13 @@ export function StrategySectionCard({ section, index, content, citations }: Prop
       >
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-            <span
-              className="mono"
-              style={{ fontSize: 10, color: "var(--ink-muted)", letterSpacing: "0.08em" }}
-            >
-              {String(index + 1).padStart(2, "0")}
-            </span>
+            <SectionNumber number={String(index + 1).padStart(2, "0")} />
             <span
               style={{
-                fontSize: isAnchor ? 16 : 14,
+                fontSize: 15,
                 fontWeight: isAnchor ? 500 : 400,
                 color: "var(--ink)",
-                letterSpacing: isAnchor ? "-0.02em" : "-0.01em",
+                letterSpacing: "-0.01em",
               }}
             >
               {section.label}
