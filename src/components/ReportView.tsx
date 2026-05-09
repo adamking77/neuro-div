@@ -6,6 +6,7 @@ import type { SessionState, PhaseResult } from "../types";
 import { PHASES } from "../phases";
 import { PublicationTimeline, ScoreDistribution } from "./PhaseCharts";
 import { HighlightText } from "./HighlightText";
+import { ResearchSynthesis } from "./ResearchSynthesis";
 
 interface Props {
   session: SessionState;
@@ -34,8 +35,11 @@ export function ReportView({ session, onRunPhase, isRunning }: Props) {
     </div>
   );
 
+  const hasDoneResults = Object.values(session.phases).some((p) => p.status === "done" && p.results.length > 0);
+
   return (
     <div>
+      {hasDoneResults && <ResearchSynthesis session={session} />}
       {PHASES.map((phase, i) => {
         const result = session.phases[phase.id];
         return (

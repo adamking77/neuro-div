@@ -205,6 +205,16 @@ export function IntelligenceView({ brief, status, error }: Props) {
 
   const summaryParagraphs = chunkParagraphs(brief.summary, 2);
 
+  const gradePillStyle = (grade: string): React.CSSProperties => {
+    if (grade === "high") {
+      return { background: "rgba(91,138,138,0.1)", color: "var(--teal-deep)", border: "1px solid rgba(91,138,138,0.25)" };
+    }
+    if (grade === "low") {
+      return { background: "rgba(180,107,88,0.08)", color: "var(--terracotta)", border: "1px solid rgba(180,107,88,0.2)" };
+    }
+    return { background: "rgba(196,164,132,0.12)", color: "#966f00", border: "1px solid rgba(196,164,132,0.25)" };
+  };
+
   return (
     <div>
       {/* Executive Summary */}
@@ -212,8 +222,9 @@ export function IntelligenceView({ brief, status, error }: Props) {
         style={{
           background: "var(--cream)",
           border: "1px solid var(--rule)",
-          padding: "20px 24px",
-          marginBottom: 32,
+          borderLeft: "3px solid var(--teal)",
+          padding: "24px 26px",
+          marginBottom: 16,
         }}
       >
         <p
@@ -223,20 +234,20 @@ export function IntelligenceView({ brief, status, error }: Props) {
             fontFamily: "var(--font-mono)",
             textTransform: "uppercase",
             letterSpacing: "0.12em",
-            color: "var(--ink-muted)",
-            margin: "0 0 10px",
+            color: "var(--teal)",
+            margin: "0 0 14px",
           }}
         >
           Executive Summary
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 760 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 760 }}>
           {summaryParagraphs.map((paragraph, index) => (
             <p
               key={index}
               style={{
-                fontSize: 14,
+                fontSize: 15,
                 color: "var(--ink)",
-                lineHeight: 1.8,
+                lineHeight: 1.75,
                 margin: 0,
                 overflowWrap: "anywhere",
               }}
@@ -246,6 +257,31 @@ export function IntelligenceView({ brief, status, error }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Key Takeaways */}
+      {brief.scorecard.metrics.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 32, alignItems: "center" }}>
+          <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Key takeaways
+          </span>
+          {brief.scorecard.metrics.slice(0, 4).map((metric) => (
+            <span
+              key={metric.label}
+              style={{
+                fontSize: 10,
+                fontFamily: "var(--font-display)",
+                fontWeight: 500,
+                padding: "3px 10px",
+                borderRadius: 999,
+                whiteSpace: "nowrap",
+                ...gradePillStyle(metric.grade),
+              }}
+            >
+              {metric.label}: {metric.grade}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Scorecard */}
       <Section label="Where You Stand" number="01">
