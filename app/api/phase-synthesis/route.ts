@@ -219,12 +219,12 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   if (!raw) return fallback;
   
-  // Strip model's internal reasoning — find LAST "SUMMARY:" (final answer comes after reasoning)
-  const lastSummaryIdx = raw.toUpperCase().lastIndexOf("SUMMARY:");
-  if (lastSummaryIdx > 0) {
-    raw = raw.slice(lastSummaryIdx);
-  }
+  // kimi-k2.6 puts everything in reasoning_content with internal drafts.
+  // Find the FINAL clean answer by looking for all 4 sections in sequence.
+  const sections = extractFinalSections(raw);
+  if (sections) return sections;
   
+  // Fallback: try standard regex
   const summaryMatch = raw.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
   const verdictMatch = raw.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
   const evidenceMatch = raw.match(/EVIDENCE:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
@@ -236,4 +236,54 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
     evidence: evidenceMatch?.[1]?.trim() || fallback.evidence,
     implication: implicationMatch?.[1]?.trim() || fallback.implication,
   };
+}
+
+function extractFinalSections(text: string): PhaseSynthesisResponse | null {
+  // Find all occurrences of section headers
+  const upper = text.toUpperCase();
+  const findAll = (label: string) => {
+    const indices: number[] = [];
+    let idx = 0;
+    while ((idx = upper.indexOf(label, idx)) !== -1) {
+      indices.push(idx);
+      idx += label.length;
+    }
+    return indices;
+  };
+  
+  const sIdxs = findAll("SUMMARY:");
+  const vIdxs = findAll("VERDICT:");
+  const eIdxs = findAll("EVIDENCE:");
+  const iIdxs = findAll("IMPLICATION:");
+  
+  // Work backwards to find the last complete set of all 4 sections in order
+  for (let si = sIdxs.length - 1; si >= 0; si--) {
+    const sPos = sIdxs[si];
+    
+    // Find the next VERDICT after this SUMMARY
+    const vPos = vIdxs.find(v => v > sPos);
+    if (vPos == null) continue;
+    
+    // Find the next EVIDENCE after this VERDICT
+    const ePos = eIdxs.find(e => e > vPos);
+    if (ePos == null) continue;
+    
+    // Find the next IMPLICATION after this EVIDENCE
+    const iPos = iIdxs.find(i => i > ePos);
+    if (iPos == null) continue;
+    
+    // Extract each section (using original case text)
+    const summary = text.slice(sPos + 8, vPos).trim();
+    const verdict = text.slice(vPos + 8, ePos).trim();
+    const evidence = text.slice(ePos + 9, iPos).trim();
+    const implication = text.slice(iPos + 12).trim();
+    
+    // Validate: each section should have substantial content (not checklist items)
+    const isChecklist = (s: string) => /^\s*[-\d]/.test(s) || s.length < 10 || /^yes\?/i.test(s) || /^no\?/i.test(s);
+    if (isChecklist(summary) || isChecklist(verdict) || isChecklist(evidence)) continue;
+    
+    return { summary, verdict, evidence, implication };
+  }
+  
+  return null;
 }
