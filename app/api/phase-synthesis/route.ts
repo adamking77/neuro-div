@@ -239,63 +239,55 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
 }
 
 function extractFinalSections(text: string): PhaseSynthesisResponse | null {
-  // Find all occurrences of section headers
   const upper = text.toUpperCase();
-  const findAll = (label: string) => {
-    const indices: number[] = [];
-    let idx = 0;
-    while ((idx = upper.indexOf(label, idx)) !== -1) {
-      indices.push(idx);
-      idx += label.length;
+  
+  // Search backwards from end of text to find the REAL final answer.
+  // Skip template references ("SUMMARY: 2-3 sentences", "VERDICT: Yes/No/Partially") in meta-text.
+  
+  // Helper: find the LAST occurrence of a label that has real content after it
+  const findLastReal = (label: string, endPos: number = text.length): number => {
+    let idx = upper.lastIndexOf(label, endPos);
+    while (idx !== -1) {
+      const after = text.slice(idx + label.length).trim();
+      // Skip if it's a template placeholder or checklist item
+      if (!/^\s*(?:\[2-3|\[yes\/no\/partially|\[single most|\[what this means|[-\d])/i.test(after)) {
+        return idx;
+      }
+      // Keep searching backwards
+      idx = upper.lastIndexOf(label, idx - 1);
     }
-    return indices;
+    return -1;
   };
   
-  const sIdxs = findAll("SUMMARY:");
-  const vIdxs = findAll("VERDICT:");
-  const eIdxs = findAll("EVIDENCE:");
-  const iIdxs = findAll("IMPLICATION:");
+  // Find last IMPLICATION (must exist and have real content)
+  const iPos = findLastReal("IMPLICATION:");
+  if (iPos === -1) return null;
   
-  // Work backwards to find the last complete set of all 4 sections in order
-  for (let si = sIdxs.length - 1; si >= 0; si--) {
-    const sPos = sIdxs[si];
-    
-    // Find the next VERDICT after this SUMMARY
-    const vPos = vIdxs.find(v => v > sPos);
-    if (vPos == null) continue;
-    
-    // Find the next EVIDENCE after this VERDICT
-    const ePos = eIdxs.find(e => e > vPos);
-    if (ePos == null) continue;
-    
-    // Find the next IMPLICATION after this EVIDENCE
-    const iPos = iIdxs.find(i => i > ePos);
-    if (iPos == null) continue;
-    
-    // Extract each section (using original case text)
-    const summary = text.slice(sPos + 8, vPos).trim();
-    const verdict = text.slice(vPos + 8, ePos).trim();
-    const evidence = text.slice(ePos + 9, iPos).trim();
-    const implication = text.slice(iPos + 12).trim();
-    
-    // Validate: each section should have substantial content (not checklist/template items)
-    const isTemplate = (s: string) => {
-      if (s.length < 10) return true;
-      if (/^\s*[-\d]/.test(s)) return true;
-      if (/^yes\?/i.test(s) || /^no\?/i.test(s)) return true;
-      // Template placeholders from system prompt
-      if (/^\[2-3 sentences\]/i.test(s)) return true;
-      if (/^\[yes\/no\/partially/i.test(s)) return true;
-      if (/^\[single most specific/i.test(s)) return true;
-      if (/^\[what this means/i.test(s)) return true;
-      // Meta-text indicators
-      if (/^(wait,|actually,|let me|i need|i will|i should|i think|now let me|so:|first,|second,)/i.test(s)) return true;
-      return false;
-    };
-    if (isTemplate(summary) || isTemplate(verdict) || isTemplate(evidence) || isTemplate(implication)) continue;
-    
-    return { summary, verdict, evidence, implication };
-  }
+  // Find last EVIDENCE before IMPLICATION
+  const ePos = findLastReal("EVIDENCE:", iPos - 1);
+  if (ePos === -1) return null;
   
-  return null;
+  // Find last VERDICT before EVIDENCE
+  const vPos = findLastReal("VERDICT:", ePos - 1);
+  if (vPos === -1) return null;
+  
+  // Find last SUMMARY before VERDICT
+  const sPos = findLastReal("SUMMARY:", vPos - 1);
+  if (sPos === -1) return null;
+  
+  // Extract sections
+  const summary = text.slice(sPos + 8, vPos).trim();
+  const verdict = text.slice(vPos + 8, ePos).trim();
+  const evidence = text.slice(ePos + 9, iPos).trim();
+  const implication = text.slice(iPos + 12).trim();
+  
+  // Validate: skip meta-text
+  const isMeta = (s: string) => {
+    if (s.length < 10) return true;
+    if (/^(wait,|actually,|let me|i need|i will|i should|i think|now let me|so:|first,|second,|check:)/i.test(s)) return true;
+    return false;
+  };
+  if (isMeta(summary) || isMeta(verdict) || isMeta(evidence) || isMeta(implication)) return null;
+  
+  return { summary, verdict, evidence, implication };
 }
