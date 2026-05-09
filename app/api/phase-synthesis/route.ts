@@ -219,6 +219,11 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   if (!raw) return fallback;
   
+  // Strip model's internal reasoning — find LAST "SUMMARY:" (final answer comes after reasoning)
+  const lastSummaryIdx = raw.toUpperCase().lastIndexOf("SUMMARY:");
+  if (lastSummaryIdx > 0) {
+    raw = raw.slice(lastSummaryIdx);
+  }
   
   const summaryMatch = raw.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
   const verdictMatch = raw.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
