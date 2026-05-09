@@ -147,24 +147,29 @@ export default function App({
         }
       }
 
-      // Generate AI synthesis from results
+      // Generate AI synthesis from results (with retry)
       let synthesis: { summary: string; verdict: string; evidence: string; implication: string } | undefined;
       if (allResults.length > 0) {
-        try {
-          const synthResponse = await fetch("/api/phase-synthesis", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phaseId, problem: session.problem, results: allResults }),
-          });
-          if (synthResponse.ok) {
-            synthesis = await synthResponse.json() as { summary: string; verdict: string; evidence: string; implication: string };
-            console.info(`[phase ${phaseId}] synthesis generated`, synthesis);
-          } else {
-            const errorText = await synthResponse.text();
-            console.warn(`[phase ${phaseId}] synthesis failed:`, synthResponse.status, errorText);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const synthResponse = await fetch("/api/phase-synthesis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phaseId, problem: session.problem, results: allResults }),
+            });
+            if (synthResponse.ok) {
+              synthesis = await synthResponse.json() as { summary: string; verdict: string; evidence: string; implication: string };
+              console.info(`[phase ${phaseId}] synthesis generated (attempt ${attempt})`, synthesis);
+              break;
+            } else {
+              const errorText = await synthResponse.text();
+              console.warn(`[phase ${phaseId}] synthesis failed (attempt ${attempt}):`, synthResponse.status, errorText);
+              if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+            }
+          } catch (err) {
+            console.warn(`[phase ${phaseId}] synthesis error (attempt ${attempt}):`, err);
+            if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
           }
-        } catch (err) {
-          console.warn(`[phase ${phaseId}] synthesis error:`, err);
         }
       }
 
