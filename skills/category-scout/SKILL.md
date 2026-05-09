@@ -15,7 +15,13 @@ relatedSkills:
 
 ## Overview
 
-This skill produces the research artifact only. It gathers or structures evidence across the six Category Scout lenses, then writes a `category-scout-research-<slug>.md` dossier for downstream use by `distribution-strategy`.
+This skill produces the research artifact only. It gathers or structures evidence across the six Category Scout lenses, then writes a `category-scout-research-<slug>.md` dossier.
+
+**What to do with the research file:**
+
+1. **Give it to any AI for category assessment** — Attach the file to Claude, ChatGPT, or any AI agent with a category design prompt. The AI will validate whether your category has legs, identify gaps in the evidence, or tell you if you need to sharpen your problem statement before proceeding.
+
+2. **Hand off to `distribution-strategy`** — Pass the dossier to the Distribution Strategy skill to generate a go-to-market plan based on the research.
 
 ## Workflow
 

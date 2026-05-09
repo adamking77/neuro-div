@@ -199,6 +199,22 @@ export default function App({
       session.knownPlayers ? `**Known Players:** ${session.knownPlayers}` : "",
       `**Date:** ${date}`,
       "",
+      "## How to use this file",
+      "",
+      "This research dossier contains evidence from 6 category design phases. You have two options:",
+      "",
+      "### Option 1: Give it to any AI for category assessment",
+      "Attach this file to Claude, ChatGPT, or any AI agent and prompt:",
+      "",
+      '> "I\'m attaching Category Scout research. Produce a category design brief with these sections:\n> 1. The Problem (in customer language)\n> 2. The Enemy (what\'s being displaced)\n> 3. The Landscape (who\'s adjacent)\n> 4. The White Space (unclaimed territory)\n> 5. The Evidence Stack (proof the problem is real)\n> 6. The Vocabulary Set (words for naming the category)\n> 7. The POV Thesis (broken world → enemy → new way)\n> \n> Rules: Ground every claim in specific highlights. Cite sources inline."',
+      "",
+      "The AI will validate your category, identify gaps, or tell you if the evidence doesn't support proceeding.",
+      "",
+      "### Option 2: Continue to Distribution Strategy",
+      'Return to Category Scout and click "Open Distribution Strategy" to generate a go-to-market plan based on this research.',
+      "",
+      "---",
+      "",
     ];
 
     for (const phase of PHASES) {

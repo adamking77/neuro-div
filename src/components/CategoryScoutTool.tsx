@@ -93,7 +93,7 @@ export function CategoryScoutTool({
         }
       >
         <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
-          Describe the customer problem below. Run the research. Read the excerpts directly, export the full file, or hand it to Distribution Strategy for the next step.
+          Describe the customer problem. Run research across 6 lenses. Export the dossier and attach it to any AI (Claude, ChatGPT) for category validation — or continue to Distribution Strategy for a go-to-market plan.
         </p>
 
         {/* Problem statement guide */}
@@ -248,7 +248,7 @@ export function CategoryScoutTool({
                 <div>
                   <MetaLabel style={{ marginBottom: 5 }}>Export results</MetaLabel>
                   <p style={{ fontSize: 14, color: "var(--ink-light)", margin: 0, lineHeight: 1.7 }}>
-                    Download the research file, then pass it to any AI agent using the category design brief prompt below.
+                    Download includes instructions. Attach it to Claude, ChatGPT, or any AI for a full category assessment — validation, gaps, and whether to proceed. Or continue to Distribution Strategy below.
                   </p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
