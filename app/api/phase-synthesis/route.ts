@@ -54,7 +54,7 @@ const PHASE_NAMES: Record<number, string> = {
   6: "Language Mining",
 };
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {
