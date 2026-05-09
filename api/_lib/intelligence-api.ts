@@ -228,7 +228,8 @@ export function buildIntelligenceBriefPromptPart2(
 }
 
 export function parseIntelligenceBriefPart1(data: KimiResponse): BriefPart1 {
-  const text = data.choices?.[0]?.message?.content;
+  const message = data.choices?.[0]?.message;
+  const text = message?.content || (message as {reasoning_content?: string})?.reasoning_content;
   if (!text || typeof text !== "string") {
     throw new StrategyRequestError(502, data.error?.message || "Kimi response did not include intelligence brief output");
   }
@@ -238,7 +239,8 @@ export function parseIntelligenceBriefPart1(data: KimiResponse): BriefPart1 {
 }
 
 export function parseIntelligenceBriefPart2(data: KimiResponse): BriefPart2 {
-  const text = data.choices?.[0]?.message?.content;
+  const message = data.choices?.[0]?.message;
+  const text = message?.content || (message as {reasoning_content?: string})?.reasoning_content;
   if (!text || typeof text !== "string") {
     throw new StrategyRequestError(502, data.error?.message || "Kimi response did not include intelligence brief output");
   }

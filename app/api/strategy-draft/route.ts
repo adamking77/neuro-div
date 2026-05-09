@@ -26,6 +26,7 @@ interface KimiResponse {
     message?: {
       role?: string;
       content?: string | null;
+      reasoning_content?: string | null;
     };
     finish_reason?: string;
   }>;
@@ -158,7 +159,8 @@ async function runExaDeepSearch(
 }
 
 function extractKimiText(data: KimiResponse): string {
-  const text = data.choices?.[0]?.message?.content;
+  const message = data.choices?.[0]?.message;
+  const text = message?.content || message?.reasoning_content;
 
   if (!text || typeof text !== "string") {
     throw new StrategyRequestError(502, data.error?.message || "Kimi response did not include text output");
