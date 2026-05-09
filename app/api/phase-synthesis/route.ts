@@ -1,4 +1,13 @@
+// Force Node.js runtime (not Edge) to avoid Vercel edge auth issues
+export const runtime = "nodejs";
+export const preferredRegion = "iad1";
+
 import type { ExaResult } from "@/src/types";
+
+// Health check endpoint
+export async function GET() {
+  return Response.json({ status: "ok", timestamp: new Date().toISOString() });
+}
 
 interface PhaseSynthesisRequest {
   phaseId: number;
