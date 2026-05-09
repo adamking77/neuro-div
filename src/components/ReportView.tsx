@@ -2,12 +2,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowClockwise, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import { Skeleton } from "@heroui/react";
-import type { SessionState, PhaseResult } from "../types";
+import type { SessionState, PhaseResult, ExaResult } from "../types";
 import { PHASES } from "../phases";
 import { PublicationTimeline, ScoreDistribution } from "./PhaseCharts";
 import { HighlightText } from "./HighlightText";
 import { ResearchSynthesis } from "./ResearchSynthesis";
-import { SectionNumber, EmptyState, ErrorState } from "./ui";
+import { SectionNumber, EmptyState, ErrorState, Card, MetaLabel } from "./ui";
 
 interface Props {
   session: SessionState;
@@ -99,7 +99,7 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
           )}
         </div>
 
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: "0 0 20px", lineHeight: 1.55 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
           {description}
         </p>
 
@@ -114,13 +114,188 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
         )}
 
         {result.status === "done" && result.results.length > 0 && (
-          <>
-            <ResultList results={result.results} />
-            <ScoreDistribution results={result.results} />
-            <PublicationTimeline results={result.results} />
-          </>
+          <PhaseResults results={result.results} />
         )}
       </div>
+    </div>
+  );
+}
+
+function PhaseResults({ results }: { results: ExaResult[] }) {
+  const scored = results.filter((r) => r.score != null);
+  const high = scored.filter((r) => r.score! >= 0.60).length;
+  const totalScored = scored.length;
+  const highPct = totalScored > 0 ? Math.round((high / totalScored) * 100) : 0;
+
+  const dates = results.map((r) => r.publishedDate).filter(Boolean) as string[];
+  const dateRange = (() => {
+    const valid = dates.map((d) => new Date(d)).filter((d) => !isNaN(d.getTime())).sort((a, b) => a.getTime() - b.getTime());
+    if (valid.length === 0) return null;
+    const oldest = valid[0];
+    const newest = valid[valid.length - 1];
+    const sameYear = oldest.getFullYear() === newest.getFullYear();
+    if (sameYear) {
+      return `${oldest.toLocaleDateString("en-US", { month: "short" })}–${newest.toLocaleDateString("en-US", { month: "short" })} ${oldest.getFullYear()}`;
+    }
+    return `${oldest.getFullYear()}–${newest.getFullYear()}`;
+  })();
+
+  const insightParts = [
+    `${results.length} source${results.length !== 1 ? "s" : ""}`,
+    totalScored > 0 ? `${highPct}% high-confidence` : null,
+    dateRange,
+  ].filter(Boolean);
+
+  const top3 = [...results]
+    .filter((r) => r.score != null)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 3);
+
+  return (
+    <div>
+      {/* Phase insight */}
+      <p style={{ fontSize: 13, color: "var(--ink-light)", margin: "0 0 16px" }}>
+        {insightParts.join(" · ")}
+      </p>
+
+      {/* Charts first */}
+      <ScoreDistribution results={results} />
+      <PublicationTimeline results={results} />
+
+      {/* Top findings */}
+      {top3.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <MetaLabel style={{ marginBottom: 10 }}>Top findings</MetaLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {top3.map((result) => (
+              <TopResultRow key={result.id ?? result.url} result={result} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible full list */}
+      {results.length > 3 && (
+        <CollapsibleResultList results={results} />
+      )}
+
+      {results.length > 0 && results.length <= 3 && (
+        <div style={{ marginTop: 16 }}>
+          <ResultList results={results} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopResultRow({ result }: { result: ExaResult }) {
+  const domain = (() => {
+    try { return new URL(result.url).hostname.replace(/^www\./, ""); }
+    catch { return result.url.slice(0, 40); }
+  })();
+
+  const score = result.score ?? 0;
+  const scorePct = Math.round(score * 100);
+  const scoreColor = score >= 0.60 ? "var(--teal)" : score >= 0.40 ? "var(--warning)" : "var(--terracotta)";
+  const scoreBg = score >= 0.60 ? "rgba(91,138,138,0.1)" : score >= 0.40 ? "var(--warning-bg)" : "rgba(180,107,88,0.08)";
+
+  return (
+    <Card padding="sm">
+      <a
+        href={result.url}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+        className="group"
+      >
+        <div style={{ minWidth: 0, display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--ink)",
+              lineHeight: 1.45,
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--teal)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--ink)")}
+          >
+            {result.title || result.url}
+          </span>
+          <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)", flexShrink: 0 }}>
+            {domain}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              fontFamily: "var(--font-mono)",
+              color: scoreColor,
+              background: scoreBg,
+              padding: "2px 8px",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {scorePct}%
+          </span>
+          <ArrowUpRight
+            size={12}
+            style={{ color: "var(--teal)", opacity: 0, transition: "opacity 0.15s" }}
+            className="group-hover:opacity-100"
+          />
+        </div>
+      </a>
+    </Card>
+  );
+}
+
+function CollapsibleResultList({ results }: { results: ExaResult[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 transition-colors duration-150"
+        aria-expanded={open}
+        style={{ color: "var(--ink-light)", fontFamily: "var(--font-display)", fontSize: 12 }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--ink-muted)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--ink-light)")}
+      >
+        <motion.span
+          animate={{ rotate: open ? 90 : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="inline-block"
+        >
+          <CaretDown size={10} weight="bold" />
+        </motion.span>
+        <span>
+          {open ? "Hide sources" : `Show all ${results.length} sources`}
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 28 }}
+            style={{ overflow: "hidden", marginTop: 12 }}
+          >
+            <ResultList results={results} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -139,7 +314,7 @@ function SectionSkeleton() {
   );
 }
 
-function ResultList({ results }: { results: any[] }) {
+function ResultList({ results }: { results: ExaResult[] }) {
   return (
     <div>
       {results.map((result, i) => (
@@ -152,7 +327,7 @@ function ResultList({ results }: { results: any[] }) {
   );
 }
 
-function ResultItem({ result }: { result: any }) {
+function ResultItem({ result }: { result: ExaResult }) {
   const [highlightsOpen, setHighlightsOpen] = useState(false);
   const domain = (() => {
     try { return new URL(result.url).hostname.replace(/^www\./, ""); }
