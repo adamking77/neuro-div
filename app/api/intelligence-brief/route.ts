@@ -111,7 +111,7 @@ async function callKimi(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4000,
+      max_tokens: 1200,
       temperature: 1,
       messages: [
         { role: "system", content: prompt.system },
