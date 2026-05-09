@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     
     const requestBody = {
       model,
-      max_tokens: 400,
+      max_tokens: 2000,
       temperature: 1,
       messages: [
         { role: "system", content: prompt.system },
