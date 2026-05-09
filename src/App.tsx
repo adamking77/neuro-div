@@ -152,11 +152,15 @@ export default function App({
       if (allResults.length > 0) {
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 180000);
             const synthResponse = await fetch("/api/phase-synthesis", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ phaseId, problem: session.problem, results: allResults }),
+              signal: controller.signal,
             });
+            clearTimeout(timeoutId);
             if (synthResponse.ok) {
               synthesis = await synthResponse.json() as { summary: string; verdict: string; evidence: string; implication: string };
               console.info(`[phase ${phaseId}] synthesis generated (attempt ${attempt})`, synthesis);
@@ -182,7 +186,7 @@ export default function App({
   const runAll = useCallback(() => {
     if (!session.problem.trim()) return;
     PHASES.forEach((phase, index) => {
-      void runPhase(phase.id, index * 3000);
+      void runPhase(phase.id, index * 8000);
     });
   }, [runPhase, session.problem]);
 
