@@ -182,10 +182,12 @@ Be direct, specific, and honest. If the results are thin or don't match what the
 
 You must respond in exactly this format:
 
-SUMMARY: [2-3 sentences describing what was found across the sources — the patterns, the sources, the specific language or evidence. Be concrete.]
-VERDICT: [Yes / No / Partially — followed by a one-sentence reason answering the research question]
-EVIDENCE: [The single most specific concrete finding — include a direct quote, named source, or specific detail]
-IMPLICATION: [What this means for the user's idea — one sentence telling them what to conclude or do next]
+SUMMARY: (write 2-3 sentences describing what was found across the sources — the patterns, the sources, the specific language or evidence. Be concrete.)
+VERDICT: (write Yes / No / Partially — followed by a one-sentence reason answering the research question)
+EVIDENCE: (write the single most specific concrete finding — include a direct quote, named source, or specific detail)
+IMPLICATION: (write what this means for the user's idea — one sentence telling them what to conclude or do next)
+
+IMPORTANT: Do NOT output template placeholders like [2-3 sentences] or [Yes/No/Partially]. Write the actual content.
 
 Rules:
 - SUMMARY must describe the actual findings: what kinds of sources, what patterns you see, what language or evidence appears
@@ -250,7 +252,7 @@ function extractFinalSections(text: string): PhaseSynthesisResponse | null {
     while (idx !== -1) {
       const after = text.slice(idx + label.length).trim();
       // Skip if it's a template placeholder or checklist item
-      if (!/^\s*(?:\[2-3|\[yes\/no\/partially|\[single most|\[what this means|[-\d])/i.test(after)) {
+      if (!/^\s*(?:\[2-3|\[yes\/no\/partially|\[single most|\[what this means|\(write|[-\d])/i.test(after)) {
         return idx;
       }
       // Keep searching backwards
