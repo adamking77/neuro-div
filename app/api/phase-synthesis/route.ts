@@ -192,7 +192,9 @@ Rules:
 - VERDICT must start with Yes, No, or Partially
 - Never use hedging language like "it seems," "perhaps," "might," or "could indicate"
 - If results are weak, be honest — don't invent evidence
-- Be specific: use quotes, names, numbers from the sources`;
+- Be specific: use quotes, names, numbers from the sources
+
+IMPORTANT: After your analysis, output your final answer in the required format above. Do not omit any section.`;
 
   const user = `Phase: ${phaseName}
 Research question: ${phaseQuestion}
