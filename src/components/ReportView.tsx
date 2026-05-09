@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowClockwise, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import { Skeleton } from "@heroui/react";
-import type { SessionState, PhaseResult, ExaResult } from "../types";
+import type { SessionState, PhaseResult, ExaResult, PhaseSynthesis } from "../types";
 import { PHASES } from "../phases";
 import { HighlightText } from "./HighlightText";
 import { ResearchSynthesis } from "./ResearchSynthesis";
@@ -113,14 +113,15 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
         )}
 
         {result.status === "done" && result.results.length > 0 && (
-          <PhaseResults results={result.results} />
+          <PhaseResults result={result} />
         )}
       </div>
     </div>
   );
 }
 
-function PhaseResults({ results }: { results: ExaResult[] }) {
+function PhaseResults({ result }: { result: PhaseResult }) {
+  const { results, synthesis } = result;
   const top3 = [...results]
     .filter((r) => r.score != null)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -128,17 +129,17 @@ function PhaseResults({ results }: { results: ExaResult[] }) {
 
   return (
     <div>
-      {/* Verdict + key finding */}
+      {/* Verdict badge + AI synthesis */}
       <PhaseVerdict results={results} />
-      <KeyFinding results={results} />
+      {synthesis && <PhaseSynthesisDisplay synthesis={synthesis} />}
 
       {/* Top findings */}
       {top3.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <MetaLabel style={{ marginBottom: 10 }}>Top findings</MetaLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {top3.map((result) => (
-              <TopResultRow key={result.id ?? result.url} result={result} />
+            {top3.map((r) => (
+              <TopResultRow key={r.id ?? r.url} result={r} />
             ))}
           </div>
         </div>
@@ -222,61 +223,65 @@ function PhaseVerdict({ results }: { results: ExaResult[] }) {
   );
 }
 
-function KeyFinding({ results }: { results: ExaResult[] }) {
-  const best = [...results]
-    .filter((r) => r.highlights && r.highlights.length > 0)
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
-
-  if (!best) return null;
-
-  const excerpt = best.highlights![0];
-  const domain = (() => {
-    try { return new URL(best.url).hostname.replace(/^www\./, ""); }
-    catch { return best.url.slice(0, 40); }
-  })();
+function PhaseSynthesisDisplay({ synthesis }: { synthesis: PhaseSynthesis }) {
+  const verdict = synthesis.verdict;
+  const verdictLower = verdict.toLowerCase();
+  
+  // Color-code the verdict dot
+  let dotColor = "var(--warning)";
+  if (verdictLower.startsWith("yes")) dotColor = "var(--teal)";
+  else if (verdictLower.startsWith("no")) dotColor = "var(--terracotta)";
+  
+  // Format verdict without the Yes/No/Partially prefix for display
+  const verdictText = verdict.replace(/^(Yes|No|Partially)[\s:-]+/i, "").trim();
+  const verdictPrefix = verdict.match(/^(Yes|No|Partially)/i)?.[0] || "Partially";
 
   return (
     <Card padding="sm" style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span
-          style={{
-            width: 3,
-            flexShrink: 0,
-            alignSelf: "stretch",
-            background: "var(--teal)",
-            borderRadius: 2,
-            opacity: 0.5,
-          }}
-        />
-        <div style={{ minWidth: 0 }}>
-          <p
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        {/* Color-coded status dot */}
+        <div style={{ paddingTop: 4, flexShrink: 0 }}>
+          <span
             style={{
-              fontSize: 13,
-              color: "var(--ink-light)",
-              lineHeight: 1.65,
-              margin: "0 0 8px",
-              fontStyle: "italic",
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: dotColor,
+              display: "inline-block",
             }}
-          >
-            "{excerpt.replace(/\s+/g, " ").trim()}"
+          />
+        </div>
+        
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {/* Verdict line */}
+          <div style={{ marginBottom: 8 }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: dotColor,
+                marginRight: 6,
+              }}
+            >
+              {verdictPrefix}
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)", lineHeight: 1.5 }}>
+              {verdictText}
+            </span>
+          </div>
+          
+          {/* Evidence */}
+          <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.6, margin: "0 0 8px" }}>
+            {synthesis.evidence}
           </p>
-          <a
-            href={best.url}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              fontSize: 11,
-              color: "var(--ink-muted)",
-              textDecoration: "none",
-              fontFamily: "var(--font-mono)",
-            }}
-            className="group"
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--teal)")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--ink-muted)")}
-          >
-            {domain}
-            <ArrowUpRight size={9} style={{ marginLeft: 3, display: "inline", verticalAlign: "middle" }} />
-          </a>
+          
+          {/* Implication */}
+          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+            → {synthesis.implication}
+          </p>
         </div>
       </div>
     </Card>

@@ -118,7 +118,7 @@ export default function App({
       await new Promise((resolve) => setTimeout(resolve, startDelay));
     }
 
-    updatePhase(phaseId, { status: "running", results: [], error: undefined });
+    updatePhase(phaseId, { status: "running", results: [], error: undefined, synthesis: undefined });
     const queries = phase.buildQueries(session.problem, session.knownPlayers);
     const allResults: ExaResult[] = [];
 
@@ -147,7 +147,24 @@ export default function App({
         }
       }
 
-      updatePhase(phaseId, { status: "done", results: allResults });
+      // Generate AI synthesis from results
+      let synthesis: { verdict: string; evidence: string; implication: string } | undefined;
+      if (allResults.length > 0) {
+        try {
+          const synthResponse = await fetch("/api/phase-synthesis", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phaseId, problem: session.problem, results: allResults }),
+          });
+          if (synthResponse.ok) {
+            synthesis = await synthResponse.json() as { verdict: string; evidence: string; implication: string };
+          }
+        } catch {
+          // Synthesis is optional; don't fail the phase if it errors
+        }
+      }
+
+      updatePhase(phaseId, { status: "done", results: allResults, synthesis });
     } catch (error) {
       updatePhase(phaseId, { status: "error", error: String(error) });
     }

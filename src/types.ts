@@ -10,10 +10,17 @@ export interface ExaResult {
 
 export type PhaseStatus = "idle" | "running" | "done" | "error";
 
+export interface PhaseSynthesis {
+  verdict: string;
+  evidence: string;
+  implication: string;
+}
+
 export interface PhaseResult {
   status: PhaseStatus;
   results: ExaResult[];
   error?: string;
+  synthesis?: PhaseSynthesis;
 }
 
 export type TeamSize = "solo" | "small-team";
