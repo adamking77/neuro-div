@@ -51,6 +51,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json() as PhaseSynthesisRequest;
     
+    console.info("[phase-synthesis] request received", { phaseId: body.phaseId, resultsCount: body.results?.length });
+    
     if (!body.phaseId || !PHASE_QUESTIONS[body.phaseId]) {
       throw new StrategyRequestError(400, "Invalid phaseId");
     }
@@ -65,6 +67,8 @@ export async function POST(req: Request) {
 
     const { apiKey, model, baseUrl } = getKimiConfig(process.env);
     const timeoutMs = 30_000;
+    
+    console.info("[phase-synthesis] calling Kimi", { model, baseUrl: baseUrl.slice(0, 20) + "..." });
 
     const prompt = buildPhaseSynthesisPrompt(body.phaseId, body.problem, body.results);
     
@@ -91,7 +95,17 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json() as KimiResponse;
+    console.info("[phase-synthesis] Kimi response received", { 
+      hasChoices: !!data.choices, 
+      choicesLength: data.choices?.length,
+      hasContent: !!data.choices?.[0]?.message?.content 
+    });
+    
     const synthesis = parseSynthesisResponse(data);
+    console.info("[phase-synthesis] returning synthesis", { 
+      summaryLength: synthesis.summary.length,
+      verdict: synthesis.verdict.slice(0, 50) 
+    });
     
     return Response.json(synthesis);
   } catch (error) {
@@ -109,8 +123,13 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
   const phaseQuestion = PHASE_QUESTIONS[phaseId];
   
   // Take top 5 results with their best highlight
-  const topResults = results
-    .filter((r) => r.highlights && r.highlights.length > 0)
+  const resultsWithHighlights = results.filter((r) => r.highlights && r.highlights.length > 0);
+  console.info("[phase-synthesis] results with highlights", { 
+    totalResults: results.length, 
+    withHighlights: resultsWithHighlights.length 
+  });
+  
+  const topResults = resultsWithHighlights
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, 5);
 
