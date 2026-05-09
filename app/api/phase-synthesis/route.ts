@@ -1,4 +1,3 @@
-import { getKimiConfig, fetchWithTimeout, StrategyRequestError } from "@/api/_lib/strategy-api";
 import type { ExaResult } from "@/src/types";
 
 interface PhaseSynthesisRequest {
@@ -54,25 +53,34 @@ export async function POST(req: Request) {
     console.info("[phase-synthesis] request received", { phaseId: body.phaseId, resultsCount: body.results?.length });
     
     if (!body.phaseId || !PHASE_QUESTIONS[body.phaseId]) {
-      throw new StrategyRequestError(400, "Invalid phaseId");
+      return Response.json({ error: "Invalid phaseId" }, { status: 400 });
     }
     
     if (!body.problem?.trim()) {
-      throw new StrategyRequestError(400, "Problem statement is required");
+      return Response.json({ error: "Problem statement is required" }, { status: 400 });
     }
     
     if (!body.results || body.results.length === 0) {
-      throw new StrategyRequestError(400, "Results are required");
+      return Response.json({ error: "Results are required" }, { status: 400 });
     }
 
-    const { apiKey, model, baseUrl } = getKimiConfig(process.env);
-    const timeoutMs = 30_000;
+    const apiKey = process.env.KIMI_API_KEY;
+    if (!apiKey) {
+      console.error("[phase-synthesis] KIMI_API_KEY not configured");
+      return Response.json({ error: "KIMI_API_KEY not configured" }, { status: 500 });
+    }
+    
+    const model = process.env.KIMI_MODEL || "kimi-k2-6";
+    const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1";
     
     console.info("[phase-synthesis] calling Kimi", { model, baseUrl: baseUrl.slice(0, 20) + "..." });
 
     const prompt = buildPhaseSynthesisPrompt(body.phaseId, body.problem, body.results);
     
-    const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${apiKey}`,
@@ -87,11 +95,15 @@ export async function POST(req: Request) {
           { role: "user", content: prompt.user },
         ],
       }),
-    }, timeoutMs, "Kimi API");
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new StrategyRequestError(response.status, `Kimi API error ${response.status}: ${errorText}`);
+      console.error("[phase-synthesis] Kimi API error", { status: response.status, error: errorText });
+      return Response.json({ error: `Kimi API error ${response.status}: ${errorText}` }, { status: response.status });
     }
 
     const data = await response.json() as KimiResponse;
@@ -109,10 +121,7 @@ export async function POST(req: Request) {
     
     return Response.json(synthesis);
   } catch (error) {
-    if (error instanceof StrategyRequestError) {
-      return Response.json({ error: error.message }, { status: error.statusCode });
-    }
-    
+    console.error("[phase-synthesis] unexpected error", error);
     const message = error instanceof Error ? error.message : "Unexpected phase synthesis failure";
     return Response.json({ error: message }, { status: 500 });
   }
@@ -122,7 +131,6 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
   const phaseName = PHASE_NAMES[phaseId];
   const phaseQuestion = PHASE_QUESTIONS[phaseId];
   
-  // Take top 5 results with their best highlight
   const resultsWithHighlights = results.filter((r) => r.highlights && r.highlights.length > 0);
   console.info("[phase-synthesis] results with highlights", { 
     totalResults: results.length, 
@@ -171,7 +179,6 @@ Analyze these results and answer the research question.`;
 function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   const content = data.choices?.[0]?.message?.content?.trim() || "";
   
-  // Default fallback
   const fallback: PhaseSynthesisResponse = {
     summary: "Analysis incomplete — could not generate findings summary from results.",
     verdict: "Partially — analysis incomplete",
@@ -181,7 +188,6 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   if (!content) return fallback;
   
-  // Parse SUMMARY, VERDICT, EVIDENCE, IMPLICATION lines
   const summaryMatch = content.match(/SUMMARY:\s*(.+?)(?=\n(?:VERDICT|EVIDENCE|IMPLICATION):|$)/is);
   const verdictMatch = content.match(/VERDICT:\s*(.+?)(?=\n(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
   const evidenceMatch = content.match(/EVIDENCE:\s*(.+?)(?=\n(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
