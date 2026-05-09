@@ -740,6 +740,63 @@ function PipelineStep({
   );
 }
 
+function AccordionGroup({
+  label,
+  children,
+  defaultOpen = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ borderBottom: "1px solid var(--rule)" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "14px 0",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "var(--font-display)",
+          fontSize: 15,
+          fontWeight: 500,
+          color: "var(--ink)",
+          letterSpacing: 0,
+          textAlign: "left",
+        }}
+      >
+        <span>{label}</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          style={{ display: "inline-flex", color: "var(--ink-muted)" }}
+        >
+          <CaretDown size={14} />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ paddingBottom: 32 }}>{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function InputForm({
   inputs,
   canGenerate,
@@ -757,8 +814,7 @@ function InputForm({
 }) {
   return (
     <div style={{ padding: "10px 0 38px" }}>
-      <div style={{ marginBottom: 42 }}>
-        <GroupLabel label="Audience" />
+      <AccordionGroup label="Audience" defaultOpen>
         <FieldLabel label="Who are you trying to reach, and what's going on for them when they find you?" required />
         <textarea
           className="strategy-input"
@@ -767,158 +823,157 @@ function InputForm({
           rows={3}
           placeholder="What problem are they living with? What have they already tried? What makes them ready to pay attention?"
         />
-      </div>
+      </AccordionGroup>
 
-      <GroupLabel label="How you operate" />
-
-      <div
-        className="constraints-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          columnGap: 30,
-          rowGap: 30,
-          marginBottom: 38,
-        }}
-      >
-        <SegmentedControl
-          label="Your Team"
-          value={inputs.teamSize}
-          options={[
-            { value: "solo", label: "Solo" },
-            { value: "small-team", label: "Small team" },
-          ]}
-          onChange={(v) => onInputChange("teamSize", v as StrategyInputs["teamSize"])}
-        />
-        <SegmentedControl
-          label="Marketing Budget"
-          value={inputs.budgetBand}
-          options={[
-            { value: "none", label: "None" },
-            { value: "low", label: "Low" },
-            { value: "moderate", label: "Moderate" },
-          ]}
-          onChange={(v) => onInputChange("budgetBand", v as StrategyInputs["budgetBand"])}
-        />
-        <SegmentedControl
-          label="Social Posting"
-          value={inputs.socialPostingTolerance}
-          options={[
-            { value: "avoid", label: "Avoid" },
-            { value: "limited", label: "Limited" },
-            { value: "comfortable", label: "OK" },
-          ]}
-          onChange={(v) =>
-            onInputChange(
-              "socialPostingTolerance",
-              v as StrategyInputs["socialPostingTolerance"],
-            )
-          }
-        />
-        <div>
+      <AccordionGroup label="Team & Budget">
+        <div
+          className="constraints-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            columnGap: 30,
+            rowGap: 30,
+            marginBottom: 8,
+          }}
+        >
           <SegmentedControl
-            label="Outreach Preferences"
-            value={inputs.outreachTolerance}
+            label="Your Team"
+            value={inputs.teamSize}
             options={[
-              { value: "inbound-only", label: "Inbound" },
-              { value: "warm-intro-ok", label: "Warm intro" },
-              { value: "async-email-ok", label: "Async email" },
-              { value: "live-calls-ok", label: "Live calls" },
+              { value: "solo", label: "Solo" },
+              { value: "small-team", label: "Small team" },
             ]}
-            onChange={(v) => onInputChange("outreachTolerance", v as StrategyInputs["outreachTolerance"])}
+            onChange={(v) => onInputChange("teamSize", v as StrategyInputs["teamSize"])}
           />
-          <button
-            onClick={() => onInputChange("peerCollaborationOk", !inputs.peerCollaborationOk)}
-            style={{
-              border: `1px solid ${inputs.peerCollaborationOk ? "var(--teal)" : "var(--rule)"}`,
-              background: inputs.peerCollaborationOk ? "var(--teal)" : "transparent",
-              color: inputs.peerCollaborationOk ? "#fff" : "var(--ink-muted)",
-              borderRadius: 999,
-              fontSize: 11,
-              fontFamily: "var(--font-display)",
-              padding: "5px 10px",
-              cursor: "pointer",
-              transition: "all 0.15s",
-              lineHeight: 1.35,
-              marginTop: 10,
-            }}
-          >
-            Peer collaboration
-          </button>
-          <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.55, margin: "8px 0 0" }}>
-            Content swaps, podcast guesting, cross-promotion with other operators.
-          </p>
-        </div>
-      </div>
-
-      <div
-        className="constraints-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          columnGap: 30,
-          rowGap: 30,
-          marginBottom: 38,
-        }}
-      >
-        <div>
-          <FieldLabel label="Weekly Capacity" />
-          <input
-            type="text"
-            className="strategy-input"
-            value={inputs.weeklyCapacity}
-            onChange={(e) => onInputChange("weeklyCapacity", e.target.value)}
-            placeholder="E.g. 4 focused hours"
-          />
-        </div>
-        <div>
-          <FieldLabel label="Formats You'll Produce" />
-          <MultiPillSelector
-            values={inputs.contentMode}
+          <SegmentedControl
+            label="Marketing Budget"
+            value={inputs.budgetBand}
             options={[
-              { value: "writing", label: "Writing" },
-              { value: "short-video", label: "Video" },
-              { value: "audio", label: "Audio" },
-              { value: "design", label: "Design" },
-              { value: "interactive", label: "Interactive" },
-              { value: "other", label: "Other" },
               { value: "none", label: "None" },
+              { value: "low", label: "Low" },
+              { value: "moderate", label: "Moderate" },
             ]}
-            onChange={(next) => onInputChange("contentMode", next as StrategyInputs["contentMode"])}
+            onChange={(v) => onInputChange("budgetBand", v as StrategyInputs["budgetBand"])}
           />
-          {inputs.contentMode.includes("other") && (
+          <SegmentedControl
+            label="Social Posting"
+            value={inputs.socialPostingTolerance}
+            options={[
+              { value: "avoid", label: "Avoid" },
+              { value: "limited", label: "Limited" },
+              { value: "comfortable", label: "OK" },
+            ]}
+            onChange={(v) =>
+              onInputChange(
+                "socialPostingTolerance",
+                v as StrategyInputs["socialPostingTolerance"],
+              )
+            }
+          />
+          <div>
+            <SegmentedControl
+              label="Outreach Preferences"
+              value={inputs.outreachTolerance}
+              options={[
+                { value: "inbound-only", label: "Inbound" },
+                { value: "warm-intro-ok", label: "Warm intro" },
+                { value: "async-email-ok", label: "Async email" },
+                { value: "live-calls-ok", label: "Live calls" },
+              ]}
+              onChange={(v) => onInputChange("outreachTolerance", v as StrategyInputs["outreachTolerance"])}
+            />
+            <button
+              onClick={() => onInputChange("peerCollaborationOk", !inputs.peerCollaborationOk)}
+              style={{
+                border: `1px solid ${inputs.peerCollaborationOk ? "var(--teal)" : "var(--rule)"}`,
+                background: inputs.peerCollaborationOk ? "var(--teal)" : "transparent",
+                color: inputs.peerCollaborationOk ? "#fff" : "var(--ink-muted)",
+                borderRadius: 999,
+                fontSize: 11,
+                fontFamily: "var(--font-display)",
+                padding: "5px 10px",
+                cursor: "pointer",
+                transition: "all 0.15s",
+                lineHeight: 1.35,
+                marginTop: 10,
+              }}
+            >
+              Peer collaboration
+            </button>
+            <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.55, margin: "8px 0 0" }}>
+              Content swaps, podcast guesting, cross-promotion with other operators.
+            </p>
+          </div>
+        </div>
+      </AccordionGroup>
+
+      <AccordionGroup label="Content & Capacity">
+        <div
+          className="constraints-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            columnGap: 30,
+            rowGap: 30,
+            marginBottom: 8,
+          }}
+        >
+          <div>
+            <FieldLabel label="Weekly Capacity" />
             <input
               type="text"
               className="strategy-input"
-              value={inputs.contentModeOther}
-              onChange={(e) => onInputChange("contentModeOther", e.target.value)}
-              placeholder="What format would you rather make?"
-              style={{ marginTop: 12 }}
+              value={inputs.weeklyCapacity}
+              onChange={(e) => onInputChange("weeklyCapacity", e.target.value)}
+              placeholder="E.g. 4 focused hours"
             />
-          )}
+          </div>
+          <div>
+            <FieldLabel label="Formats You'll Produce" />
+            <MultiPillSelector
+              values={inputs.contentMode}
+              options={[
+                { value: "writing", label: "Writing" },
+                { value: "short-video", label: "Video" },
+                { value: "audio", label: "Audio" },
+                { value: "design", label: "Design" },
+                { value: "interactive", label: "Interactive" },
+                { value: "other", label: "Other" },
+                { value: "none", label: "None" },
+              ]}
+              onChange={(next) => onInputChange("contentMode", next as StrategyInputs["contentMode"])}
+            />
+            {inputs.contentMode.includes("other") && (
+              <input
+                type="text"
+                className="strategy-input"
+                value={inputs.contentModeOther}
+                onChange={(e) => onInputChange("contentModeOther", e.target.value)}
+                placeholder="What format would you rather make?"
+                style={{ marginTop: 12 }}
+              />
+            )}
+          </div>
         </div>
-      </div>
+        <div style={{ marginBottom: 8 }}>
+          <FieldLabel label="Existing Work And Assets" />
+          <AssetRowEditor
+            assets={inputs.existingAssets}
+            onChange={(assets) => onInputChange("existingAssets", assets)}
+          />
+        </div>
+        <div>
+          <FieldLabel label="Channel Avoidances" />
+          <textarea
+            value={inputs.channelAvoidances}
+            onChange={(e) => onInputChange("channelAvoidances", e.target.value)}
+            rows={3}
+            placeholder="What you won't do. E.g. LinkedIn, live events, cold calls."
+          />
+        </div>
+      </AccordionGroup>
 
-      <div style={{ marginBottom: 38 }}>
-        <FieldLabel label="Existing Work And Assets" />
-        <AssetRowEditor
-          assets={inputs.existingAssets}
-          onChange={(assets) => onInputChange("existingAssets", assets)}
-        />
-      </div>
-
-      <div style={{ marginBottom: 38 }}>
-        <FieldLabel label="Channel Avoidances" />
-        <textarea
-          value={inputs.channelAvoidances}
-          onChange={(e) => onInputChange("channelAvoidances", e.target.value)}
-          rows={3}
-          placeholder="What you won't do. E.g. LinkedIn, live events, cold calls."
-        />
-      </div>
-
-      <div style={{ marginBottom: 38 }}>
-        <GroupLabel label="How you work" />
+      <AccordionGroup label="How You Work">
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <div>
             <FieldLabel label="What have you already tried to get your work out there?" />
@@ -961,7 +1016,7 @@ function InputForm({
             />
           </div>
         </div>
-      </div>
+      </AccordionGroup>
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 34 }}>
         <PrimaryButton
@@ -1703,10 +1758,6 @@ function EmptyStrategyState({
       )}
     </div>
   );
-}
-
-function GroupLabel({ label }: { label: string }) {
-  return <MetaLabel style={{ marginBottom: 22, opacity: 0.65 }}>{label}</MetaLabel>;
 }
 
 function FieldLabel({ label, required = false }: { label: string; required?: boolean }) {

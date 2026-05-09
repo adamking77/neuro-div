@@ -1,4 +1,5 @@
 import type { IntelligenceRisk } from "../types";
+import { Card } from "./ui";
 
 interface Props {
   risks: IntelligenceRisk[];
@@ -40,13 +41,10 @@ export function IntelligenceRiskMatrix({ risks }: Props) {
       {sorted.map((risk, i) => {
         const s = LEVEL_STYLES[risk.level] ?? LEVEL_STYLES.managed;
         return (
-          <div
+          <Card
             key={i}
-            style={{
-              background: s.bg,
-              border: `1px solid ${s.border}`,
-              padding: "14px 16px",
-            }}
+            background={s.bg}
+            style={{ border: `1px solid ${s.border}` }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <span
@@ -93,7 +91,7 @@ export function IntelligenceRiskMatrix({ risks }: Props) {
               <span style={{ fontWeight: 600, color: "var(--ink-muted)" }}>If this happens: </span>
               {risk.mitigation}
             </p>
-          </div>
+          </Card>
         );
       })}
     </div>

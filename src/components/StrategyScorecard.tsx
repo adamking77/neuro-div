@@ -1,5 +1,5 @@
 import type { StrategyScorecard as StrategyScorecardType } from "../types";
-import { MetaLabel } from "./ui";
+import { MetaLabel, Card } from "./ui";
 
 interface Props {
   scorecard: StrategyScorecardType;
@@ -32,13 +32,10 @@ export function StrategyScorecard({ scorecard }: Props) {
       {scorecard.metrics.map((metric) => {
         const s = GRADE_STYLES[metric.grade] ?? GRADE_STYLES.medium;
         return (
-          <div
+          <Card
             key={metric.label}
-            style={{
-              background: s.bg,
-              border: "1px solid var(--rule)",
-              padding: "14px 16px",
-            }}
+            background={s.bg}
+            padding="md"
           >
             <MetaLabel style={{ marginBottom: 10 }}>{metric.label}</MetaLabel>
             <span
@@ -68,7 +65,7 @@ export function StrategyScorecard({ scorecard }: Props) {
             >
               {metric.rationale}
             </p>
-          </div>
+          </Card>
         );
       })}
     </div>

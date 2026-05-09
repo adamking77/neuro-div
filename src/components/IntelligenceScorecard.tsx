@@ -1,5 +1,5 @@
 import type { IntelligenceScorecardMetric } from "../types";
-import { MetaLabel } from "./ui";
+import { MetaLabel, Card } from "./ui";
 
 interface Props {
   metrics: IntelligenceScorecardMetric[];
@@ -42,14 +42,9 @@ export function IntelligenceScorecard({ metrics }: Props) {
         const takeaway = metric.takeaway || metric.rationale || "";
         const evidence = metric.evidence;
         return (
-          <div
+          <Card
             key={metric.label}
-            style={{
-              background: s.bg,
-              border: "1px solid var(--rule)",
-              padding: "16px 18px",
-              minHeight: 0,
-            }}
+            background={s.bg}
           >
             <div
               style={{
@@ -106,7 +101,7 @@ export function IntelligenceScorecard({ metrics }: Props) {
                 {evidence}
               </p>
             )}
-          </div>
+          </Card>
         );
       })}
     </div>

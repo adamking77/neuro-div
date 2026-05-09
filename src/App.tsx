@@ -27,7 +27,7 @@ import type {
   IntelligenceBrief,
   StrategyDraft,
 } from "./types";
-import "./index.css";
+import "../app/globals.css";
 
 interface StrategyDraftErrorResponse {
   error?: string;

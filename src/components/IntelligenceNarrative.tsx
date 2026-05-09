@@ -1,4 +1,5 @@
 import type { IntelligenceLandscapeCallout } from "../types";
+import { Card } from "./ui";
 
 interface Props {
   content: string;
@@ -108,12 +109,11 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
               : buildCalloutContent(legacyText).rest;
             const isLong = `${headline} ${support.join(" ")}`.length > 220;
             return (
-              <div
+              <Card
                 key={i}
+                background={style.bg}
                 style={{
                   border: `1px solid ${style.border}`,
-                  background: style.bg,
-                  padding: "14px 16px",
                   gridColumn: isLong ? "1 / -1" : undefined,
                 }}
               >
@@ -171,7 +171,7 @@ export function IntelligenceNarrative({ content, callouts }: Props) {
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
