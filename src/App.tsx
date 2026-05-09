@@ -179,11 +179,11 @@ export default function App({
     }
   }, [session.problem, session.knownPlayers, updatePhase]);
 
-  const runAll = useCallback(() => {
+  const runAll = useCallback(async () => {
     if (!session.problem.trim()) return;
-    PHASES.forEach((phase, index) => {
-      void runPhase(phase.id, index * 400);
-    });
+    for (const phase of PHASES) {
+      await runPhase(phase.id, 0);
+    }
   }, [runPhase, session.problem]);
 
   const reset = useCallback(() => {
