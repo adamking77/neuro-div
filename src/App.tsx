@@ -158,9 +158,13 @@ export default function App({
           });
           if (synthResponse.ok) {
             synthesis = await synthResponse.json() as { summary: string; verdict: string; evidence: string; implication: string };
+            console.info(`[phase ${phaseId}] synthesis generated`, synthesis);
+          } else {
+            const errorText = await synthResponse.text();
+            console.warn(`[phase ${phaseId}] synthesis failed:`, synthResponse.status, errorText);
           }
-        } catch {
-          // Synthesis is optional; don't fail the phase if it errors
+        } catch (err) {
+          console.warn(`[phase ${phaseId}] synthesis error:`, err);
         }
       }
 
