@@ -508,51 +508,49 @@ function BoundariesStep({
   );
 }
 
+function BoundaryRow({ label, items }: { label: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
+      <span
+        style={{
+          fontSize: 10,
+          fontFamily: "var(--font-mono)",
+          color: "var(--ink-muted)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          whiteSpace: "nowrap",
+          minWidth: 110,
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.5 }}>
+        {items.join(" · ")}
+      </span>
+    </div>
+  );
+}
+
 function ProcessGlanceCard({ plan }: { plan: ProcessPlan }) {
   return (
-    <div style={{ border: "1px solid var(--rule)", padding: "20px 22px", marginBottom: 28 }}>
+    <div style={{ border: "1px solid var(--rule)", padding: "22px 24px", marginBottom: 28 }}>
       <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--teal)", margin: "0 0 10px", fontFamily: "var(--font-mono)" }}>
         Process at a glance
       </p>
-      <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.3 }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
         {plan.goal}
       </h3>
-      <p style={{ margin: "0 0 18px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.65, maxWidth: 680 }}>
+      <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 680 }}>
         {plan.thesis}
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }} className="constraints-grid">
-        <div>
-          <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", margin: "0 0 6px", letterSpacing: "0.06em", textTransform: "uppercase" }}>Working with</p>
-          <ul style={{ margin: 0, paddingLeft: 14, display: "flex", flexDirection: "column", gap: 4 }}>
-            {plan.workingWith.slice(0, 3).map((item) => (
-              <li key={item} style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.5 }}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", margin: "0 0 6px", letterSpacing: "0.06em", textTransform: "uppercase" }}>Protected</p>
-          <ul style={{ margin: 0, paddingLeft: 14, display: "flex", flexDirection: "column", gap: 4 }}>
-            {plan.protectedConditions.slice(0, 3).map((item) => (
-              <li key={item} style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.5 }}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", margin: "0 0 6px", letterSpacing: "0.06em", textTransform: "uppercase" }}>Not doing</p>
-          <ul style={{ margin: 0, paddingLeft: 14, display: "flex", flexDirection: "column", gap: 4 }}>
-            {plan.notDoing.slice(0, 3).map((item) => (
-              <li key={item} style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.5 }}>{item}</li>
-            ))}
-          </ul>
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 16, borderTop: "1px solid var(--rule)" }}>
+        <BoundaryRow label="Working with" items={plan.workingWith} />
+        <BoundaryRow label="Protected" items={plan.protectedConditions} />
+        <BoundaryRow label="Not doing" items={plan.notDoing.length > 0 ? plan.notDoing : ["No explicit boundaries set yet."]} />
       </div>
-
-      {plan.profileSummary && (
-        <p style={{ fontSize: 12, color: "var(--ink-muted)", lineHeight: 1.6, margin: "14px 0 0", fontStyle: "italic" }}>
-          {plan.profileSummary}
-        </p>
-      )}
     </div>
   );
 }
@@ -662,13 +660,16 @@ function ReadableProcessView({
         </p>
       </div>
 
-      <ThreeColumnSummary
-        columns={[
-          { label: "What you're working with", items: plan.workingWith },
-          { label: "Protected conditions", items: plan.protectedConditions },
-          { label: "What you're not doing", items: plan.notDoing.length > 0 ? plan.notDoing : ["No explicit not-doing list saved yet."] },
-        ]}
-      />
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", margin: "0 0 14px", fontFamily: "var(--font-mono)" }}>
+          Boundaries
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <BoundaryRow label="Working with" items={plan.workingWith} />
+          <BoundaryRow label="Protected" items={plan.protectedConditions} />
+          <BoundaryRow label="Not doing" items={plan.notDoing.length > 0 ? plan.notDoing : ["No explicit not-doing list saved yet."]} />
+        </div>
+      </div>
 
       <SectionBlock
         title="Session start"
@@ -772,29 +773,6 @@ function ReadableProcessView({
           {plan.agentBrief}
         </pre>
       </SectionBlock>
-    </div>
-  );
-}
-
-function ThreeColumnSummary({
-  columns,
-}: {
-  columns: { label: string; items: string[] }[];
-}) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }} className="constraints-grid">
-      {columns.map((column) => (
-        <div key={column.label} style={simpleCardStyle}>
-          <p style={metaLabelStyle}>{column.label}</p>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {column.items.map((item) => (
-              <li key={item} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
     </div>
   );
 }
