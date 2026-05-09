@@ -4,7 +4,6 @@ import { ArrowClockwise, ArrowUpRight, CaretDown } from "@phosphor-icons/react";
 import { Skeleton } from "@heroui/react";
 import type { SessionState, PhaseResult, ExaResult } from "../types";
 import { PHASES } from "../phases";
-import { PublicationTimeline, ScoreDistribution } from "./PhaseCharts";
 import { HighlightText } from "./HighlightText";
 import { ResearchSynthesis } from "./ResearchSynthesis";
 import { SectionNumber, EmptyState, ErrorState, Card, MetaLabel } from "./ui";
@@ -99,7 +98,7 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
           )}
         </div>
 
-        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: "0 0 16px", lineHeight: 1.55 }}>
           {description}
         </p>
 
@@ -122,30 +121,6 @@ function PhaseSection({ phaseId, name, description, result, canRerun, onRerun }:
 }
 
 function PhaseResults({ results }: { results: ExaResult[] }) {
-  const scored = results.filter((r) => r.score != null);
-  const high = scored.filter((r) => r.score! >= 0.60).length;
-  const totalScored = scored.length;
-  const highPct = totalScored > 0 ? Math.round((high / totalScored) * 100) : 0;
-
-  const dates = results.map((r) => r.publishedDate).filter(Boolean) as string[];
-  const dateRange = (() => {
-    const valid = dates.map((d) => new Date(d)).filter((d) => !isNaN(d.getTime())).sort((a, b) => a.getTime() - b.getTime());
-    if (valid.length === 0) return null;
-    const oldest = valid[0];
-    const newest = valid[valid.length - 1];
-    const sameYear = oldest.getFullYear() === newest.getFullYear();
-    if (sameYear) {
-      return `${oldest.toLocaleDateString("en-US", { month: "short" })}–${newest.toLocaleDateString("en-US", { month: "short" })} ${oldest.getFullYear()}`;
-    }
-    return `${oldest.getFullYear()}–${newest.getFullYear()}`;
-  })();
-
-  const insightParts = [
-    `${results.length} source${results.length !== 1 ? "s" : ""}`,
-    totalScored > 0 ? `${highPct}% high-confidence` : null,
-    dateRange,
-  ].filter(Boolean);
-
   const top3 = [...results]
     .filter((r) => r.score != null)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -153,14 +128,9 @@ function PhaseResults({ results }: { results: ExaResult[] }) {
 
   return (
     <div>
-      {/* Phase insight */}
-      <p style={{ fontSize: 13, color: "var(--ink-light)", margin: "0 0 16px" }}>
-        {insightParts.join(" · ")}
-      </p>
-
-      {/* Charts first */}
-      <ScoreDistribution results={results} />
-      <PublicationTimeline results={results} />
+      {/* Verdict + key finding */}
+      <PhaseVerdict results={results} />
+      <KeyFinding results={results} />
 
       {/* Top findings */}
       {top3.length > 0 && (
@@ -185,6 +155,131 @@ function PhaseResults({ results }: { results: ExaResult[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function PhaseVerdict({ results }: { results: ExaResult[] }) {
+  const scored = results.filter((r) => r.score != null);
+  const high = scored.filter((r) => r.score! >= 0.60).length;
+  const totalScored = scored.length;
+  const highPct = totalScored > 0 ? Math.round((high / totalScored) * 100) : 0;
+
+  const signal =
+    results.length >= 6 && highPct >= 50
+      ? { label: "Strong signal", color: "var(--teal)", bg: "rgba(91,138,138,0.08)" }
+      : results.length >= 3
+        ? { label: "Mixed signal", color: "var(--warning-deep)", bg: "var(--warning-bg)" }
+        : { label: "Thin evidence", color: "var(--terracotta)", bg: "rgba(180,107,88,0.06)" };
+
+  const domains = Array.from(
+    new Set(
+      results.map((r) => {
+        try {
+          return new URL(r.url).hostname.replace(/^www\./, "");
+        } catch {
+          return null;
+        }
+      }),
+    ),
+  ).filter(Boolean) as string[];
+
+  const dates = results.map((r) => r.publishedDate).filter(Boolean) as string[];
+  const recentYear = new Date().getFullYear();
+  const recentCount = dates.filter((d) => new Date(d).getFullYear() >= recentYear - 2).length;
+  const recencyPct = dates.length > 0 ? Math.round((recentCount / dates.length) * 100) : 0;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap",
+        marginBottom: 12,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: "var(--font-mono)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: signal.color,
+          background: signal.bg,
+          padding: "3px 10px",
+          borderRadius: 999,
+        }}
+      >
+        {signal.label}
+      </span>
+      <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>
+        {results.length} source{results.length !== 1 ? "s" : ""}
+        {domains.length > 0 && ` · ${domains.length} domain${domains.length !== 1 ? "s" : ""}`}
+        {dates.length > 0 && ` · ${recencyPct}% recent`}
+      </span>
+    </div>
+  );
+}
+
+function KeyFinding({ results }: { results: ExaResult[] }) {
+  const best = [...results]
+    .filter((r) => r.highlights && r.highlights.length > 0)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+
+  if (!best) return null;
+
+  const excerpt = best.highlights![0];
+  const domain = (() => {
+    try { return new URL(best.url).hostname.replace(/^www\./, ""); }
+    catch { return best.url.slice(0, 40); }
+  })();
+
+  return (
+    <Card padding="sm" style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <span
+          style={{
+            width: 3,
+            flexShrink: 0,
+            alignSelf: "stretch",
+            background: "var(--teal)",
+            borderRadius: 2,
+            opacity: 0.5,
+          }}
+        />
+        <div style={{ minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--ink-light)",
+              lineHeight: 1.65,
+              margin: "0 0 8px",
+              fontStyle: "italic",
+            }}
+          >
+            "{excerpt.replace(/\s+/g, " ").trim()}"
+          </p>
+          <a
+            href={best.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontSize: 11,
+              color: "var(--ink-muted)",
+              textDecoration: "none",
+              fontFamily: "var(--font-mono)",
+            }}
+            className="group"
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--teal)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--ink-muted)")}
+          >
+            {domain}
+            <ArrowUpRight size={9} style={{ marginLeft: 3, display: "inline", verticalAlign: "middle" }} />
+          </a>
+        </div>
+      </div>
+    </Card>
   );
 }
 
