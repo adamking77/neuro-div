@@ -176,25 +176,25 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
     return `[${i + 1}] ${r.title || "Untitled"}\n    ${highlight}${r.highlights![0].length > 300 ? "..." : ""}`;
   }).join("\n\n");
 
-  const system = `You are a category design research assistant. Your job is to analyze search results and summarize what was found for the user.
+  const system = `You are a category design research assistant. Analyze search results and output ONLY the four required sections.
 
-Be direct, specific, and honest. If the results are thin or don't match what the phase is looking for, say so clearly.
+STRICT OUTPUT RULES:
+- Output ONLY these 4 sections. No preamble, no explanations, no meta-commentary.
+- Do NOT write "SUMMARY should mention" or "I will analyze" or any thinking-out-loud text.
+- Start immediately with "SUMMARY:" and end after "IMPLICATION:"
 
-You must respond in exactly this format:
+REQUIRED FORMAT:
 
-SUMMARY: [2-3 sentences describing what was found across the sources — the patterns, the sources, the specific language or evidence. Be concrete.]
-VERDICT: [Yes / No / Partially — followed by a one-sentence reason answering the research question]
-EVIDENCE: [The single most specific concrete finding — include a direct quote, named source, or specific detail]
-IMPLICATION: [What this means for the user's idea — one sentence telling them what to conclude or do next]
+SUMMARY: [2-3 sentences about patterns, sources, language found. Be concrete.]
+VERDICT: [Yes / No / Partially — one sentence reason]
+EVIDENCE: [Single most specific finding — direct quote or named source]
+IMPLICATION: [One sentence telling user what to conclude or do next]
 
-Rules:
-- SUMMARY must describe the actual findings: what kinds of sources, what patterns you see, what language or evidence appears
+CONTENT RULES:
 - VERDICT must start with Yes, No, or Partially
-- Never use hedging language like "it seems," "perhaps," "might," or "could indicate"
+- Never use hedging: no "it seems," "perhaps," "might," "could indicate"
 - If results are weak, be honest — don't invent evidence
-- Be specific: use quotes, names, numbers from the sources
-
-IMPORTANT: After your analysis, output your final answer in the required format above. Do not omit any section.`;
+- Use quotes, names, numbers from sources`;
 
   const user = `Phase: ${phaseName}
 Research question: ${phaseQuestion}
@@ -210,7 +210,7 @@ Analyze these results and answer the research question.`;
 
 function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   const message = data.choices?.[0]?.message;
-  const content = message?.content?.trim() || message?.reasoning_content?.trim() || "";
+  let raw = message?.content?.trim() || message?.reasoning_content?.trim() || "";
   
   const fallback: PhaseSynthesisResponse = {
     summary: "Analysis incomplete — could not generate findings summary from results.",
@@ -219,12 +219,18 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
     implication: "Review the source list below for direct evidence.",
   };
   
-  if (!content) return fallback;
+  if (!raw) return fallback;
   
-  const summaryMatch = content.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
-  const verdictMatch = content.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
-  const evidenceMatch = content.match(/EVIDENCE:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
-  const implicationMatch = content.match(/IMPLICATION:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
+  // Strip everything before the first SUMMARY: tag (preamble/meta-text)
+  const summaryIdx = raw.toUpperCase().indexOf("SUMMARY:");
+  if (summaryIdx > 0) {
+    raw = raw.slice(summaryIdx);
+  }
+  
+  const summaryMatch = raw.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
+  const verdictMatch = raw.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
+  const evidenceMatch = raw.match(/EVIDENCE:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
+  const implicationMatch = raw.match(/IMPLICATION:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
   
   return {
     summary: summaryMatch?.[1]?.trim() || fallback.summary,
