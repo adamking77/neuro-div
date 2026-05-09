@@ -284,7 +284,7 @@ function extractFinalSections(text: string): PhaseSynthesisResponse | null {
   let implication = text.slice(iPos + 12).trim();
   
   // Truncate implication if model appends meta-text after it
-  const metaStart = implication.search(/\n\n(?:Wait,|Actually,|Let me|Now let me|I need|I will|I should|I think|Check:|So,|First,|Second,)/i);
+  const metaStart = implication.search(/\n\n(?:Wait,|Actually,|Let me|Now let me|I need|I will|I should|I think|Check[\s:]|So,|First,|Second,|Review:|Verify:|Confirm:)/i);
   if (metaStart > 0) {
     implication = implication.slice(0, metaStart).trim();
   }
