@@ -278,9 +278,21 @@ function extractFinalSections(text: string): PhaseSynthesisResponse | null {
     const evidence = text.slice(ePos + 9, iPos).trim();
     const implication = text.slice(iPos + 12).trim();
     
-    // Validate: each section should have substantial content (not checklist items)
-    const isChecklist = (s: string) => /^\s*[-\d]/.test(s) || s.length < 10 || /^yes\?/i.test(s) || /^no\?/i.test(s);
-    if (isChecklist(summary) || isChecklist(verdict) || isChecklist(evidence)) continue;
+    // Validate: each section should have substantial content (not checklist/template items)
+    const isTemplate = (s: string) => {
+      if (s.length < 10) return true;
+      if (/^\s*[-\d]/.test(s)) return true;
+      if (/^yes\?/i.test(s) || /^no\?/i.test(s)) return true;
+      // Template placeholders from system prompt
+      if (/^\[2-3 sentences\]/i.test(s)) return true;
+      if (/^\[yes\/no\/partially/i.test(s)) return true;
+      if (/^\[single most specific/i.test(s)) return true;
+      if (/^\[what this means/i.test(s)) return true;
+      // Meta-text indicators
+      if (/^(wait,|actually,|let me|i need|i will|i should|i think|now let me|so:|first,|second,)/i.test(s)) return true;
+      return false;
+    };
+    if (isTemplate(summary) || isTemplate(verdict) || isTemplate(evidence) || isTemplate(implication)) continue;
     
     return { summary, verdict, evidence, implication };
   }
