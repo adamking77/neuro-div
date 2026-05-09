@@ -1,5 +1,5 @@
-import { getKimiConfig, fetchWithTimeout, StrategyRequestError } from "../_lib/strategy-api";
-import type { ExaResult } from "../../src/types";
+import { getKimiConfig, fetchWithTimeout, StrategyRequestError } from "@/api/_lib/strategy-api";
+import type { ExaResult } from "@/src/types";
 
 interface PhaseSynthesisRequest {
   phaseId: number;
