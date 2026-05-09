@@ -221,10 +221,10 @@ function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
   
   if (!content) return fallback;
   
-  const summaryMatch = content.match(/SUMMARY:\s*(.+?)(?=\n(?:VERDICT|EVIDENCE|IMPLICATION):|$)/is);
-  const verdictMatch = content.match(/VERDICT:\s*(.+?)(?=\n(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
-  const evidenceMatch = content.match(/EVIDENCE:\s*(.+?)(?=\n(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
-  const implicationMatch = content.match(/IMPLICATION:\s*(.+?)(?=\n(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
+  const summaryMatch = content.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
+  const verdictMatch = content.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
+  const evidenceMatch = content.match(/EVIDENCE:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
+  const implicationMatch = content.match(/IMPLICATION:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
   
   return {
     summary: summaryMatch?.[1]?.trim() || fallback.summary,
