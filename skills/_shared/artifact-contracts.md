@@ -76,7 +76,7 @@ Each phase section should contain:
 
 - phase name
 - phase purpose
-- sourced results with URL
+- sourced results with URL where available
 - short evidence excerpts or highlights
 
 Rules:
@@ -84,6 +84,7 @@ Rules:
 - This artifact is research only.
 - It must not include a full distribution strategy.
 - It may include a short handoff note describing what a downstream strategy skill will need.
+- If a phase has no external sources (user-provided knowledge only, or no search results returned), write a note inside that phase section: "No external sources available for this phase. Evidence below is from user-provided context only." Do not leave the section empty and do not omit URLs silently — their absence is meaningful signal about evidence strength.
 
 ## 4. Distribution strategy artifact
 

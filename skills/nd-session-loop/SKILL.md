@@ -34,9 +34,13 @@ If the active process artifact is missing, redirect to `nd-process-designer`.
 
 1. Read the active process artifact first. If it is not available, say so and redirect to `nd-process-designer`.
 2. Ask: `What's actually available today?`
-3. Let the user choose a mode: `Thinking`, `Deciding`, `Executing`, or `Not today`.
+3. Let the user choose a mode. Present each option with a one-line descriptor so the user can recognize themselves in it:
+   - `Thinking` — you have some capacity but low drive; reading, noticing, connecting ideas is about as far as it goes today
+   - `Deciding` — you can evaluate and commit to something but not execute it yet
+   - `Executing` — you have actual energy and can move something forward
+   - `Not today` — nothing is available and that's the honest answer
 4. If the user selects `Not today`: acknowledge it simply ("Got it. Nothing to do today."), do not question or reframe the choice, and close cleanly. No follow-up tasks or suggestions.
-5. For all other modes, surface exactly one relevant move from the process artifact.
+5. For all other modes, surface exactly one move from the process artifact. Select the move by matching it to the stated mode and energy level — not the first move in the artifact, not the most important-looking move, but the one that fits what is actually available. A Thinking mode session gets a low-activation move. An Executing session gets a concrete action with a clear done signal.
 6. Do not surface a second move until the first is closed, declined, or explicitly replaced.
 
 ## Reflection workflow

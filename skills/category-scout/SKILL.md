@@ -34,7 +34,7 @@ This skill produces the research artifact only. It gathers or structures evidenc
    - category language
    - evidence mining
    - wedge and white space
-4. For any lens where sufficient evidence is not available, mark that phase incomplete and state what kind of evidence would strengthen it. Do not fill gaps with inference presented as fact.
+4. For each lens, aim for at least 4 distinct sources before marking it complete. Fewer than 4 sources is a weak phase — note it as thin and state what additional evidence would strengthen it. A single strong source is better than nothing but is not sufficient to call a phase done. Do not fill gaps with inference presented as fact.
 5. Write the research artifact using the contract in `../_shared/artifact-contracts.md`.
 6. End with a short handoff note: whether the dossier is ready for `distribution-strategy`, and what gaps remain.
 

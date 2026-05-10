@@ -21,7 +21,7 @@ This skill interviews the user about how their ND traits actually show up in wor
 
 ## Workflow
 
-1. Read any existing ND profile, CLAUDE.md, vault notes, or related context if they are available. If they are not, proceed without them.
+1. Read any existing ND profile, CLAUDE.md, or other context files available in this environment if they are present. Do not assume any specific file structure or memory system — check only what is actually accessible. If nothing is available, proceed without it.
 2. Decide whether this is a fresh intake or an update pass. Open by stating which one this is and asking the first question directly. Do not lead with a preamble.
 3. Ask one question at a time. Use a mix of structured, mixed, and open-ended prompts.
 4. When a response is short, vague, or confused, reflect back what you heard and ask one clarifying follow-up before moving on.
