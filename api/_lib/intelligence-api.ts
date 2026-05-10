@@ -9,7 +9,224 @@ import {
   getKimiConfig,
   parseExaSearchResponse,
   validateStrategyDraftRequest,
+  type KimiToolDefinition,
 } from "./strategy-api";
+
+export const INTELLIGENCE_BRIEF_PART1_TOOL: KimiToolDefinition = {
+  name: "submit_intelligence_brief_part_1",
+  description: "Submit the executive summary, scorecard, and market landscape sections of the intelligence brief. Always call this tool — it is the only valid way to respond.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      summary: {
+        type: "string",
+        description: "1-paragraph executive summary synthesizing the entire brief. 3-5 sentences. Plain language for an ND founder.",
+      },
+      scorecard: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          metrics: {
+            type: "array",
+            minItems: 4,
+            maxItems: 4,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                label: {
+                  type: "string",
+                  enum: ["Market Opportunity", "Competitive Intensity", "Timing Window", "Founder Fit"],
+                },
+                grade: {
+                  type: "string",
+                  enum: ["high", "medium", "low"],
+                },
+                takeaway: {
+                  type: "string",
+                  description: "Single sharp verdict. Maximum 18 words. Renders as a compact card — no multi-clause analysis or list of considerations.",
+                },
+                evidence: {
+                  type: "string",
+                  description: "Single evidence line. Maximum 22 words. One concrete data point or observation.",
+                },
+              },
+              required: ["label", "grade", "takeaway", "evidence"],
+            },
+          },
+        },
+        required: ["metrics"],
+      },
+      landscape: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          content: {
+            type: "string",
+            description: "3-5 paragraphs synthesizing the market landscape. Use markdown for emphasis. Separate paragraphs with double newlines (\\n\\n).",
+          },
+          callouts: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                type: {
+                  type: "string",
+                  enum: ["insight", "warning", "opportunity"],
+                },
+                headline: {
+                  type: "string",
+                  description: "Single sharp callout. Maximum 18 words.",
+                },
+                support: {
+                  type: "string",
+                  description: "Optional supporting evidence sentence. Maximum 22 words. Omit if redundant.",
+                },
+              },
+              required: ["type", "headline"],
+            },
+          },
+        },
+        required: ["content", "callouts"],
+      },
+    },
+    required: ["summary", "scorecard", "landscape"],
+  },
+};
+
+export const INTELLIGENCE_BRIEF_PART2_TOOL: KimiToolDefinition = {
+  name: "submit_intelligence_brief_part_2",
+  description: "Submit the positioning, channels, risks, timeline, and resources sections of the intelligence brief. Always call this tool — it is the only valid way to respond.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      positioning: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          headers: {
+            type: "array",
+            items: { type: "string" },
+            description: "Column headers: ['Dimension', 'Us', 'Competitor A', 'Competitor B'].",
+          },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                dimension: { type: "string" },
+                us: { type: "string" },
+                competitorA: { type: "string" },
+                competitorB: { type: "string" },
+                usSentiment: {
+                  type: "string",
+                  enum: ["positive", "neutral", "negative"],
+                },
+              },
+              required: ["dimension", "us", "competitorA", "competitorB", "usSentiment"],
+            },
+          },
+        },
+        required: ["headers", "rows"],
+      },
+      channels: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          headers: {
+            type: "array",
+            items: { type: "string" },
+            description: "Column headers: ['Channel', 'Fit Score', 'Effort', 'Speed', 'Evidence', 'Verdict'].",
+          },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                channel: { type: "string" },
+                fitScore: { type: "number", description: "Integer 1-5." },
+                effort: { type: "string", description: "e.g., 'Low ongoing', 'High upfront'." },
+                speed: { type: "string", description: "e.g., 'Slow', 'Medium', 'Fast'." },
+                evidence: { type: "string" },
+                verdict: {
+                  type: "string",
+                  enum: ["prioritize", "test", "defer"],
+                },
+              },
+              required: ["channel", "fitScore", "effort", "speed", "evidence", "verdict"],
+            },
+          },
+        },
+        required: ["headers", "rows"],
+      },
+      risks: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          risks: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                impact: { type: "string", enum: ["high", "medium", "low"] },
+                probability: { type: "string", enum: ["high", "medium", "low"] },
+                mitigation: { type: "string" },
+                level: { type: "string", enum: ["critical", "watch", "managed"] },
+              },
+              required: ["name", "impact", "probability", "mitigation", "level"],
+            },
+          },
+        },
+        required: ["risks"],
+      },
+      timeline: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          phases: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                weeks: { type: "string", description: "e.g., 'Weeks 1-4'." },
+                focus: { type: "string" },
+                tasks: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+              required: ["name", "weeks", "focus", "tasks"],
+            },
+          },
+        },
+        required: ["phases"],
+      },
+      resources: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          time: { type: "array", items: { type: "string" } },
+          budget: { type: "array", items: { type: "string" } },
+          tools: { type: "array", items: { type: "string" } },
+          skills: { type: "array", items: { type: "string" } },
+          gaps: { type: "array", items: { type: "string" } },
+        },
+        required: ["time", "budget", "tools", "skills", "gaps"],
+      },
+    },
+    required: ["positioning", "channels", "risks", "timeline", "resources"],
+  },
+};
 
 interface KimiResponse {
   choices?: Array<{
@@ -157,28 +374,10 @@ export function buildIntelligenceBriefPromptPart1(
   payload: StrategyDraftRequestPayload,
   exaResearch: BriefExaResearch,
 ): { system: string; user: string } {
-  const schema = JSON.stringify({
-    summary: "1-paragraph executive summary synthesizing the entire brief.",
-    scorecard: {
-      metrics: [
-        { label: "Market Opportunity", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
-        { label: "Competitive Intensity", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
-        { label: "Timing Window", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
-        { label: "Founder Fit", grade: "high|medium|low", takeaway: "single sharp verdict, max 18 words", evidence: "single evidence line, max 22 words" },
-      ],
-    },
-    landscape: {
-      content: "3-5 paragraphs synthesizing the market landscape. Use markdown formatting for emphasis.",
-      callouts: [
-        { type: "insight|warning|opportunity", headline: "single sharp callout, max 18 words", support: "optional evidence sentence, max 22 words" },
-      ],
-    },
-  });
-
   const system = [
     ...CORE_SYSTEM_INSTRUCTIONS,
     "Hard display limits: scorecard metrics and callouts are compact cards, not analysis sections. Do not put multi-sentence or multi-clause analysis into takeaway, evidence, headline, or support. If a point needs more room, put it in landscape.content instead.",
-    `Return ONLY a JSON object with this exact structure. Populate every field with substantive, specific content. No markdown code fences, no text outside the JSON:\n${schema}`,
+    "Respond by calling the submit_intelligence_brief_part_1 tool. Use the schema's field descriptions for length limits and content shape. Populate every field with substantive, specific content grounded in the research below.",
   ].join("\n\n");
 
   return { system, user: buildIntelligenceBriefUserMessage(payload, exaResearch) };
@@ -188,41 +387,9 @@ export function buildIntelligenceBriefPromptPart2(
   payload: StrategyDraftRequestPayload,
   exaResearch: BriefExaResearch,
 ): { system: string; user: string } {
-  const schema = JSON.stringify({
-    positioning: {
-      headers: ["Dimension", "Us", "Competitor A", "Competitor B"],
-      rows: [
-        { dimension: "...", us: "...", competitorA: "...", competitorB: "...", usSentiment: "positive|neutral|negative" },
-      ],
-    },
-    channels: {
-      headers: ["Channel", "Fit Score", "Effort", "Speed", "Evidence", "Verdict"],
-      rows: [
-        { channel: "...", fitScore: 5, effort: "...", speed: "...", evidence: "...", verdict: "prioritize|test|defer" },
-      ],
-    },
-    risks: {
-      risks: [
-        { name: "...", impact: "high|medium|low", probability: "high|medium|low", mitigation: "...", level: "critical|watch|managed" },
-      ],
-    },
-    timeline: {
-      phases: [
-        { name: "...", weeks: "Weeks 1-4", focus: "...", tasks: ["..."] },
-      ],
-    },
-    resources: {
-      time: ["..."],
-      budget: ["..."],
-      tools: ["..."],
-      skills: ["..."],
-      gaps: ["..."],
-    },
-  });
-
   const system = [
     ...CORE_SYSTEM_INSTRUCTIONS,
-    `Return ONLY a JSON object with this exact structure. Populate every field with substantive, specific content. No markdown code fences, no text outside the JSON:\n${schema}`,
+    "Respond by calling the submit_intelligence_brief_part_2 tool. Populate every field with substantive, specific content grounded in the research below. Use real channel names, real competitor archetypes, real risk descriptions — no placeholders.",
   ].join("\n\n");
 
   return { system, user: buildIntelligenceBriefUserMessage(payload, exaResearch) };
@@ -248,6 +415,14 @@ export function parseIntelligenceBriefPart2(data: KimiResponse): BriefPart2 {
 
   const parsed = parseIntelligenceJson(text);
   return validateBriefPart2(parsed);
+}
+
+export function validateIntelligenceBriefPart1(input: unknown): BriefPart1 {
+  return validateBriefPart1(input);
+}
+
+export function validateIntelligenceBriefPart2(input: unknown): BriefPart2 {
+  return validateBriefPart2(input);
 }
 
 export function mergeIntelligenceBriefParts(part1: BriefPart1, part2: BriefPart2): IntelligenceBrief {

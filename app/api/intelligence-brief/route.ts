@@ -1,4 +1,5 @@
 import {
+  callKimiWithTool,
   createEmptyExaResearch,
   StrategyRequestError,
   buildExaSearchRequest,
@@ -10,28 +11,16 @@ import {
   validateStrategyDraftRequest,
 } from "@/api/_lib/strategy-api";
 import {
+  INTELLIGENCE_BRIEF_PART1_TOOL,
+  INTELLIGENCE_BRIEF_PART2_TOOL,
   buildFallbackIntelligenceBriefPart1,
   buildFallbackIntelligenceBriefPart2,
   buildIntelligenceBriefPromptPart1,
   buildIntelligenceBriefPromptPart2,
   mergeIntelligenceBriefParts,
-  parseIntelligenceBriefPart1,
-  parseIntelligenceBriefPart2,
+  validateIntelligenceBriefPart1,
+  validateIntelligenceBriefPart2,
 } from "@/api/_lib/intelligence-api";
-
-interface KimiResponse {
-  choices?: Array<{
-    message?: {
-      role?: string;
-      content?: string | null;
-      reasoning_content?: string | null;
-    };
-    finish_reason?: string;
-  }>;
-  error?: {
-    message?: string;
-  };
-}
 
 export const maxDuration = 300;
 
@@ -55,15 +44,13 @@ export async function POST(req: Request) {
 
     const { apiKey: kimiApiKey, model: kimiModel, baseUrl } = getKimiConfig(process.env);
 
-    const [p1Prompt, p2Prompt] = [
-      buildIntelligenceBriefPromptPart1(payload, exaResearch),
-      buildIntelligenceBriefPromptPart2(payload, exaResearch),
-    ];
+    const p1Prompt = buildIntelligenceBriefPromptPart1(payload, exaResearch);
+    const p2Prompt = buildIntelligenceBriefPromptPart2(payload, exaResearch);
 
     const kimiStartedAt = Date.now();
     const [r1, r2] = await Promise.allSettled([
-      callKimi(baseUrl, kimiApiKey, kimiModel, p1Prompt, kimiMs),
-      callKimi(baseUrl, kimiApiKey, kimiModel, p2Prompt, kimiMs),
+      callKimiWithTool(baseUrl, kimiApiKey, kimiModel, p1Prompt, INTELLIGENCE_BRIEF_PART1_TOOL, kimiMs, { maxTokens: 1500 }),
+      callKimiWithTool(baseUrl, kimiApiKey, kimiModel, p2Prompt, INTELLIGENCE_BRIEF_PART2_TOOL, kimiMs, { maxTokens: 2000 }),
     ]);
     console.info("[intelligence-brief] kimi settled", {
       durationMs: Date.now() - kimiStartedAt,
@@ -71,17 +58,18 @@ export async function POST(req: Request) {
       part2: r2.status,
     });
 
-    if (r1.status === "rejected" && r2.status === "rejected") {
-      console.warn("[intelligence-brief] kimi unavailable, using fallback", {
-        reason: getCombinedFailureMessage("Kimi", [r1.reason, r2.reason]),
-      });
+    if (r1.status === "rejected") {
+      console.warn("[intelligence-brief] part1 rejected", { reason: reasonText(r1.reason) });
+    }
+    if (r2.status === "rejected") {
+      console.warn("[intelligence-brief] part2 rejected", { reason: reasonText(r2.reason) });
     }
 
     const part1 = r1.status === "fulfilled"
-      ? parsePart1OrFallback(r1.value, payload)
+      ? safeValidate(() => validateIntelligenceBriefPart1(r1.value), () => buildFallbackIntelligenceBriefPart1(payload), "part1")
       : buildFallbackIntelligenceBriefPart1(payload);
     const part2 = r2.status === "fulfilled"
-      ? parsePart2OrFallback(r2.value, payload)
+      ? safeValidate(() => validateIntelligenceBriefPart2(r2.value), () => buildFallbackIntelligenceBriefPart2(payload), "part2")
       : buildFallbackIntelligenceBriefPart2(payload);
     const brief = mergeIntelligenceBriefParts(part1, part2);
 
@@ -94,38 +82,6 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "Unexpected intelligence brief failure";
     return Response.json({ error: message }, { status: 500 });
   }
-}
-
-async function callKimi(
-  baseUrl: string,
-  apiKey: string,
-  model: string,
-  prompt: { system: string; user: string },
-  timeoutMs: number,
-): Promise<KimiResponse> {
-  const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 1200,
-      temperature: 1,
-      messages: [
-        { role: "system", content: prompt.system },
-        { role: "user", content: prompt.user },
-      ],
-    }),
-  }, timeoutMs, "Kimi API");
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new StrategyRequestError(response.status, `Kimi API error ${response.status}: ${errorText}`);
-  }
-
-  return response.json() as Promise<KimiResponse>;
 }
 
 async function runExaDeepSearch(
@@ -152,33 +108,17 @@ async function runExaDeepSearch(
   return parseExaSearchResponse(await response.json());
 }
 
-function parsePart1OrFallback(
-  data: KimiResponse,
-  payload: ReturnType<typeof validateStrategyDraftRequest>,
-) {
+function safeValidate<T>(run: () => T, fallback: () => T, label: string): T {
   try {
-    return parseIntelligenceBriefPart1(data);
-  } catch {
-    return buildFallbackIntelligenceBriefPart1(payload);
+    return run();
+  } catch (error) {
+    console.warn(`[intelligence-brief] ${label} validation failed, using fallback`, {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return fallback();
   }
 }
 
-function parsePart2OrFallback(
-  data: KimiResponse,
-  payload: ReturnType<typeof validateStrategyDraftRequest>,
-) {
-  try {
-    return parseIntelligenceBriefPart2(data);
-  } catch {
-    return buildFallbackIntelligenceBriefPart2(payload);
-  }
-}
-
-function getCombinedFailureMessage(label: string, reasons: unknown[]): string {
-  const details = reasons
-    .map((reason) => reason instanceof Error ? reason.message : String(reason))
-    .filter(Boolean)
-    .join("; ");
-
-  return details ? `${label} failed: ${details}` : `${label} failed`;
+function reasonText(reason: unknown): string {
+  return reason instanceof Error ? reason.message : String(reason);
 }

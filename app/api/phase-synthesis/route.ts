@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "iad1";
 
 import type { ExaResult } from "@/src/types";
+import { callKimiWithTool, StrategyRequestError } from "@/api/_lib/strategy-api";
 
 // Health check endpoint
 export async function GET() {
@@ -20,20 +21,6 @@ interface PhaseSynthesisResponse {
   verdict: string;
   evidence: string;
   implication: string;
-}
-
-interface KimiResponse {
-  choices?: Array<{
-    message?: {
-      role?: string;
-      content?: string | null;
-      reasoning_content?: string | null;
-    };
-    finish_reason?: string;
-  }>;
-  error?: {
-    message?: string;
-  };
 }
 
 const PHASE_QUESTIONS: Record<number, string> = {
@@ -59,114 +46,94 @@ export const maxDuration = 300;
 export async function POST(req: Request) {
   try {
     const body = await req.json() as PhaseSynthesisRequest;
-    
+
     console.info("[phase-synthesis] request received", { phaseId: body.phaseId, resultsCount: body.results?.length });
-    
+
     if (!body.phaseId || !PHASE_QUESTIONS[body.phaseId]) {
       return Response.json({ error: "Invalid phaseId" }, { status: 400 });
     }
-    
+
     if (!body.problem?.trim()) {
       return Response.json({ error: "Problem statement is required" }, { status: 400 });
     }
-    
+
     if (!body.results || body.results.length === 0) {
       return Response.json({ error: "Results are required" }, { status: 400 });
     }
 
     const apiKey = process.env.KIMI_API_KEY;
-    const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1";
-    const model = process.env.KIMI_MODEL || "kimi-k2-6";
-    
-    console.info("[phase-synthesis] env check", { 
-      hasKey: !!apiKey, 
-      keyLength: apiKey?.length,
-      baseUrl: baseUrl.slice(0, 30),
-      model 
-    });
-    
+    const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.ai/v1";
+    const model = process.env.KIMI_MODEL || "kimi-k2.6";
+
     if (!apiKey) {
       console.error("[phase-synthesis] KIMI_API_KEY not configured");
       return Response.json({ error: "KIMI_API_KEY not configured" }, { status: 500 });
     }
-    
-    console.info("[phase-synthesis] calling Kimi", { model, baseUrl: baseUrl.slice(0, 30) });
 
     const prompt = buildPhaseSynthesisPrompt(body.phaseId, body.problem, body.results);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    const requestBody = {
-      model,
-      max_tokens: 800,
-      temperature: 1,
-      messages: [
-        { role: "system", content: prompt.system },
-        { role: "user", content: prompt.user },
-      ],
-    };
-    
-    console.info("[phase-synthesis] request details", { 
-      url: `${baseUrl}/chat/completions`,
-      model,
-      messagesCount: requestBody.messages.length
-    });
-    
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[phase-synthesis] Kimi API error", { 
-        status: response.status, 
-        statusText: response.statusText,
-        error: errorText.slice(0, 500),
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      return Response.json({ error: `Kimi API error ${response.status}: ${errorText.slice(0, 200)}` }, { status: response.status });
-    }
+    const synthesis = await callKimiWithTool(
+      baseUrl,
+      apiKey,
+      model,
+      prompt,
+      PHASE_SYNTHESIS_TOOL,
+      120_000,
+      { maxTokens: 800 },
+    );
 
-    const data = await response.json() as KimiResponse;
-    console.info("[phase-synthesis] Kimi response received", { 
-      hasChoices: !!data.choices, 
-      choicesLength: data.choices?.length,
-      hasContent: !!data.choices?.[0]?.message?.content 
+    const validated = validatePhaseSynthesis(synthesis);
+    console.info("[phase-synthesis] returning synthesis", {
+      summaryLength: validated.summary.length,
+      verdict: validated.verdict.slice(0, 50),
     });
-    
-    const synthesis = parseSynthesisResponse(data);
-    console.info("[phase-synthesis] returning synthesis", { 
-      summaryLength: synthesis.summary.length,
-      verdict: synthesis.verdict.slice(0, 50) 
-    });
-    
-    return Response.json(synthesis);
+
+    return Response.json(validated);
   } catch (error) {
+    if (error instanceof StrategyRequestError) {
+      console.error("[phase-synthesis] kimi error", { status: error.statusCode, message: error.message });
+      return Response.json({ error: error.message }, { status: error.statusCode });
+    }
     console.error("[phase-synthesis] unexpected error", error);
     const message = error instanceof Error ? error.message : "Unexpected phase synthesis failure";
     return Response.json({ error: message }, { status: 500 });
   }
 }
 
+const PHASE_SYNTHESIS_TOOL = {
+  name: "submit_phase_analysis",
+  description: "Submit a structured analysis of search results for a category design research phase. Always call this tool — it is the only valid way to respond.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      summary: {
+        type: "string",
+        description: "Exactly 2-3 sentences naming the specific patterns observed across the search results, in plain neurodivergent-friendly language. STOP after 3 sentences. Do NOT include meta-commentary like 'Wait,', 'Let me reconsider,', 'Actually,', 'On reflection,', 'I should also note', 'To clarify', 'In summary'. No hedging like 'seems', 'perhaps', 'might'. No self-correction. Just the analysis, then stop.",
+      },
+      verdict: {
+        type: "string",
+        description: "Single sentence. Must start with the literal word 'Yes', 'No', or 'Partially', followed by one short reason. Example: 'Partially — buyers describe the symptom but not the underlying cause.' STOP after one sentence. No meta-commentary, no self-checking.",
+      },
+      evidence: {
+        type: "string",
+        description: "1-2 sentences. The single most specific finding from the results, quoting source language when possible (names, numbers, direct phrases). STOP after 2 sentences. No meta-commentary, no 'Let me verify', no 'Wait,'.",
+      },
+      implication: {
+        type: "string",
+        description: "1-2 sentences. What the user should conclude or do based on this analysis. Concrete, not abstract. STOP after 2 sentences. No meta-commentary, no 'Wait,', no 'Let me also,', no 'On second thought,', no rules-checking, no self-review.",
+      },
+    },
+    required: ["summary", "verdict", "evidence", "implication"],
+  },
+};
+
 function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: ExaResult[]) {
   const phaseName = PHASE_NAMES[phaseId];
   const phaseQuestion = PHASE_QUESTIONS[phaseId];
-  
+
   const resultsWithHighlights = results.filter((r) => r.highlights && r.highlights.length > 0);
-  console.info("[phase-synthesis] results with highlights", { 
-    totalResults: results.length, 
-    withHighlights: resultsWithHighlights.length 
-  });
-  
+
   const topResults = resultsWithHighlights
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, 5);
@@ -176,21 +143,7 @@ function buildPhaseSynthesisPrompt(phaseId: number, problem: string, results: Ex
     return `[${i + 1}] ${r.title || "Untitled"}\n    ${highlight}${r.highlights![0].length > 300 ? "..." : ""}`;
   }).join("\n\n");
 
-  const system = `You are a category design research assistant. Analyze search results and provide a structured response.
-
-CRITICAL: Write ONLY the four sections below. No thinking, no analysis, no checklist. Just the four sections with real content.
-
-SUMMARY: (real content here — 2-3 sentences about what was found)
-VERDICT: (real content here — Yes/No/Partially plus one sentence reason)
-EVIDENCE: (real content here — most specific finding with direct quote)
-IMPLICATION: (real content here — what the user should conclude or do)
-
-Rules:
-- VERDICT must start with Yes, No, or Partially
-- Never use hedging like "it seems," "perhaps," "might"
-- If results are weak, be honest — don't invent evidence
-- Use quotes, names, numbers from sources
-- NEVER output placeholders, templates, or brackets like [2-3 sentences] — only real sentences`;
+  const system = `You are a category design research assistant analyzing search results for a neurodivergent founder. Ground every claim in the provided results. Quote source language where possible. Be honest if results are weak — do not invent evidence. Respond by calling the submit_phase_analysis tool.`;
 
   const user = `Phase: ${phaseName}
 Research question: ${phaseQuestion}
@@ -204,94 +157,60 @@ Analyze these results and answer the research question.`;
   return { system, user };
 }
 
-function parseSynthesisResponse(data: KimiResponse): PhaseSynthesisResponse {
-  const message = data.choices?.[0]?.message;
-  let raw = message?.content?.trim() || message?.reasoning_content?.trim() || "";
-  
-  const fallback: PhaseSynthesisResponse = {
-    summary: "Analysis incomplete — could not generate findings summary from results.",
-    verdict: "Partially — analysis incomplete",
-    evidence: "Could not extract specific findings from results.",
-    implication: "Review the source list below for direct evidence.",
-  };
-  
-  if (!raw) return fallback;
-  
-  // kimi-k2.6 puts everything in reasoning_content with internal drafts.
-  // Find the FINAL clean answer by looking for all 4 sections in sequence.
-  const sections = extractFinalSections(raw);
-  if (sections) return sections;
-  
-  // Fallback: try standard regex
-  const summaryMatch = raw.match(/SUMMARY:\s*([\s\S]+?)(?=\s*(?:VERDICT|EVIDENCE|IMPLICATION):|$)/i);
-  const verdictMatch = raw.match(/VERDICT:\s*([\s\S]+?)(?=\s*(?:SUMMARY|EVIDENCE|IMPLICATION):|$)/i);
-  const evidenceMatch = raw.match(/EVIDENCE:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|IMPLICATION):|$)/i);
-  const implicationMatch = raw.match(/IMPLICATION:\s*([\s\S]+?)(?=\s*(?:SUMMARY|VERDICT|EVIDENCE):|$)/i);
-  
-  return {
-    summary: summaryMatch?.[1]?.trim() || fallback.summary,
-    verdict: verdictMatch?.[1]?.trim() || fallback.verdict,
-    evidence: evidenceMatch?.[1]?.trim() || fallback.evidence,
-    implication: implicationMatch?.[1]?.trim() || fallback.implication,
-  };
+function validatePhaseSynthesis(input: unknown): PhaseSynthesisResponse {
+  if (!input || typeof input !== "object") {
+    throw new StrategyRequestError(502, "Phase analysis was not an object");
+  }
+  const obj = input as Record<string, unknown>;
+  const summary = scrubMeta(typeof obj.summary === "string" ? obj.summary : "");
+  const verdict = scrubMeta(typeof obj.verdict === "string" ? obj.verdict : "");
+  const evidence = scrubMeta(typeof obj.evidence === "string" ? obj.evidence : "");
+  const implication = scrubMeta(typeof obj.implication === "string" ? obj.implication : "");
+
+  if (!summary || !verdict || !evidence || !implication) {
+    throw new StrategyRequestError(502, "Phase analysis was missing required fields");
+  }
+
+  return { summary, verdict, evidence, implication };
 }
 
-function extractFinalSections(text: string): PhaseSynthesisResponse | null {
-  const upper = text.toUpperCase();
-  
-  // Search backwards from end of text to find the REAL final answer.
-  // Skip template references ("SUMMARY: 2-3 sentences", "VERDICT: Yes/No/Partially") in meta-text.
-  
-  // Helper: find the LAST occurrence of a label that has real content after it
-  const findLastReal = (label: string, endPos: number = text.length): number => {
-    let idx = upper.lastIndexOf(label, endPos);
+const META_MARKERS = [
+  "Wait,",
+  "Wait —",
+  "Let me reconsider",
+  "Let me revise",
+  "Let me refine",
+  "Let me verify",
+  "I need to verify",
+  "I need to check",
+  "Reconsidering,",
+  "Check rules",
+  "Checking rules",
+  "Rules check",
+  "Self-check",
+  "Self check",
+];
+
+function scrubMeta(text: string): string {
+  let out = text.trim();
+  if (!out) return out;
+
+  for (const marker of META_MARKERS) {
+    const lowered = out.toLowerCase();
+    const target = marker.toLowerCase();
+    let idx = lowered.indexOf(target);
     while (idx !== -1) {
-      const after = text.slice(idx + label.length).trim();
-      // Skip if it's a template placeholder or checklist item
-      if (!/^\s*(?:\[2-3|\[yes\/no\/partially|\[single most|\[what this means|\(write|[-\d])/i.test(after)) {
-        return idx;
+      const isStartOfSentence = idx === 0
+        || /[.!?\n]\s*$/.test(out.slice(0, idx))
+        || /\n\s*$/.test(out.slice(0, idx));
+      if (isStartOfSentence) {
+        out = out.slice(0, idx).trim();
+        break;
       }
-      // Keep searching backwards
-      idx = upper.lastIndexOf(label, idx - 1);
+      idx = lowered.indexOf(target, idx + 1);
     }
-    return -1;
-  };
-  
-  // Find last IMPLICATION (must exist and have real content)
-  const iPos = findLastReal("IMPLICATION:");
-  if (iPos === -1) return null;
-  
-  // Find last EVIDENCE before IMPLICATION
-  const ePos = findLastReal("EVIDENCE:", iPos - 1);
-  if (ePos === -1) return null;
-  
-  // Find last VERDICT before EVIDENCE
-  const vPos = findLastReal("VERDICT:", ePos - 1);
-  if (vPos === -1) return null;
-  
-  // Find last SUMMARY before VERDICT
-  const sPos = findLastReal("SUMMARY:", vPos - 1);
-  if (sPos === -1) return null;
-  
-  // Extract sections
-  const summary = text.slice(sPos + 8, vPos).trim();
-  const verdict = text.slice(vPos + 8, ePos).trim();
-  const evidence = text.slice(ePos + 9, iPos).trim();
-  let implication = text.slice(iPos + 12).trim();
-  
-  // Truncate implication if model appends meta-text after it
-  const metaStart = implication.search(/\n\n(?:Wait,|Actually,|Let me|Now let me|I need|I will|I should|I think|Check[\s:]|So,|First,|Second,|Review:|Verify:|Confirm:)/i);
-  if (metaStart > 0) {
-    implication = implication.slice(0, metaStart).trim();
   }
-  
-  // Validate: skip meta-text
-  const isMeta = (s: string) => {
-    if (s.length < 10) return true;
-    if (/^(wait,|actually,|let me|i need|i will|i should|i think|now let me|so:|first,|second,|check:)/i.test(s)) return true;
-    return false;
-  };
-  if (isMeta(summary) || isMeta(verdict) || isMeta(evidence) || isMeta(implication)) return null;
-  
-  return { summary, verdict, evidence, implication };
+
+  out = out.replace(/[\s—\-—:,;]+$/g, "").trim();
+  return out;
 }

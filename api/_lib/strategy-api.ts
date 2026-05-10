@@ -223,6 +223,88 @@ export async function fetchWithTimeout(
   }
 }
 
+export interface KimiToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+interface KimiToolCallApiResponse {
+  choices?: Array<{
+    message?: {
+      tool_calls?: Array<{
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
+      content?: string | null;
+      reasoning_content?: string | null;
+    };
+    finish_reason?: string;
+  }>;
+  error?: { message?: string };
+}
+
+export async function callKimiWithTool(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  prompt: { system: string; user: string },
+  tool: KimiToolDefinition,
+  timeoutMs: number,
+  options?: { maxTokens?: number },
+): Promise<unknown> {
+  const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: options?.maxTokens ?? 1200,
+      temperature: 0.6,
+      thinking: { type: "disabled" },
+      messages: [
+        { role: "system", content: prompt.system },
+        { role: "user", content: prompt.user },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+      }],
+      tool_choice: { type: "function", function: { name: tool.name } },
+    }),
+  }, timeoutMs, "Kimi API");
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new StrategyRequestError(response.status, `Kimi API error ${response.status}: ${errorText.slice(0, 300)}`);
+  }
+
+  const data = await response.json() as KimiToolCallApiResponse;
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  const argsRaw = toolCall?.function?.arguments;
+
+  if (!argsRaw) {
+    throw new StrategyRequestError(
+      502,
+      data.error?.message || "Kimi did not produce a tool call",
+    );
+  }
+
+  try {
+    return JSON.parse(argsRaw);
+  } catch {
+    throw new StrategyRequestError(502, "Kimi tool call arguments were not valid JSON");
+  }
+}
+
 export function validateStrategyDraftRequest(input: unknown): StrategyDraftRequestPayload {
   const body = expectRecord(input, "Request body must be an object");
   const problem = expectNonEmptyString(body.problem, "problem is required");
@@ -537,8 +619,7 @@ export function buildStrategyDraftPromptPart1(
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
     "Only cite URLs that appear in the provided evidence packs.",
     "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
-    "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
-    '{"scorecard":{"metrics":[{"label":"Channel Fit","grade":"high|medium|low","rationale":"1-2 sentences grounded in constraints and research"},{"label":"Message Clarity","grade":"high|medium|low","rationale":"..."},{"label":"Asset Leverage","grade":"high|medium|low","rationale":"..."},{"label":"Execution Realism","grade":"high|medium|low","rationale":"..."}]},"sections":{"positioning":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"channelPlan":{...same shape...},"messageAngles":{...same shape...}},"warnings":["..."],"citations":[{"section":"positioning","title":"...","url":"...","note":"..."}]}',
+    "Respond by calling the submit_strategy_draft_part_1 tool. Each section must be structured data — populate summary, recommendations, and callouts for positioning, channelPlan, and messageAngles.",
     "Hard display limits: these sections render as compact UI cards, not essay blocks. Summary must stay within 1-2 short sentences. recommendation.text must be a single concise action sentence. recommendation.why must be one short evidence sentence. callouts must be one short sentence. Do not put multi-paragraph analysis into any card field.",
     "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Examples: 'Based on your stated avoidance of [X]...', 'The Phase 01 research shows audiences are already using language around...', 'Given that you have previously tried [previouslyTried]...'. Generic rationale such as 'this channel works well for founders' is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
     "Section guidance — positioning: draw the wedge from Phase 01 problem language and Phase 03 white space. The summary is the single-sentence positioning statement. Recommendations are differentiated wedge options, each with rationale citing the research phase that supports it.",
@@ -594,8 +675,7 @@ export function buildStrategyDraftPromptPart2(
     "You are also receiving an Exa research dossier with structured web research. Use it for synthesis depth and grounding.",
     "Only cite URLs that appear in the provided evidence packs.",
     "You may also receive persistent ND profile context. Treat it as high-confidence evidence about the founder's working conditions, triggers, pacing, and communication needs. Use it to shape framing, sequencing, and effort expectations.",
-    "Return JSON with this exact shape. Each section must be structured data, not prose strings.",
-    '{"sections":{"assetIdeas":{"summary":"1-2 sentences: the so-what","recommendations":[{"text":"recommendation","why":"MUST reference specific stated constraints or phase research","effort":"low|medium|high","actionable":true}],"callouts":[{"type":"insight|warning|opportunity","text":"callout"}]},"experiments":{...same shape...},"thirtyDaySequence":{...same shape...}},"citations":[{"section":"assetIdeas","title":"...","url":"...","note":"..."}]}',
+    "Respond by calling the submit_strategy_draft_part_2 tool. Each section must be structured data — populate summary, recommendations, and callouts for assetIdeas, experiments, and thirtyDaySequence.",
     "Hard display limits: these sections render as compact UI cards, not essay blocks. Summary must stay within 1-2 short sentences. recommendation.text must be a single concise action sentence. recommendation.why must be one short evidence sentence. callouts must be one short sentence. Do not put multi-paragraph analysis into any card field.",
     "CRITICAL: For every recommendation's 'why' field, you MUST reference something specific the person stated in their constraints or something found in the phase research. Generic rationale is not acceptable. If you cannot connect a recommendation to a specific constraint or research finding, omit it rather than fabricate justification.",
     "Section guidance — assetIdeas: match asset format to contentMode. Recommendations are specific asset concepts, not categories. The 'why' references both the audience recognition moment and the founder's capacity.",
@@ -1741,3 +1821,155 @@ function trimText(text: string, maxLength: number): string {
 
   return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
+
+const STRATEGY_SECTION_OBJECT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    summary: {
+      type: "string",
+      description: "1-2 sentences: the so-what for this section.",
+    },
+    recommendations: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          text: {
+            type: "string",
+            description: "Single concise action sentence. Max 170 chars.",
+          },
+          why: {
+            type: "string",
+            description: "One short evidence sentence. MUST reference a specific stated constraint or phase research finding (e.g., 'Phase 01 shows audiences using X language' or 'Given your stated avoidance of Y'). Generic rationale not accepted.",
+          },
+          effort: {
+            type: "string",
+            enum: ["low", "medium", "high"],
+          },
+          actionable: { type: "boolean" },
+        },
+        required: ["text", "why", "effort", "actionable"],
+      },
+    },
+    callouts: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          type: {
+            type: "string",
+            enum: ["insight", "warning", "opportunity"],
+          },
+          text: {
+            type: "string",
+            description: "One short sentence callout.",
+          },
+        },
+        required: ["type", "text"],
+      },
+    },
+  },
+  required: ["summary", "recommendations", "callouts"],
+} as const;
+
+const STRATEGY_CITATIONS_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      section: { type: "string" },
+      title: { type: "string" },
+      url: { type: "string" },
+      note: { type: "string" },
+    },
+    required: ["section", "title", "url"],
+  },
+  description: "Only include citations whose URLs appear in the provided evidence pack and that you actually used.",
+} as const;
+
+export const STRATEGY_DRAFT_PART1_TOOL: KimiToolDefinition = {
+  name: "submit_strategy_draft_part_1",
+  description: "Submit positioning, channel plan, message angles, scorecard, warnings, and citations for the strategy draft. Always call this tool — it is the only valid way to respond.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      scorecard: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          metrics: {
+            type: "array",
+            minItems: 4,
+            maxItems: 4,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                label: {
+                  type: "string",
+                  enum: ["Channel Fit", "Message Clarity", "Asset Leverage", "Execution Realism"],
+                },
+                grade: {
+                  type: "string",
+                  enum: ["high", "medium", "low"],
+                },
+                rationale: {
+                  type: "string",
+                  description: "1-2 sentences grounded in stated constraints and phase research.",
+                },
+              },
+              required: ["label", "grade", "rationale"],
+            },
+          },
+        },
+        required: ["metrics"],
+      },
+      sections: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          positioning: STRATEGY_SECTION_OBJECT_SCHEMA,
+          channelPlan: STRATEGY_SECTION_OBJECT_SCHEMA,
+          messageAngles: STRATEGY_SECTION_OBJECT_SCHEMA,
+        },
+        required: ["positioning", "channelPlan", "messageAngles"],
+      },
+      warnings: {
+        type: "array",
+        items: { type: "string" },
+        description: "Flag any recommended tactic that requires ongoing social maintenance, outreach cadence, or relationship energy.",
+      },
+      citations: STRATEGY_CITATIONS_SCHEMA,
+    },
+    required: ["scorecard", "sections", "warnings", "citations"],
+  },
+};
+
+export const STRATEGY_DRAFT_PART2_TOOL: KimiToolDefinition = {
+  name: "submit_strategy_draft_part_2",
+  description: "Submit asset ideas, experiments, 30-day sequence, and citations for the strategy draft. Always call this tool — it is the only valid way to respond.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      sections: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          assetIdeas: STRATEGY_SECTION_OBJECT_SCHEMA,
+          experiments: STRATEGY_SECTION_OBJECT_SCHEMA,
+          thirtyDaySequence: STRATEGY_SECTION_OBJECT_SCHEMA,
+        },
+        required: ["assetIdeas", "experiments", "thirtyDaySequence"],
+      },
+      citations: STRATEGY_CITATIONS_SCHEMA,
+    },
+    required: ["sections", "citations"],
+  },
+};
