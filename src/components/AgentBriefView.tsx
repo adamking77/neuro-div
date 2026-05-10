@@ -98,6 +98,40 @@ export function AgentBriefView({ markdown }: Props) {
         <ActionButtons copied={copied} onCopy={handleCopy} onDownload={handleDownload} />
       </div>
 
+      {/* What your agent can do with this */}
+      <div
+        style={{
+          padding: "14px 18px",
+          border: "1px solid var(--rule)",
+          background: "var(--cream)",
+          marginBottom: 24,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            color: "var(--ink-muted)",
+            margin: "0 0 10px",
+          }}
+        >
+          What your agent can do with this
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {[
+            "Paste this into Claude, then ask: \"What's one thing I can do in the next 30 minutes?\"",
+            "Ask it to write your first post or email based on the strategy in this brief",
+            "Ask it to build a first-month plan that fits the constraints you set",
+          ].map((ex) => (
+            <p key={ex} style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.65 }}>
+              → {ex}
+            </p>
+          ))}
+        </div>
+      </div>
+
       {/* Rendered sections */}
       <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
         {sections.map((section, i) => (

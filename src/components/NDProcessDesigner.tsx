@@ -647,7 +647,7 @@ function ReadableProcessView({
 
       <SectionBlock
         title="Step menu"
-        subtitle="Condition-based steps, not a timeline."
+        subtitle="Pick whichever fits your energy today. You don't have to start at the beginning."
       >
         <div style={{ display: "grid", gap: 26 }}>
           {plan.blocks.map((block, index) => (
@@ -675,7 +675,7 @@ function ReadableProcessView({
 
       <SectionBlock
         title="Rescue steps"
-        subtitle="For re-entry, not correction."
+        subtitle="If you've stopped and can't find your way back in, start here. Not for when things go wrong — for when you've gone quiet."
       >
         <div style={{ display: "grid", gap: 14 }}>
           {plan.rescueMoves.map((move) => (
@@ -704,7 +704,7 @@ function ReadableProcessView({
 
       <SectionBlock
         title="Agent brief"
-        subtitle="Portable instructions for the agent helping you."
+        subtitle="Paste this into Claude or any AI, then say what energy level you have today. Your agent will pick the right step."
         headerActions={(
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>

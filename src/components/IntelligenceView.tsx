@@ -162,24 +162,29 @@ export function IntelligenceView({ brief, status, error }: Props) {
 
       {/* Key Takeaways */}
       {brief.scorecard.metrics.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 32, alignItems: "center" }}>
-          <MetaLabel style={{ margin: 0 }}>Key takeaways</MetaLabel>
-          {brief.scorecard.metrics.slice(0, 4).map((metric) => (
-            <span
-              key={metric.label}
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-display)",
-                fontWeight: 500,
-                padding: "3px 10px",
-                borderRadius: 999,
-                whiteSpace: "nowrap",
-                ...gradePillStyle(metric.grade),
-              }}
-            >
-              {metric.label}: {metric.grade}
-            </span>
-          ))}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10, alignItems: "center" }}>
+            <MetaLabel style={{ margin: 0 }}>Key takeaways</MetaLabel>
+            {brief.scorecard.metrics.slice(0, 4).map((metric) => (
+              <span
+                key={metric.label}
+                style={{
+                  fontSize: 10,
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 500,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  whiteSpace: "nowrap",
+                  ...gradePillStyle(metric.grade),
+                }}
+              >
+                {metric.label}: {metric.grade}
+              </span>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: "var(--ink-muted)", margin: 0, lineHeight: 1.6 }}>
+            Read top to bottom for the full picture. Short on time: start at <strong style={{ color: "var(--ink)", fontWeight: 500 }}>01</strong> (where you stand) and <strong style={{ color: "var(--ink)", fontWeight: 500 }}>05</strong> (what could go wrong) — those two carry the most weight for a go/no-go decision.
+          </p>
         </div>
       )}
 

@@ -95,6 +95,12 @@ export function ResearchSynthesis({ session }: { session: SessionState }) {
   };
   const sc = signalColors[signal.variant];
 
+  const signalMeaning: Record<string, string> = {
+    teal: "Multiple angles confirm this problem is real and documented. The research foundation is solid — what you build on it is the remaining question.",
+    medium: "Some angles found evidence, others didn't. Normal for niche or emerging problems. The gaps show where to investigate next, not whether to stop.",
+    terracotta: "Limited external sources across most angles. The problem may be under-documented, or the framing may need narrowing. Consider refining before drawing strong conclusions.",
+  };
+
   return (
     <div style={{ marginBottom: 36 }}>
       <div
@@ -179,6 +185,27 @@ export function ResearchSynthesis({ session }: { session: SessionState }) {
               {domains.length <= 6 ? `: ${domains.join(", ")}` : ", including " + domains.slice(0, 5).join(", ") + ` and ${domains.length - 5} more`}.
             </p>
           )}
+
+          <p style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.65, margin: "4px 0 0", paddingTop: 10, borderTop: "1px solid rgba(26,26,24,0.08)" }}>
+            {signalMeaning[signal.variant]}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 16px", border: "1px solid var(--rule)", background: "var(--cream)" }}>
+        <p style={{ fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-muted)", margin: "0 0 8px" }}>
+          What to ask an AI with this dossier
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {[
+            "Is this a real market opportunity, or am I fooling myself?",
+            "What's the one gap in this research that would change whether I should proceed?",
+            "Based on the evidence, what should my positioning be against the known players?",
+          ].map((q) => (
+            <p key={q} style={{ fontSize: 13, color: "var(--ink-light)", margin: 0, lineHeight: 1.6 }}>
+              "{q}"
+            </p>
+          ))}
         </div>
       </div>
     </div>

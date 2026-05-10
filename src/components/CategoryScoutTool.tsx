@@ -247,8 +247,12 @@ export function CategoryScoutTool({
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
                 <div>
                   <MetaLabel style={{ marginBottom: 5 }}>Export results</MetaLabel>
-                  <p style={{ fontSize: 14, color: "var(--ink-light)", margin: 0, lineHeight: 1.7 }}>
+                  <p style={{ fontSize: 14, color: "var(--ink-light)", margin: "0 0 10px", lineHeight: 1.7 }}>
                     Download includes instructions. Attach it to Claude, ChatGPT, or any AI for a full category assessment — validation, gaps, and whether to proceed. Or continue to Distribution Strategy below.
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--ink-muted)", margin: 0, lineHeight: 1.65 }}>
+                    <strong style={{ color: "var(--ink)", fontWeight: 500 }}>Try asking:</strong>{" "}
+                    "Is this a real opportunity?" · "What's the strongest signal here?" · "What would have to be true for this to succeed?"
                   </p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0, paddingTop: 2 }}>
