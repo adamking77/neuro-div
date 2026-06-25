@@ -11,3 +11,4 @@ skills/huashu-design/
 .env
 .env.*
 !.env.example
+tsconfig.tsbuildinfo

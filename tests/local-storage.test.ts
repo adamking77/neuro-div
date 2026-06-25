@@ -1,12 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  buildDeterministicAnalysisReport,
-  getAnalysisReport,
-  listAnalysisReports,
-  renameAnalysisReport,
-  saveAnalysisReport,
-} from "../src/lib/analysis-reports";
-import {
   buildNDProfileContext,
   createEmptyNDProfile,
   loadNDProfile,
@@ -136,40 +129,5 @@ describe("localStorage persistence contracts", () => {
       id: "process-a",
       name: "Offer outline",
     });
-  });
-
-  it("preserves saved analysis reports under nd-analysis-reports", () => {
-    const inputs = {
-      ...createEmptyProcessDesignerInputs(),
-      goal: "Ship an ND operating brief",
-      successSignal: "A report exists.",
-    };
-    const plan = buildProcessPlan(inputs, null);
-    const report = buildDeterministicAnalysisReport({
-      profile: null,
-      profileContext: null,
-      processInputs: inputs,
-      processPlan: plan,
-    });
-
-    const saved = saveAnalysisReport({ ...report, id: "report-a" });
-
-    expect(saved.id).toBe("report-a");
-    expect(localStorage.getItem("nd-analysis-reports")).not.toBeNull();
-    expect(getAnalysisReport("report-a")).toMatchObject({
-      id: "report-a",
-      processSnapshot: {
-        inputs: {
-          goal: "Ship an ND operating brief",
-        },
-      },
-      model: {
-        provider: "deterministic",
-      },
-    });
-
-    renameAnalysisReport("report-a", "Operating brief report");
-    expect(listAnalysisReports()).toHaveLength(1);
-    expect(listAnalysisReports()[0].title).toBe("Operating brief report");
   });
 });

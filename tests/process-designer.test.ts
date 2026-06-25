@@ -24,7 +24,7 @@ describe("process designer", () => {
       buildNDProfileContext(profile),
     );
 
-    expect(plan.thesis).toContain("condition-based process");
+    expect(plan.thesis).toContain("This works by your energy, not a schedule.");
     expect(plan.workingWith.join(" ")).toContain("Late morning and late evening.");
     expect(plan.protectedConditions.join(" ")).toContain("Post-launch recovery days.");
     expect(plan.notDoing).toContain("No live launch week");

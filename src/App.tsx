@@ -1,6 +1,5 @@
 import { NDContextBuilder } from "./components/NDContextBuilder";
 import { NDProcessDesigner } from "./components/NDProcessDesigner";
-import { ReportsList } from "./components/ReportsList";
 import { SkillsLibrary } from "./components/SkillsLibrary";
 import { SpineFinder } from "./components/SpineFinder";
 import { ToolSection } from "./components/app-shell";
@@ -88,14 +87,6 @@ export default function App({
         </ToolSection>
       )}
 
-      {activeTool === "reports" && (
-        <ToolSection
-          label="Reports"
-          description="Saved profile/process analysis reports. Open a report, export it, or reuse the agent brief in another AI environment."
-        >
-          <ReportsList />
-        </ToolSection>
-      )}
 
       {activeTool === "spine-finder" && (
         <ToolSection

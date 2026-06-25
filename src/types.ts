@@ -529,30 +529,6 @@ export interface RescueMove {
   evidence: string[];
 }
 
-export interface NeuroDivAnalysisReport {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  title: string;
-  profileSnapshot: ProfileSnapshot;
-  processSnapshot: ProcessSnapshot;
-  executiveSummary: string;
-  operatingPatternInsights: Insight[];
-  activationMap: ChartDatum[];
-  shutdownRiskMap: ChartDatum[];
-  energyModePlan: ChartDatum[];
-  processFitScore: ScoreBlock;
-  recommendations: Recommendation[];
-  nextSevenDays: ActionBlock[];
-  rescuePlan: RescueMove[];
-  agentBrief: string;
-  caveats: string[];
-  model: {
-    provider: "deterministic" | "deepseek";
-    name: string;
-  };
-}
-
 export interface PhaseConfig {
   id: number;
   name: string;

@@ -217,7 +217,7 @@ export function buildProcessPlan(
 
   const rescueMoves = buildRescueMoves(goal, shutdownTriggers, successSignal);
   const checkInModes = buildCheckInModes(goal);
-  const thesis = buildThesis(goal, activationPatterns, shutdownTriggers, successSignal);
+  const thesis = buildThesis(activationPatterns, shutdownTriggers, successSignal);
   const agentBrief = buildAgentBrief({
     goal,
     successSignal,
@@ -337,22 +337,21 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
 }
 
 function buildThesis(
-  goal: string,
   activationPatterns: string[],
   shutdownTriggers: string[],
   successSignal: string,
 ): string {
   const activationText = activationPatterns.length > 0
-    ? `Let progress happen when ${activationPatterns.slice(0, 2).join(" and ").toLowerCase()} are present`
-    : "Let progress happen when real energy or interest is available";
+    ? `Move on it when ${activationPatterns.slice(0, 2).join(" or ").toLowerCase()} shows up`
+    : "Move on it when you've got real energy or interest";
   const protectionText = shutdownTriggers.length > 0
-    ? `protect against ${shutdownTriggers[0].toLowerCase()} and other known shutdown triggers`
-    : "protect against open-ended demand pressure";
+    ? `keep ${shutdownTriggers[0].toLowerCase()} out of the way`
+    : "keep open-ended pressure out of the way";
   const doneText = successSignal
-    ? `Use this signal for real progress: ${successSignal}.`
-    : "Keep the done signal visible enough that you do not have to guess when to stop.";
+    ? `You're done when: ${successSignal}.`
+    : "Keep the finish line visible so you don't have to guess when you're done.";
 
-  return `Build ${goal} as a condition-based process, not a schedule. ${activationText}, ${protectionText}, and keep re-entry cheap. ${doneText}`;
+  return `This works by your energy, not a schedule. ${activationText}, ${protectionText}, and always leave an easy way back in. ${doneText}`;
 }
 
 function buildMoveBlocks({
