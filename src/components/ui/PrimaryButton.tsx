@@ -1,5 +1,3 @@
-import { Spinner } from "@heroui/react";
-
 interface Props {
   children: React.ReactNode;
   onClick?: () => void;
@@ -49,7 +47,7 @@ export function PrimaryButton({
     >
       {loading ? (
         <>
-          <Spinner size="sm" color="current" />
+          <span className="spinner" style={{ width: 14, height: 14, borderColor: "rgba(255,255,255,0.35)", borderTopColor: "#fff" }} />
           <span>{children}</span>
         </>
       ) : (

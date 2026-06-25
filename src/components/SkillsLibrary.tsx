@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from "react";
-import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
+import { Check, Copy } from "@phosphor-icons/react";
 import { getSkillDownloadPath } from "@/lib/skill-routes";
-import { MetaLabel, SectionNumber } from "./ui";
+import { Card } from "./ui";
 
 interface SkillCard {
   name: string;
@@ -19,7 +19,7 @@ const SKILLS: SkillCard[] = [
     slug: "nd-context-builder",
     status: "Available",
     summary:
-      "Install this in your AI and run it there. It walks you through the same intake — activation patterns, shutdown triggers, energy rhythms, support conditions — and produces the same profile natively in your AI. Every conversation after that already knows how you work.",
+      "Install this in your AI and run it there. It walks you through the same intake: activation patterns, shutdown triggers, energy rhythms, support conditions. Then it produces the same profile natively in your AI. Every conversation after that already knows how you work.",
     includesAgent: true,
   },
   {
@@ -31,19 +31,11 @@ const SKILLS: SkillCard[] = [
     includesAgent: true,
   },
   {
-    name: "Category Scout",
-    slug: "category-scout",
+    name: "Spine-Finder",
+    slug: "spine-finder",
     status: "Available",
     summary:
-      "Run this before you commit to a direction. Give it a problem statement and any known players. It searches six angles and gives you a research file you can read or pass straight to Distribution Strategy.",
-    includesAgent: true,
-  },
-  {
-    name: "Distribution Strategy",
-    slug: "distribution-strategy",
-    status: "Available",
-    summary:
-      "Reads your Category Scout research and profile together. Writes a low-contact distribution plan: channels, message angles, and experiments sized for your real energy and availability.",
+      "Use this in your AI environment when raw self-analysis needs structure. It turns messy paragraph material into candidate problem domains and question-form spines you can react to.",
     includesAgent: true,
   },
   {
@@ -100,67 +92,47 @@ export function SkillsLibrary() {
   }
 
   return (
-    <div>
-<div style={{ display: "grid", gap: 18 }}>
-        {SKILLS.map((skill, index) => {
-          const isCopied = copiedSlug === skill.slug;
-          const hasError = errorSlug === skill.slug;
-          return (
-            <div key={skill.slug} style={{ border: "1px solid var(--rule)", padding: "18px 18px 16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12 }}>
-                <div style={{ paddingTop: 2 }}>
-                  <SectionNumber number={String(index + 1).padStart(2, "0")} />
-                </div>
-                <div>
-                  <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.2 }}>
-                    {skill.name}
-                  </h3>
-                  <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-                    {skill.summary}
-                  </p>
-                  <div style={{ marginBottom: 16 }}>
-                    <MetaLabel style={{ marginBottom: 10 }}>Package includes</MetaLabel>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-muted)", lineHeight: 1.8 }}>
-                      {`skills/${skill.slug}/SKILL.md`}
-                      {skill.includesAgent ? " · agents/openai.yaml" : ""}
-                      {" · _shared/ reference docs"}
-                    </p>
-                  </div>
-                  {skill.status === "Available" && (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                        <button
-                          className="btn-text"
-                          onClick={() => void handleCopy(skill)}
-                          style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}
-                        >
-                          {isCopied ? <Check size={12} /> : <Copy size={12} />}
-                          {isCopied ? "Copied" : "Copy skill"}
-                        </button>
-                        <button
-                          className="btn-text"
-                          onClick={() => void handleDownload(skill)}
-                          style={{ fontSize: 12, color: "var(--ink-muted)" }}
-                        >
-                          <DownloadSimple size={12} />
-                          Download skill
-                        </button>
-                      </div>
-                      {hasError && (
-                        <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--terracotta)", lineHeight: 1.5 }}>
-                          Could not load this skill package. Try again.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
+    <div style={{ display: "grid", gap: 16 }}>
+      {SKILLS.map((skill) => {
+        const isCopied = copiedSlug === skill.slug;
+        const hasError = errorSlug === skill.slug;
+        const isAvailable = skill.status === "Available";
+        return (
+          <Card key={skill.slug} padding="lg">
+            <div style={{ display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
+                  {skill.name}
+                </h3>
+                <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
+                  {skill.summary}
+                </p>
               </div>
+              {isAvailable && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, flexShrink: 0 }}>
+                  <button className="cta-pill" onClick={() => void handleDownload(skill)} aria-label={`Download the ${skill.name} skill file`}>
+                    Download SKILL.md
+                    <span aria-hidden="true">↓</span>
+                  </button>
+                  <button
+                    className="btn-text"
+                    onClick={() => void handleCopy(skill)}
+                    style={{ fontSize: 12, color: isCopied ? "var(--teal-deep)" : "var(--ink-muted)" }}
+                  >
+                    {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                    {isCopied ? "Copied" : "Copy skill"}
+                  </button>
+                </div>
+              )}
             </div>
-          );
-        })}
-      </div>
+            {hasError && (
+              <p style={{ margin: "14px 0 0", fontSize: 12, color: "var(--terracotta)", lineHeight: 1.5 }}>
+                Could not load this skill package. Try again.
+              </p>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }
-
-

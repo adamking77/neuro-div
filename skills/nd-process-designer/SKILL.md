@@ -10,7 +10,6 @@ tags:
 relatedSkills:
   - nd-context-builder
   - nd-session-loop
-  - distribution-strategy
 ---
 
 # ND Process Designer
@@ -53,12 +52,10 @@ This skill takes the ND profile plus one concrete goal and writes a reusable pro
 
 ## When to redirect
 
-- If the user needs market evidence first, redirect to `category-scout`.
-- If the user specifically needs a distribution process tied to research, redirect to `distribution-strategy`.
 - If the user wants a live session check-in from an existing process, redirect to `nd-session-loop`.
 
 ## References
 
 - Read `../_shared/architecture.md` before running the workflow.
 - Read `../_shared/artifact-contracts.md` before writing the process artifact.
-- Read `../_shared/surface-map.md` if there is ambiguity about this skill versus Distribution Strategy.
+- Read `../_shared/surface-map.md` if there is ambiguity about web versus skill surfaces.

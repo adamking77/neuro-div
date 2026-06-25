@@ -1,0 +1,20 @@
+---
+import App from "../App";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "../../lib/site";
+---
+
+<BaseLayout
+  title={SITE_NAME}
+  description={SITE_DESCRIPTION}
+  path="/"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: absoluteUrl("/"),
+  }}
+>
+  <App activeTool="context-builder" client:only="react" />
+</BaseLayout>

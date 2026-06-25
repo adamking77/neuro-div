@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, Copy, DownloadSimple, PencilSimple, Trash } from "@phosphor-icons/react";
 import { MetaLabel, PrimaryButton, SectionNumber } from "./ui";
-import type { NDProfileContext, ProcessDesignerInputs, ProcessMove, ProcessPlan } from "../types";
-import { loadNDProfileContext } from "../lib/nd-profile";
+import type { NDProfileContext, NeuroDivAnalysisReport, ProcessDesignerInputs, ProcessMove, ProcessPlan } from "../types";
+import { loadNDProfile, loadNDProfileContext } from "../lib/nd-profile";
+import { buildDeterministicAnalysisReport, saveAnalysisReport } from "../lib/analysis-reports";
 import {
   buildProcessMarkdown,
   buildProcessPlan,
@@ -45,6 +46,8 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
   const [currentArtifactId, setCurrentArtifactId] = useState<string | null>(initialArtifact?.id ?? savedDraft?.currentArtifactId ?? null);
   const [artifacts, setArtifacts] = useState<SavedProcessArtifact[]>(() => listProcessArtifacts());
   const [copiedBrief, setCopiedBrief] = useState(false);
+  const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     const refreshProfile = () => setProfileContext(loadNDProfileContext());
@@ -167,6 +170,40 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
     setTimeout(() => setCopiedBrief(false), 2000);
   }
 
+  async function handleGenerateAnalysis() {
+    setGeneratingAnalysis(true);
+    setAnalysisError(null);
+
+    const builtPlan = buildProcessPlan(inputs, profileContext);
+    const savedProcess = handlePersistCurrent(inputs);
+    const payload = {
+      profile: loadNDProfile(),
+      profileContext,
+      processInputs: savedProcess.inputs,
+      processPlan: builtPlan,
+    };
+
+    try {
+      const response = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(`Report generation failed with ${response.status}`);
+      }
+      const data = await response.json() as { report: NeuroDivAnalysisReport; error?: string };
+      const savedReport = saveAnalysisReport(data.report);
+      window.location.assign(`/reports/${savedReport.id}`);
+    } catch (error) {
+      const fallbackReport = saveAnalysisReport(buildDeterministicAnalysisReport(payload));
+      setAnalysisError(error instanceof Error ? error.message : "Report generation failed.");
+      window.location.assign(`/reports/${fallbackReport.id}`);
+    } finally {
+      setGeneratingAnalysis(false);
+    }
+  }
+
   const currentArtifactName = artifacts.find((artifact) => artifact.id === currentArtifactId)?.name
     ?? getDefaultProcessName(inputs);
 
@@ -266,6 +303,11 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
             URL.revokeObjectURL(anchor.href);
           }}
           onSaveAsNew={handleSaveAsNew}
+          onGenerateAnalysis={() => void handleGenerateAnalysis()}
+          generatingAnalysis={generatingAnalysis}
+          analysisError={analysisError}
+          profileContext={profileContext}
+          inputs={inputs}
           onRestart={handleRestart}
           onBack={back}
           artifacts={artifacts}
@@ -527,6 +569,11 @@ function DoneStep({
   onCopyBrief,
   onDownload,
   onSaveAsNew,
+  onGenerateAnalysis,
+  generatingAnalysis,
+  analysisError,
+  profileContext,
+  inputs,
   onRestart,
   onBack,
   artifacts,
@@ -541,6 +588,11 @@ function DoneStep({
   onCopyBrief: () => void;
   onDownload: () => void;
   onSaveAsNew: () => void;
+  onGenerateAnalysis: () => void;
+  generatingAnalysis: boolean;
+  analysisError: string | null;
+  profileContext: NDProfileContext | null;
+  inputs: ProcessDesignerInputs;
   onRestart: () => void;
   onBack: () => void;
   artifacts: SavedProcessArtifact[];
@@ -552,6 +604,36 @@ function DoneStep({
   return (
     <div>
       <ProcessGlanceCard plan={plan} />
+
+      <div style={{ border: "1px solid var(--rule)", padding: "18px 20px", marginBottom: 24, background: "rgba(255,255,255,0.42)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <MetaLabel style={{ color: "var(--teal)", marginBottom: 10 }}>Analysis context preview</MetaLabel>
+            <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
+              This will send your saved profile context, goal, friction points, boundaries, and deterministic process plan to the server-side analysis route.
+            </p>
+            <ul className="plain-list" style={{ marginTop: 10 }}>
+              <li>Profile: {profileContext ? profileContext.summary : "No saved profile loaded."}</li>
+              <li>Goal: {plan.goal}</li>
+              <li>Friction: {inputs.frictionPoints.trim() || "No explicit friction points saved."}</li>
+              <li>Boundaries: {plan.protectedConditions.slice(0, 2).join("; ") || "No protected conditions saved."}</li>
+            </ul>
+            {!profileContext ? (
+              <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--warning-deep)", lineHeight: 1.6 }}>
+                Missing context: build or update your Context Builder profile for a more specific analysis. You can still generate a deterministic fallback.
+              </p>
+            ) : null}
+            {analysisError ? (
+              <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--terracotta)", lineHeight: 1.6 }}>
+                {analysisError}
+              </p>
+            ) : null}
+          </div>
+          <PrimaryButton onClick={onGenerateAnalysis} loading={generatingAnalysis}>
+            Generate analysis
+          </PrimaryButton>
+        </div>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
         <PrimaryButton onClick={onDownload}>

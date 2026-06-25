@@ -1,0 +1,14 @@
+---
+import { ReportDetail } from "../../components/ReportDetail";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const reportId = Astro.params.id ?? "";
+---
+
+<BaseLayout
+  title="Analysis Report | NeuroDiv OS"
+  description="A saved NeuroDiv OS profile and process analysis report."
+  path={`/reports/${reportId}`}
+>
+  <ReportDetail reportId={reportId} client:only="react" />
+</BaseLayout>

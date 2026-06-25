@@ -2,13 +2,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-const SKILLS_ROOT = path.join(process.cwd(), "public", "skills");
+const PUBLIC_SKILLS_ROOT = path.join(process.cwd(), "public", "skills");
+const SOURCE_SKILLS_ROOT = path.join(process.cwd(), "skills");
 
 export const PUBLIC_SKILL_SLUGS = [
   "nd-context-builder",
   "nd-process-designer",
-  "category-scout",
-  "distribution-strategy",
+  "spine-finder",
   "nd-session-loop",
 ] as const;
 
@@ -22,8 +22,7 @@ const BUNDLE_SHARED_FILES = [
 const BUNDLE_DISPLAY_NAMES: Record<string, string> = {
   "nd-context-builder": "Context Builder",
   "nd-process-designer": "Process Designer",
-  "category-scout": "Category Scout",
-  "distribution-strategy": "Distribution Strategy",
+  "spine-finder": "Spine-Finder",
   "nd-session-loop": "Session Loop",
 };
 
@@ -97,7 +96,8 @@ function extractSharedReferences(body: string) {
 }
 
 export async function listSkills(): Promise<SkillEntry[]> {
-  const entries = await fs.readdir(SKILLS_ROOT, { withFileTypes: true });
+  const skillsRoot = (await pathExists(PUBLIC_SKILLS_ROOT)) ? PUBLIC_SKILLS_ROOT : SOURCE_SKILLS_ROOT;
+  const entries = await fs.readdir(skillsRoot, { withFileTypes: true });
   const skills: SkillEntry[] = [];
 
   for (const entry of entries) {
@@ -105,14 +105,14 @@ export async function listSkills(): Promise<SkillEntry[]> {
       continue;
     }
 
-    const skillPath = path.join(SKILLS_ROOT, entry.name, "SKILL.md");
+    const skillPath = path.join(skillsRoot, entry.name, "SKILL.md");
     if (!(await pathExists(skillPath))) {
       continue;
     }
 
     const raw = await fs.readFile(skillPath, "utf8");
     const parsed = parseSkillFrontmatter(raw);
-    const agentPath = path.join(SKILLS_ROOT, entry.name, "agents", "openai.yaml");
+    const agentPath = path.join(skillsRoot, entry.name, "agents", "openai.yaml");
 
     skills.push({
       slug: entry.name,
@@ -150,6 +150,7 @@ async function readOptionalFile(target: string | null) {
 }
 
 export async function buildSkillBundle(skill: SkillEntry) {
+  const skillsRoot = path.dirname(path.dirname(skill.skillPath));
   const sections: string[] = [];
   const skillSource = await readSkillSource(skill);
   sections.push(renderFile(`skills/${skill.slug}/SKILL.md`, skillSource));
@@ -160,7 +161,7 @@ export async function buildSkillBundle(skill: SkillEntry) {
   }
 
   for (const sharedPath of BUNDLE_SHARED_FILES) {
-    const absoluteSharedPath = path.join(SKILLS_ROOT, sharedPath);
+    const absoluteSharedPath = path.join(skillsRoot, sharedPath);
     const contents = await fs.readFile(absoluteSharedPath, "utf8");
     sections.push(renderFile(`skills/${sharedPath}`, contents));
   }

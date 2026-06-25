@@ -1,21 +1,17 @@
-import type { Metadata } from "next";
-
 export type ToolSlug =
   | "context-builder"
   | "process-designer"
-  | "category-scout"
-  | "distribution-strategy";
+  | "spine-finder";
 
 export const SITE_NAME = "NeuroDiv OS";
-export const SITE_TAGLINE = "Planning, research, and strategy tools built for neurodivergent founders.";
+export const SITE_TAGLINE = "Context and process tools built for neurodivergent founders.";
 export const SITE_DESCRIPTION =
-  "NeuroDiv OS is four interconnected tools for neurodivergent founders: a persistent AI context profile, a trigger-based working process, category research, and a distribution strategy that accounts for real energy and availability.";
+  "NeuroDiv OS helps neurodivergent founders build persistent AI context and turn goals into working processes that account for real energy and availability.";
 
 export const TOOL_ORDER: ToolSlug[] = [
   "context-builder",
   "process-designer",
-  "category-scout",
-  "distribution-strategy",
+  "spine-finder",
 ];
 
 export const TOOL_DEFINITIONS: Record<
@@ -65,40 +61,22 @@ export const TOOL_DEFINITIONS: Record<
       "Protected conditions and not-doing list",
     ],
   },
-  "category-scout": {
-    title: "Category Scout",
-    shortTitle: "Category Scout",
+  "spine-finder": {
+    title: "Spine-Finder",
+    shortTitle: "Spine-Finder",
     description:
-      "Run six research lenses on any problem statement: problem framing, customer demand, competitor landscape, evidence, category language, and white space. Export a dossier or pass the findings to Distribution Strategy.",
+      "Download the skill that helps structure-first minds find a central question or problem-space from raw self-analysis without generating meaning from a blank page.",
     audience:
-      "Founders doing category design or market validation who need grounded research before committing to a direction.",
+      "Neurocomplex founders and builders who have raw reflection material and need a concrete scaffold for finding their spine.",
     howItWorks: [
-      "Enter a problem statement and any known players or competitors.",
-      "Launch six research phases, each pulling from a different analytical angle.",
-      "Review highlights, export a research dossier, or hand the evidence off to Distribution Strategy.",
+      "Install the skill in your agent environment.",
+      "Bring messy paragraph material or raw self-analysis.",
+      "React to concrete insights and candidate spine questions until you have a launch point.",
     ],
     outputs: [
-      "Per-phase research results",
-      "Exportable markdown dossier",
-      "Evidence base for distribution strategy and intelligence briefs",
-    ],
-  },
-  "distribution-strategy": {
-    title: "Distribution Strategy",
-    shortTitle: "Distribution Strategy",
-    description:
-      "Generate a low-contact distribution strategy and intelligence brief built from your Category Scout research, profile, and real constraints.",
-    audience:
-      "Founders who want channel choices, message angles, and experiments sized for real energy and availability.",
-    howItWorks: [
-      "Combine Category Scout research with audience lens, founder constraints, and profile context.",
-      "Generate a structured distribution plan plus an optional intelligence brief.",
-      "Export the result as markdown or revise sections directly in the UI.",
-    ],
-    outputs: [
-      "Distribution strategy draft",
-      "Strategic intelligence brief",
-      "Exportable markdown for agents or collaborators",
+      "Candidate problem domains",
+      "Question-form spine options",
+      "A clear handoff back into the Compression Framework",
     ],
   },
 };
@@ -108,7 +86,7 @@ export function getToolDefinition(slug: ToolSlug) {
 }
 
 export function getSiteOrigin() {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  const explicit = process.env.PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) {
     return explicit.startsWith("http") ? explicit : `https://${explicit}`;
   }
@@ -118,7 +96,7 @@ export function getSiteOrigin() {
     return productionUrl.startsWith("http") ? productionUrl : `https://${productionUrl}`;
   }
 
-  return "http://localhost:3000";
+  return "http://localhost:4321";
 }
 
 export function buildMetadata({
@@ -129,7 +107,7 @@ export function buildMetadata({
   title: string;
   description: string;
   path?: string;
-}): Metadata {
+}) {
   const metadataBase = new URL(getSiteOrigin());
 
   return {

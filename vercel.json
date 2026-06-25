@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
+  "framework": "astro",
   "buildCommand": "npm run build",
-  "devCommand": "next dev",
+  "devCommand": "astro dev",
   "outputDirectory": null
 }

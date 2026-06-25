@@ -466,6 +466,93 @@ export interface ProcessPlan {
   agentBrief: string;
 }
 
+export type AnalysisConfidence = "low" | "medium" | "high";
+export type AnalysisEnergyMode = "low" | "normal" | "high";
+
+export interface ProfileSnapshot {
+  source: "saved-profile" | "missing-profile";
+  profile: NDProfile | null;
+  context: NDProfileContext | null;
+}
+
+export interface ProcessSnapshot {
+  inputs: ProcessDesignerInputs;
+  plan: ProcessPlan;
+}
+
+export interface Insight {
+  title: string;
+  observation: string;
+  inference: string;
+  evidence: string[];
+  confidence: AnalysisConfidence;
+}
+
+export interface ChartDatum {
+  label: string;
+  value: number;
+  max: number;
+  group?: string;
+  evidence?: string;
+}
+
+export interface ScoreBlock {
+  label: string;
+  score: number;
+  max: number;
+  rationale: string;
+  evidence: string[];
+}
+
+export interface Recommendation {
+  title: string;
+  recommendation: string;
+  why: string;
+  evidence: string[];
+  energyMode: AnalysisEnergyMode;
+}
+
+export interface ActionBlock {
+  day: string;
+  title: string;
+  action: string;
+  energyMode: AnalysisEnergyMode;
+  doneSignal: string;
+}
+
+export interface RescueMove {
+  title: string;
+  trigger: string;
+  action: string;
+  mitigation: string;
+  doneSignal: string;
+  evidence: string[];
+}
+
+export interface NeuroDivAnalysisReport {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  profileSnapshot: ProfileSnapshot;
+  processSnapshot: ProcessSnapshot;
+  executiveSummary: string;
+  operatingPatternInsights: Insight[];
+  activationMap: ChartDatum[];
+  shutdownRiskMap: ChartDatum[];
+  energyModePlan: ChartDatum[];
+  processFitScore: ScoreBlock;
+  recommendations: Recommendation[];
+  nextSevenDays: ActionBlock[];
+  rescuePlan: RescueMove[];
+  agentBrief: string;
+  caveats: string[];
+  model: {
+    provider: "deterministic" | "deepseek";
+    name: string;
+  };
+}
+
 export interface PhaseConfig {
   id: number;
   name: string;

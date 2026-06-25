@@ -1,0 +1,49 @@
+---
+import "../styles/globals.css";
+import { SITE_DESCRIPTION, SITE_NAME, absoluteUrl } from "../../lib/site";
+
+interface Props {
+  title?: string;
+  description?: string;
+  path?: string;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
+}
+
+const {
+  title = SITE_NAME,
+  description = SITE_DESCRIPTION,
+  path = "/",
+  structuredData,
+} = Astro.props;
+
+const canonical = absoluteUrl(path);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {structuredData ? <script type="application/ld+json" set:html={JSON.stringify(structuredData)} /> : null}
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

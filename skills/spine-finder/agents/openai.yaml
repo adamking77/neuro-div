@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spine-Finder"
+  short_description: "Find a central question from raw self-analysis."
+  default_prompt: "Use $spine-finder to help me find a candidate spine from this raw material."

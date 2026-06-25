@@ -1,0 +1,24 @@
+---
+import App from "../App";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl, getToolDefinition } from "../../lib/site";
+
+const tool = getToolDefinition("spine-finder");
+---
+
+<BaseLayout
+  title="Spine-Finder | NeuroDiv OS"
+  description="Download the Spine-Finder skill for finding a central question or problem-space from raw self-analysis."
+  path="/spine-finder"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: `${tool.title} | NeuroDiv OS`,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: tool.description,
+    url: absoluteUrl("/spine-finder"),
+  }}
+>
+  <App activeTool="spine-finder" client:only="react" />
+</BaseLayout>

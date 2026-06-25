@@ -3,8 +3,13 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PencilSimple, Plus, Trash, X } from "@phosphor-icons/react";
-import type { SavedProject } from "../lib/storage";
 import { MetaLabel, SectionNumber } from "./ui";
+
+interface SavedProject {
+  id: string;
+  name: string;
+  updatedAt: string;
+}
 
 export function RunButton({
   canRun,

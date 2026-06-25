@@ -1,0 +1,24 @@
+---
+import App from "../App";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl, getToolDefinition } from "../../lib/site";
+
+const tool = getToolDefinition("process-designer");
+---
+
+<BaseLayout
+  title="Process Designer | NeuroDiv OS"
+  description="Turn one goal into a trigger-based process with move menus, rescue moves, and protected conditions."
+  path="/process-designer"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: `${tool.title} | NeuroDiv OS`,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: tool.description,
+    url: absoluteUrl("/process-designer"),
+  }}
+>
+  <App activeTool="process-designer" client:only="react" />
+</BaseLayout>

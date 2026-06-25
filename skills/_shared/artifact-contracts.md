@@ -61,56 +61,7 @@ Rules:
 - There must be a dignified `Not today` path somewhere in the process.
 - The not-doing list is a real boundary, not decoration.
 
-## 3. Category Scout research artifact
-
-Recommended file name: `category-scout-research-<slug>.md`
-
-Required sections:
-
-- `# Category Scout Research`
-- `## Problem`
-- `## Known Players` when relevant
-- `## Phase 01 ...` through whichever phases were run
-
-Each phase section should contain:
-
-- phase name
-- phase purpose
-- sourced results with URL where available
-- short evidence excerpts or highlights
-
-Rules:
-
-- This artifact is research only.
-- It must not include a full distribution strategy.
-- It may include a short handoff note describing what a downstream strategy skill will need.
-- If a phase has no external sources (user-provided knowledge only, or no search results returned), write a note inside that phase section: "No external sources available for this phase. Evidence below is from user-provided context only." Do not leave the section empty and do not omit URLs silently — their absence is meaningful signal about evidence strength.
-
-## 4. Distribution strategy artifact
-
-Recommended file name: `distribution-strategy-<slug>.md`
-
-Required sections:
-
-- `# Distribution Strategy`
-- `## Problem`
-- `## Audience`
-- `## Constraints`
-- `## Positioning`
-- `## Channel Plan`
-- `## Message Angles`
-- `## Asset Ideas`
-- `## Experiments`
-- `## Next Activation Window`
-- `## Agent brief`
-
-Rules:
-
-- Every major recommendation should tie back to evidence or stated constraints.
-- Research gaps must be named explicitly, not papered over.
-- The strategy is read-only guidance plus handoff, not a task tracker.
-
-## 5. Session loop updates
+## 3. Session loop updates
 
 The `nd-session-loop` skill should update existing artifacts rather than creating a brand-new primary file.
 
@@ -118,14 +69,3 @@ Expected writes:
 
 - append to `## Outcomes log` in the process artifact
 - optionally propose updates to the ND profile when repeated patterns emerge
-- optionally flag that a process should be regenerated when the existing process no longer matches reality
-
-Outcomes log entry format:
-
-- date or timestamp
-- mode used
-- move surfaced
-- what activated
-- what froze
-- what compounded without effort
-- whether the process still fits

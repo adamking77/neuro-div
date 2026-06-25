@@ -1,0 +1,24 @@
+---
+import App from "../App";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl, getToolDefinition } from "../../lib/site";
+
+const tool = getToolDefinition("context-builder");
+---
+
+<BaseLayout
+  title="Context Builder | NeuroDiv OS"
+  description="Create a persistent ND profile that teaches any AI how you work."
+  path="/context-builder"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: `${tool.title} | NeuroDiv OS`,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: tool.description,
+    url: absoluteUrl("/context-builder"),
+  }}
+>
+  <App activeTool="context-builder" client:only="react" />
+</BaseLayout>

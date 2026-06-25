@@ -1,0 +1,140 @@
+---
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { getSkillSourcePath } from "../../../lib/skill-routes";
+import { absoluteUrl } from "../../../lib/site";
+import { getSkillBySlug, readSkillSource } from "../../../lib/skills";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const slug = Astro.params.slug ?? "";
+const skill = await getSkillBySlug(slug);
+
+if (!skill) {
+  Astro.response.status = 404;
+}
+
+const source = skill ? await readSkillSource(skill) : "";
+const relatedSkills = skill
+  ? await Promise.all(skill.relatedSkills.map((relatedSlug) => getSkillBySlug(relatedSlug)))
+  : [];
+---
+
+<BaseLayout
+  title={skill ? `${skill.name} | NeuroDiv OS skill` : "Skill not found | NeuroDiv OS"}
+  description={skill ? skill.description : "Requested skill was not found."}
+  path={`/skills/${slug}`}
+  structuredData={skill ? {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: skill.name,
+    description: skill.description,
+    codeRepository: absoluteUrl(getSkillSourcePath(skill.slug)),
+    url: absoluteUrl(`/skills/${skill.slug}`),
+    programmingLanguage: "Markdown",
+    keywords: skill.tags,
+  } : undefined}
+>
+  {skill ? (
+    <main class="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px", display: "grid", gap: 24 }}>
+      <section class="content-panel skill-header">
+        <div>
+          <p class="eyebrow">Skill Detail</p>
+          <h1>{skill.name}</h1>
+          <p class="skill-description">{skill.description}</p>
+        </div>
+
+        <div class="skill-actions">
+          <a href={getSkillSourcePath(skill.slug)} class="button-link secondary">Open raw source</a>
+          <a href={`/skills/${skill.slug}/download`} class="button-link primary">Download skill</a>
+        </div>
+
+        <div class="content-columns">
+          <div>
+            <p class="meta-label">Version</p>
+            <p>{skill.version ?? "Unversioned"}</p>
+            {skill.tags.length > 0 ? (
+              <>
+                <p class="meta-label" style={{ marginTop: 18 }}>Tags</p>
+                <div class="tag-row">
+                  {skill.tags.map((tag) => <span class="tag-chip">{tag}</span>)}
+                </div>
+              </>
+            ) : null}
+          </div>
+          <div>
+            <p class="meta-label">Includes</p>
+            <ul class="plain-list">
+              <li><code>{`skills/${skill.slug}/SKILL.md`}</code></li>
+              {skill.agentPath ? <li><code>{`skills/${skill.slug}/agents/openai.yaml`}</code></li> : null}
+              {skill.sharedPaths.map((sharedPath) => (
+                <li><code>{`skills/${sharedPath}`}</code></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p class="meta-label">Direct links</p>
+            <ul class="plain-list">
+              <li><a href={`/skills/${skill.slug}`}>Detail page</a></li>
+              <li><a href={getSkillSourcePath(skill.slug)}>Raw source</a></li>
+              <li><a href={`/skills/${skill.slug}/download`}>Download skill</a></li>
+            </ul>
+          </div>
+        </div>
+
+        {(skill.relatedSkills.length > 0 || skill.dependencies.length > 0) ? (
+          <div class="content-columns">
+            <div>
+              <p class="meta-label">Related skills</p>
+              <ul class="plain-list">
+                {relatedSkills.map((related) => related ? (
+                  <li>
+                    <a href={`/skills/${related.slug}`}>{related.name}</a>
+                  </li>
+                ) : null)}
+              </ul>
+            </div>
+            <div>
+              <p class="meta-label">Dependencies</p>
+              {skill.dependencies.length > 0 ? (
+                <ul class="plain-list">
+                  {skill.dependencies.map((dependency) => (
+                    <li>{dependency}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>None.</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section class="content-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Guide</p>
+          <h2>Full skill content</h2>
+        </div>
+        <div class="markdown-surface">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{skill.body}</ReactMarkdown>
+        </div>
+      </section>
+
+      <section class="content-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Source</p>
+          <h2>Raw source</h2>
+        </div>
+        <pre class="skill-source">{source}</pre>
+      </section>
+    </main>
+  ) : (
+    <main class="main-wrap" style={{ maxWidth: 960, margin: "0 auto", padding: "52px 40px 100px" }}>
+      <section class="content-panel">
+        <p class="eyebrow">Not found</p>
+        <h1>Skill not found</h1>
+        <p class="skill-description">The requested skill was not found.</p>
+        <p><a href="/skills">Return to skills</a></p>
+      </section>
+    </main>
+  )}
+</BaseLayout>

@@ -10,7 +10,6 @@ tags:
 relatedSkills:
   - nd-process-designer
   - nd-session-loop
-  - distribution-strategy
 ---
 
 # ND Context Builder

@@ -1,16 +1,15 @@
 # NeuroDiv OS
 
-ND-aware tools for context building, process design, category research, and distribution strategy.
+Context and process tools for neurodivergent founders.
 
-The app now runs on Next.js App Router with real URLs for each tool while preserving the original interactive shell and core UX. The main suite routes stay fast by keeping the client app mounted across navigation, while the public route layer exposes crawlable URLs, skill pages, `llms.txt`, and `skills.json`.
+The app runs on Next.js App Router with real URLs for each tool while preserving the persistent client shell.
 
 ## Routes
 
 - `/`
 - `/context-builder`
 - `/process-designer`
-- `/category-scout`
-- `/distribution-strategy`
+- `/spine-finder`
 - `/skills`
 - `/skills/[slug]`
 - `/skills/[slug]/source`
@@ -21,55 +20,25 @@ The app now runs on Next.js App Router with real URLs for each tool while preser
 - `/robots.txt`
 - `/sitemap.xml`
 
-The public skill catalog is intentionally limited to the five NeuroDiv suite skills:
+The public skill catalog is limited to:
 
 - `nd-context-builder`
 - `nd-process-designer`
-- `category-scout`
-- `distribution-strategy`
+- `spine-finder`
 - `nd-session-loop`
+
+Category Scout and Distribution Strategy now live in the standalone local project at `/Users/adamking/projects/category-scout`.
 
 ## Stack
 
-- **Frontend** — Next.js 15 App Router, React 19, TypeScript, Tailwind CSS v4, HeroUI v3, Framer Motion
-- **Search & research** — [Exa](https://exa.ai) neural search plus deep-reasoning search via Next route handlers
-- **Strategy synthesis** — [Kimi K2.6](https://www.moonshot.cn/)
-- **Deployment** — Vercel
+- **Frontend**: Next.js 15 App Router, React 19, TypeScript, Tailwind CSS v4, HeroUI v3, Framer Motion
+- **Deployment**: Vercel
 
 ## Setup
-
-### Environment variables
-
-```
-EXA_API_KEY=your_key_here
-EXA_SEARCH_TYPE=deep-reasoning
-KIMI_API_KEY=your_key_here
-KIMI_MODEL=kimi-k2-6
-KIMI_BASE_URL=https://api.moonshot.cn/v1
-```
-
-Add to Vercel project settings under Environment Variables.
-
-### Local development
 
 ```bash
 npm install
 npm run dev
 ```
 
-This runs the App Router app and the route handlers together at `http://localhost:3000`.
-
-### Production build
-
-```bash
-npm run build
-npm run start
-```
-
-### Deploy
-
-```bash
-git push origin main
-```
-
-This repo is connected to Vercel, so pushing `main` triggers the production deployment automatically.
+The app runs at `http://localhost:3000`.

@@ -1,0 +1,19 @@
+---
+import App from "../App";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl } from "../../lib/site";
+---
+
+<BaseLayout
+  title="Skills | NeuroDiv OS"
+  description="Installable skill packages for NeuroDiv OS."
+  path="/skills"
+  structuredData={{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "NeuroDiv OS skills",
+    url: absoluteUrl("/skills"),
+  }}
+>
+  <App activeTool="skills" client:only="react" />
+</BaseLayout>
