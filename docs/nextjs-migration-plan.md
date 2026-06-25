@@ -39,7 +39,7 @@ An external static SEO/discovery playbook is also worth borrowing from during im
 | Styling | Keep Tailwind v4, keep HeroUI for first pass | HeroUI is currently used; defer UI library changes until after parity |
 | Routing strategy | **Real URLs per tool**, not tab state | `/context-builder`, `/process-designer`, `/category-scout`, `/distribution-strategy`, `/skills`, `/skills/[slug]` |
 | Rendering strategy | Static (SSG) for content + tool landings; Client Components only inside the interactive surfaces | Maximum HTML to crawlers, minimum hydration cost |
-| Tauri | Remove from the web app migration path | Tauri packages appear to be vestigial, but remove them only after confirming no local workflow still depends on them |
+| Tauri | Removed from the web app migration path | The active product is the Astro/Vercel web app; the previous Tauri scaffold was vestigial and is not part of the repo runtime. |
 | Branch strategy | Migrate on a `next-migration` branch, cut over via PR | Preserves rollback path |
 | Domain | Keep current Vercel project + domain | Same deployment surface, no DNS work |
 | Delivery strategy | **Two-stage cutover** | Ship discoverable pages first, then migrate interactive tool surfaces |
@@ -60,7 +60,7 @@ An external static SEO/discovery playbook is also worth borrowing from during im
    - Add: `next@^15`, `eslint-config-next`
    - Remove: `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite` (replace with `@tailwindcss/postcss`)
    - Keep: `@heroui/react`, `framer-motion`, current React packages
-   - Remove `@tauri-apps/*` only after confirming they are unused in local workflows
+   - Removed `@tauri-apps/*` after confirming the Astro web runtime does not depend on Tauri
 4. Replace `vite.config.ts` with `next.config.ts`. Replace `index.html` with App Router structure:
    ```
    app/
@@ -322,7 +322,7 @@ This is the practical starting checklist for the first two phases. It is intenti
   - replace `dev`, `build`, `preview`, and `start` scripts for Next.js
   - keep `@heroui/react`, `framer-motion`, `react`, and `react-dom`
   - remove `vite`, `@vitejs/plugin-react`, and `@tailwindcss/vite`
-- [ ] Decide whether to remove `@tauri-apps/*` now or defer until the app is stable
+- [x] Remove `@tauri-apps/*` and `src-tauri/` from the Astro web repo
 
 #### 3. Config files
 
