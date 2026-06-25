@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, Copy, DownloadSimple, PencilSimple, Trash } from "@phosphor-icons/react";
-import { MetaLabel, PrimaryButton, SectionNumber } from "./ui";
-import type { NDProfileContext, NeuroDivAnalysisReport, ProcessDesignerInputs, ProcessMove, ProcessPlan } from "../types";
-import { loadNDProfile, loadNDProfileContext } from "../lib/nd-profile";
-import { buildDeterministicAnalysisReport, saveAnalysisReport } from "../lib/analysis-reports";
+import { ArrowLeft, PencilSimple, Trash } from "@phosphor-icons/react";
+import { MetaLabel, PrimaryButton } from "./ui";
+import { ProcessArtifactOutput } from "./output/ProcessArtifactOutput";
+import type { NDProfileContext, ProcessDesignerInputs, ProcessPlan } from "../types";
+import { loadNDProfileContext } from "../lib/nd-profile";
 import {
   buildProcessMarkdown,
   buildProcessPlan,
   clearProcessDesignerDraft,
   createEmptyProcessDesignerInputs,
   deleteProcessArtifact,
-  getDefaultProcessName,
   listProcessArtifacts,
   loadCurrentProcessArtifactId,
   loadProcessArtifact,
@@ -46,8 +45,6 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
   const [currentArtifactId, setCurrentArtifactId] = useState<string | null>(initialArtifact?.id ?? savedDraft?.currentArtifactId ?? null);
   const [artifacts, setArtifacts] = useState<SavedProcessArtifact[]>(() => listProcessArtifacts());
   const [copiedBrief, setCopiedBrief] = useState(false);
-  const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     const refreshProfile = () => setProfileContext(loadNDProfileContext());
@@ -170,43 +167,6 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
     setTimeout(() => setCopiedBrief(false), 2000);
   }
 
-  async function handleGenerateAnalysis() {
-    setGeneratingAnalysis(true);
-    setAnalysisError(null);
-
-    const builtPlan = buildProcessPlan(inputs, profileContext);
-    const savedProcess = handlePersistCurrent(inputs);
-    const payload = {
-      profile: loadNDProfile(),
-      profileContext,
-      processInputs: savedProcess.inputs,
-      processPlan: builtPlan,
-    };
-
-    try {
-      const response = await fetch("/api/generate-report", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error(`Report generation failed with ${response.status}`);
-      }
-      const data = await response.json() as { report: NeuroDivAnalysisReport; error?: string };
-      const savedReport = saveAnalysisReport(data.report);
-      window.location.assign(`/reports/${savedReport.id}`);
-    } catch (error) {
-      const fallbackReport = saveAnalysisReport(buildDeterministicAnalysisReport(payload));
-      setAnalysisError(error instanceof Error ? error.message : "Report generation failed.");
-      window.location.assign(`/reports/${fallbackReport.id}`);
-    } finally {
-      setGeneratingAnalysis(false);
-    }
-  }
-
-  const currentArtifactName = artifacts.find((artifact) => artifact.id === currentArtifactId)?.name
-    ?? getDefaultProcessName(inputs);
-
   const stepIndex = STEP_ORDER.indexOf(step);
   const isFormStep = step !== "intro" && step !== "done";
   const formStepIndex = isFormStep ? STEP_ORDER.indexOf(step) - 1 : null;
@@ -291,7 +251,6 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
       {step === "done" && (
         <DoneStep
           plan={plan}
-          currentArtifactName={currentArtifactName}
           copiedBrief={copiedBrief}
           onCopyBrief={handleCopyBrief}
           onDownload={() => {
@@ -303,11 +262,6 @@ export function NDProcessDesigner({ onOpenContextBuilder }: { onOpenContextBuild
             URL.revokeObjectURL(anchor.href);
           }}
           onSaveAsNew={handleSaveAsNew}
-          onGenerateAnalysis={() => void handleGenerateAnalysis()}
-          generatingAnalysis={generatingAnalysis}
-          analysisError={analysisError}
-          profileContext={profileContext}
-          inputs={inputs}
           onRestart={handleRestart}
           onBack={back}
           artifacts={artifacts}
@@ -530,50 +484,13 @@ function BoundariesStep({
   );
 }
 
-function BoundaryRow({ label, items }: { label: string; items: string[] }) {
-  if (items.length === 0) return null;
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-      <MetaLabel style={{ whiteSpace: "nowrap", minWidth: 110, flexShrink: 0, margin: 0 }}>{label}</MetaLabel>
-      <span style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.5 }}>
-        {items.join(" · ")}
-      </span>
-    </div>
-  );
-}
-
-function ProcessGlanceCard({ plan }: { plan: ProcessPlan }) {
-  return (
-    <div style={{ border: "1px solid var(--rule)", padding: "22px 24px", marginBottom: 28 }}>
-      <MetaLabel style={{ color: "var(--teal)", marginBottom: 10 }}>Process at a glance</MetaLabel>
-      <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
-        {plan.goal}
-      </h3>
-      <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 680 }}>
-        {plan.thesis}
-      </p>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 16, borderTop: "1px solid var(--rule)" }}>
-        <BoundaryRow label="Working with" items={plan.workingWith} />
-        <BoundaryRow label="Protected" items={plan.protectedConditions} />
-        <BoundaryRow label="Not doing" items={plan.notDoing.length > 0 ? plan.notDoing : ["No explicit boundaries set yet."]} />
-      </div>
-    </div>
-  );
-}
 
 function DoneStep({
   plan,
-  currentArtifactName,
   copiedBrief,
   onCopyBrief,
   onDownload,
   onSaveAsNew,
-  onGenerateAnalysis,
-  generatingAnalysis,
-  analysisError,
-  profileContext,
-  inputs,
   onRestart,
   onBack,
   artifacts,
@@ -583,16 +500,10 @@ function DoneStep({
   onDeleteArtifact,
 }: {
   plan: ProcessPlan;
-  currentArtifactName: string;
   copiedBrief: boolean;
   onCopyBrief: () => void;
   onDownload: () => void;
   onSaveAsNew: () => void;
-  onGenerateAnalysis: () => void;
-  generatingAnalysis: boolean;
-  analysisError: string | null;
-  profileContext: NDProfileContext | null;
-  inputs: ProcessDesignerInputs;
   onRestart: () => void;
   onBack: () => void;
   artifacts: SavedProcessArtifact[];
@@ -603,61 +514,14 @@ function DoneStep({
 }) {
   return (
     <div>
-      <ProcessGlanceCard plan={plan} />
-
-      <div style={{ border: "1px solid var(--rule)", padding: "18px 20px", marginBottom: 24, background: "rgba(255,255,255,0.42)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <MetaLabel style={{ color: "var(--teal)", marginBottom: 10 }}>Analysis context preview</MetaLabel>
-            <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-              This will send your saved profile context, goal, friction points, boundaries, and deterministic process plan to the server-side analysis route.
-            </p>
-            <ul className="plain-list" style={{ marginTop: 10 }}>
-              <li>Profile: {profileContext ? profileContext.summary : "No saved profile loaded."}</li>
-              <li>Goal: {plan.goal}</li>
-              <li>Friction: {inputs.frictionPoints.trim() || "No explicit friction points saved."}</li>
-              <li>Boundaries: {plan.protectedConditions.slice(0, 2).join("; ") || "No protected conditions saved."}</li>
-            </ul>
-            {!profileContext ? (
-              <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--warning-deep)", lineHeight: 1.6 }}>
-                Missing context: build or update your Context Builder profile for a more specific analysis. You can still generate a deterministic fallback.
-              </p>
-            ) : null}
-            {analysisError ? (
-              <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--terracotta)", lineHeight: 1.6 }}>
-                {analysisError}
-              </p>
-            ) : null}
-          </div>
-          <PrimaryButton onClick={onGenerateAnalysis} loading={generatingAnalysis}>
-            Generate analysis
-          </PrimaryButton>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
-        <PrimaryButton onClick={onDownload}>
-          <DownloadSimple size={14} />
-          Download process
-        </PrimaryButton>
-        <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>
-          {copiedBrief ? <Check size={12} /> : <Copy size={12} />}
-          {copiedBrief ? "Copied brief" : "Copy agent brief"}
-        </button>
-        <button onClick={onSaveAsNew} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          Save as new
-        </button>
-        <button onClick={onRestart} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          Start over
-        </button>
-      </div>
-
-      <div style={{ marginBottom: 32 }}>
-        <MetaLabel>Saved as</MetaLabel>
-        <p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{currentArtifactName}</p>
-      </div>
-
-      <ReadableProcessView plan={plan} copiedBrief={copiedBrief} onCopyBrief={onCopyBrief} onDownload={onDownload} />
+      <ProcessArtifactOutput
+        plan={plan}
+        copiedBrief={copiedBrief}
+        onCopyBrief={onCopyBrief}
+        onDownload={onDownload}
+        onSaveAsNew={onSaveAsNew}
+        onRestart={onRestart}
+      />
 
       <SavedProcessesSection
         artifacts={artifacts}
@@ -681,166 +545,6 @@ function DoneStep({
   );
 }
 
-function ReadableProcessView({
-  plan,
-  copiedBrief,
-  onCopyBrief,
-  onDownload,
-}: {
-  plan: ProcessPlan;
-  copiedBrief: boolean;
-  onCopyBrief: () => void;
-  onDownload: () => void;
-}) {
-  return (
-    <div>
-      <div style={{ marginBottom: 28 }}>
-        <MetaLabel>Readable view</MetaLabel>
-        <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
-          {plan.goal}
-        </h3>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, maxWidth: 680 }}>
-          {plan.thesis}
-        </p>
-      </div>
-
-      <div style={{ marginBottom: 28 }}>
-        <MetaLabel style={{ marginBottom: 14 }}>Boundaries</MetaLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <BoundaryRow label="Working with" items={plan.workingWith} />
-          <BoundaryRow label="Protected" items={plan.protectedConditions} />
-          <BoundaryRow label="Not doing" items={plan.notDoing.length > 0 ? plan.notDoing : ["No explicit not-doing list saved yet."]} />
-        </div>
-      </div>
-
-      <SectionBlock
-        title="Session start"
-        subtitle="Ask this first: What's actually available today?"
-      >
-        <div style={{ display: "grid", gap: 14 }}>
-          {plan.checkInModes.map((mode) => (
-            <div key={mode.label} style={simpleCardStyle}>
-              <MetaLabel>{mode.label}</MetaLabel>
-              <p style={{ margin: "0 0 8px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
-            </div>
-          ))}
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Step menu"
-        subtitle="Pick whichever fits your energy today. You don't have to start at the beginning."
-      >
-        <div style={{ display: "grid", gap: 26 }}>
-          {plan.blocks.map((block, index) => (
-            <div key={block.id}>
-              <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12, marginBottom: 12 }}>
-                <div style={{ paddingTop: 2 }}>
-                  <SectionNumber number={String(index + 1).padStart(2, "0")} />
-                </div>
-                <div>
-                  <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
-                    {block.title}
-                  </h4>
-                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
-                </div>
-              </div>
-              <div style={{ display: "grid", gap: 14 }}>
-                {block.moves.map((move) => (
-                  <MoveCard key={move.title} move={move} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Rescue steps"
-        subtitle="If you've stopped and can't find your way back in, start here. Not for when things go wrong — for when you've gone quiet."
-      >
-        <div style={{ display: "grid", gap: 14 }}>
-          {plan.rescueMoves.map((move) => (
-            <MoveCard key={move.title} move={move} />
-          ))}
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Measurement"
-        subtitle="Check whether the process helps you get going."
-      >
-        <div style={simpleCardStyle}>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {plan.measures.map((measure) => (
-              <li key={measure} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
-                {measure}
-              </li>
-            ))}
-          </ul>
-          <p style={{ margin: "14px 0 0", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-            Weekly check-in: {plan.weeklyQuestion}
-          </p>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Agent brief"
-        subtitle="Paste this into Claude or any AI, then say what energy level you have today. Your agent will pick the right step."
-        headerActions={(
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <button onClick={onCopyBrief} className="btn-text" style={{ fontSize: 12, color: copiedBrief ? "var(--teal-deep)" : "var(--ink-muted)" }}>
-              {copiedBrief ? <Check size={12} /> : <Copy size={12} />}
-              {copiedBrief ? "Copied brief" : "Copy agent brief"}
-            </button>
-            <button onClick={onDownload} className="btn-text" style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-              <DownloadSimple size={12} />
-              Download process
-            </button>
-          </div>
-        )}
-      >
-        <pre
-          style={{
-            ...simpleCardStyle,
-            margin: 0,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            lineHeight: 1.8,
-            color: "var(--ink-light)",
-          }}
-        >
-          {plan.agentBrief}
-        </pre>
-      </SectionBlock>
-    </div>
-  );
-}
-
-function SectionBlock({
-  title,
-  subtitle,
-  headerActions,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  headerActions?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ marginTop: 34 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
-        <MetaLabel style={{ margin: 0 }}>{title}</MetaLabel>
-        {headerActions}
-      </div>
-      <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.6 }}>{subtitle}</p>
-      {children}
-    </div>
-  );
-}
 
 function SavedProcessesSection({
   artifacts,
@@ -897,39 +601,6 @@ function SavedProcessesSection({
   );
 }
 
-function MoveCard({ move }: { move: ProcessMove }) {
-  const lines = [
-    { label: "Trigger", value: move.trigger },
-    { label: "Action", value: move.action },
-    { label: "Done signal", value: move.doneSignal },
-    { label: "Why this fits you", value: move.whyItFits },
-  ];
-  return (
-    <div style={simpleCardStyle}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-        <h5 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.25 }}>
-          {move.title}
-        </h5>
-        <span className="mono" style={{ fontSize: 9, color: "var(--ink-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          {move.effort}
-        </span>
-      </div>
-      {lines.map((line, i) => (
-        <p
-          key={line.label}
-          style={{
-            margin: i === lines.length - 1 ? 0 : "0 0 7px",
-            fontSize: 14,
-            color: "var(--ink-light)",
-            lineHeight: 1.7,
-          }}
-        >
-          <span style={{ color: "var(--ink)", fontWeight: 500 }}>{line.label}:</span> {line.value}
-        </p>
-      ))}
-    </div>
-  );
-}
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <MetaLabel style={{ marginBottom: 10 }}>{children}</MetaLabel>;
@@ -977,7 +648,3 @@ function StepNav({
   );
 }
 
-const simpleCardStyle: React.CSSProperties = {
-  border: "1px solid var(--rule)",
-  padding: "14px 16px",
-};

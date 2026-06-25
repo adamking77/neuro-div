@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DownloadSimple, CaretDown } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { MetaLabel, PrimaryButton } from "./ui";
+import { ContextProfileOutput } from "./output/ContextProfileOutput";
 import type {
   NDProfile,
   NDTrait,
@@ -18,7 +18,6 @@ import {
   loadNDProfile,
   saveNDProfile,
   clearNDProfile,
-  buildNDProfileMarkdown,
   TRAIT_LABELS,
   MANIFESTATION_LABELS,
   MANIFESTATIONS_BY_TRAIT,
@@ -688,241 +687,7 @@ function InfoStep({
   );
 }
 
-// Reusable pill
-function ProfilePill({ label, variant = "default" }: { label: string; variant?: "default" | "teal" | "terracotta" }) {
-  const styles: Record<string, React.CSSProperties> = {
-    default: { background: "rgba(26,26,24,0.04)", color: "var(--ink-light)", border: "1px solid var(--rule)" },
-    teal: { background: "rgba(91,138,138,0.1)", color: "var(--teal-deep)", border: "1px solid rgba(91,138,138,0.25)" },
-    terracotta: { background: "rgba(196,100,80,0.08)", color: "var(--terracotta)", border: "1px solid rgba(196,100,80,0.2)" },
-  };
-  return (
-    <span
-      style={{
-        fontSize: 11,
-        fontFamily: "var(--font-display)",
-        padding: "3px 10px",
-        borderRadius: 999,
-        whiteSpace: "nowrap",
-        ...styles[variant],
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-// Summary card component
-function SummaryCard({ label, children, variant = "default" }: {
-  label: string;
-  children: React.ReactNode;
-  variant?: "default" | "teal" | "terracotta";
-}) {
-  const borderColors: Record<string, string> = {
-    default: "var(--rule)",
-    teal: "rgba(91,138,138,0.25)",
-    terracotta: "rgba(196,100,80,0.2)",
-  };
-  const labelColors: Record<string, string> = {
-    default: "var(--ink-muted)",
-    teal: "var(--teal)",
-    terracotta: "var(--terracotta)",
-  };
-  return (
-    <div style={{ border: `1px solid ${borderColors[variant]}`, padding: "16px 18px" }}>
-      <MetaLabel color={labelColors[variant]} style={{ fontWeight: 600, marginBottom: 12 }}>{label}</MetaLabel>
-      {children}
-    </div>
-  );
-}
-
-function ProfileSummaryView({ profile }: { profile: NDProfile }) {
-  const traits = [
-    ...profile.traits.selected.map((t) => TRAIT_LABELS[t]),
-    ...(profile.traits.other.trim() ? [profile.traits.other.trim()] : []),
-  ];
-
-  const activationPatterns = [
-    ...profile.activation.patterns.filter((p) => p !== "other").map((p) => ACTIVATION_LABELS[p]),
-    ...(profile.activation.patternOther.trim() ? [profile.activation.patternOther.trim()] : []),
-  ];
-
-  const shutdownTriggers = [
-    ...profile.shutdown.triggers.filter((t) => t !== "other").map((t) => SHUTDOWN_LABELS[t]),
-    ...(profile.shutdown.triggerOther.trim() ? [profile.shutdown.triggerOther.trim()] : []),
-  ];
-
-  const timePatterns = [
-    ...profile.timeEnergy.patterns.filter((p) => p !== "other").map((p) => TIME_PATTERN_LABELS[p]),
-    ...(profile.timeEnergy.patternOther.trim() ? [profile.timeEnergy.patternOther.trim()] : []),
-  ];
-
-  const supportConditions = [
-    ...profile.infoConditions.supportConditions.filter((c) => c !== "other").map((c) => SUPPORT_CONDITION_LABELS[c]),
-    ...(profile.infoConditions.conditionOther.trim() ? [profile.infoConditions.conditionOther.trim()] : []),
-  ];
-
-  const infoFormats = [
-    ...profile.infoConditions.formats.filter((f) => f !== "any").map((f) => INFO_FORMAT_LABELS[f]),
-    ...(profile.infoConditions.formatOther.trim() ? [profile.infoConditions.formatOther.trim()] : []),
-  ];
-
-  const hasHistory = profile.history.triedSystems.trim() || profile.history.whatWorked.trim() || profile.history.whatFailed.trim();
-
-  return (
-    <div style={{ display: "grid", gap: 14 }}>
-      {/* Traits */}
-      <SummaryCard label="Your neurotype" variant="teal">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: traits.length > 0 ? 10 : 0 }}>
-          {traits.map((t) => (
-            <ProfilePill key={t} label={t} variant="teal" />
-          ))}
-        </div>
-        {profile.traits.manifestations.length > 0 && (
-          <p style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
-            {profile.traits.manifestations.length} specific manifestation{profile.traits.manifestations.length > 1 ? "s" : ""} selected
-          </p>
-        )}
-        {profile.traits.notes.trim() && (
-          <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: "10px 0 0", fontStyle: "italic" }}>
-            "{profile.traits.notes.trim()}"
-          </p>
-        )}
-      </SummaryCard>
-
-      {/* Two-column: activation + shutdown */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="constraints-grid">
-        <SummaryCard label="What activates you" variant="teal">
-          {activationPatterns.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 6 }}>
-              {activationPatterns.slice(0, 4).map((p) => (
-                <li key={p} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55 }}>{p}</li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>No activation patterns selected.</p>
-          )}
-          {profile.activation.goodDayDescription.trim() && (
-            <p style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6, margin: "10px 0 0", fontStyle: "italic" }}>
-              "{profile.activation.goodDayDescription.trim()}"
-            </p>
-          )}
-        </SummaryCard>
-
-        <SummaryCard label="What to avoid" variant="terracotta">
-          {shutdownTriggers.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 6 }}>
-              {shutdownTriggers.slice(0, 4).map((t) => (
-                <li key={t} style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55 }}>{t}</li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>No avoidance triggers selected.</p>
-          )}
-          {profile.shutdown.shutdownDescription.trim() && (
-            <p style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6, margin: "10px 0 0", fontStyle: "italic" }}>
-              "{profile.shutdown.shutdownDescription.trim()}"
-            </p>
-          )}
-        </SummaryCard>
-      </div>
-
-      {/* Time + energy */}
-      <SummaryCard label="Time and energy">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-          {timePatterns.map((p) => (
-            <ProfilePill key={p} label={p} />
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }} className="constraints-grid">
-          {profile.timeEnergy.activationWindows.trim() && (
-            <div>
-              <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", margin: "0 0 4px" }}>When you work</p>
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>{profile.timeEnergy.activationWindows.trim()}</p>
-            </div>
-          )}
-          {profile.timeEnergy.unavailablePeriods.trim() && (
-            <div>
-              <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-muted)", margin: "0 0 4px" }}>Protected downtime</p>
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>{profile.timeEnergy.unavailablePeriods.trim()}</p>
-            </div>
-          )}
-        </div>
-      </SummaryCard>
-
-      {/* Info preferences */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="constraints-grid">
-        <SummaryCard label="How you take in information">
-          {profile.infoConditions.density && (
-            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: "0 0 8px" }}>
-              <strong style={{ color: "var(--ink)" }}>Density:</strong> {INFO_DENSITY_LABELS[profile.infoConditions.density]}
-            </p>
-          )}
-          {infoFormats.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {infoFormats.map((f) => (
-                <ProfilePill key={f} label={f} />
-              ))}
-            </div>
-          )}
-        </SummaryCard>
-
-        <SummaryCard label="What helps you work">
-          {supportConditions.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {supportConditions.map((c) => (
-                <ProfilePill key={c} label={c} />
-              ))}
-            </div>
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>No support conditions selected.</p>
-          )}
-        </SummaryCard>
-      </div>
-
-      {/* History — only if filled */}
-      {hasHistory && (
-        <SummaryCard label="What you've tried">
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {profile.history.triedSystems.trim() && (
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
-                <strong style={{ color: "var(--ink)" }}>Tried:</strong> {profile.history.triedSystems.trim()}
-              </p>
-            )}
-            {profile.history.whatWorked.trim() && (
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
-                <strong style={{ color: "var(--ink)" }}>Worked:</strong> {profile.history.whatWorked.trim()}
-              </p>
-            )}
-            {profile.history.whatFailed.trim() && (
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
-                <strong style={{ color: "var(--ink)" }}>Fell apart:</strong> {profile.history.whatFailed.trim()}
-              </p>
-            )}
-          </div>
-        </SummaryCard>
-      )}
-
-      {/* How to use */}
-      <div
-        style={{
-          background: "rgba(91,138,138,0.06)",
-          border: "1px solid rgba(91,138,138,0.2)",
-          padding: "16px 18px",
-        }}
-      >
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--teal)", margin: "0 0 10px", fontFamily: "var(--font-mono)" }}>
-          How to use this profile
-        </p>
-        <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.65, margin: 0 }}>
-          Download the file and paste it into any AI system prompt, Claude Project instructions, or custom GPT context.
-          The "For Any Agent Working With Me" section at the bottom is written directly to the AI — it tells the agent how to frame suggestions, what to avoid, and how to match your working style.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Step: Done — profile preview and download
+// Step: Done — profile artifact and download
 function DoneStep({
   profile,
   onRestart,
@@ -932,18 +697,6 @@ function DoneStep({
   onRestart: () => void;
   onBack: () => void;
 }) {
-  const markdown = buildNDProfileMarkdown(profile);
-  const [showRaw, setShowRaw] = useState(false);
-
-  function downloadProfile() {
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `nd-profile-${Date.now()}.md`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
-  }
-
   const isEmpty = !profile.traits.selected.length && !profile.traits.other.trim();
 
   return (
@@ -954,31 +707,9 @@ function DoneStep({
         </p>
       ) : (
         <>
-          <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.75, margin: "0 0 20px", maxWidth: 600, fontWeight: 500 }}>
-            Your profile is ready
-          </p>
+          <ContextProfileOutput profile={profile} />
 
-          <ProfileSummaryView profile={profile} />
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 32, marginBottom: 24, flexWrap: "wrap" }}>
-            <PrimaryButton onClick={downloadProfile}>
-              <DownloadSimple size={14} />
-              Download profile
-            </PrimaryButton>
-            <button
-              onClick={() => setShowRaw((s) => !s)}
-              className="btn-text"
-              style={{ fontSize: 12, color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 4 }}
-            >
-              <motion.span
-                animate={{ rotate: showRaw ? 180 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                style={{ display: "inline-flex" }}
-              >
-                <CaretDown size={11} />
-              </motion.span>
-              {showRaw ? "Hide raw markdown" : "View raw markdown"}
-            </button>
+          <div style={{ marginTop: 24 }}>
             <button
               onClick={onRestart}
               className="btn-text"
@@ -987,47 +718,6 @@ function DoneStep({
               Start over
             </button>
           </div>
-
-          <AnimatePresence>
-            {showRaw && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                style={{ overflow: "hidden" }}
-              >
-                <p style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--ink-muted)",
-                  margin: "0 0 12px",
-                  fontFamily: "var(--font-mono)",
-                }}>
-                  Raw markdown
-                </p>
-                <pre
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    lineHeight: 1.8,
-                    color: "var(--ink-light)",
-                    padding: "16px 18px",
-                    border: "1px solid var(--rule)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    maxHeight: 480,
-                    overflowY: "auto",
-                    margin: 0,
-                  }}
-                >
-                  {markdown}
-                </pre>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </>
       )}
 
