@@ -12,3 +12,4 @@ skills/huashu-design/
 .env.*
 !.env.example
 tsconfig.tsbuildinfo
+docs/CLAUDE-OUTPUT-PAGES-HANDOFF-2026-06-25.md
