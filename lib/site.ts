@@ -85,18 +85,23 @@ export function getToolDefinition(slug: ToolSlug) {
   return TOOL_DEFINITIONS[slug];
 }
 
+/** Canonical production origin. Canonicals, OG URLs, the sitemap, robots, and
+ * llms.txt all resolve to this so they never point at a Vercel preview URL. */
+export const SITE_URL = "https://neuros.gokart.studio";
+
 export function getSiteOrigin() {
   const explicit = process.env.PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) {
     return explicit.startsWith("http") ? explicit : `https://${explicit}`;
   }
 
-  const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (productionUrl) {
-    return productionUrl.startsWith("http") ? productionUrl : `https://${productionUrl}`;
+  // Local dev only — everything else (production and previews) canonicalises to
+  // the real domain, which is what Google wants for non-production deploys too.
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:4321";
   }
 
-  return "http://localhost:4321";
+  return SITE_URL;
 }
 
 export function buildMetadata({
