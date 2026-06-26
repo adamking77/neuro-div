@@ -5,9 +5,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MetaLabel } from "./ui";
 import { Card } from "./ui/Card";
 
-// NOTE: Lindsey Mackereth's essay lives on a paid Substack — no public URL is
-// wired in yet. Replace ESSAY_URL with the real link before this ships.
-const ESSAY_URL = "https://example.com/lindsey-mackereth-compression";
+// Lindsey Mackereth's essay introducing the Compression Framework.
+const ESSAY_URL = "https://lindseymackereth.substack.com/p/youre-constantly-in-motionand-nothing";
 const DOWNLOAD_HREF = "/skills/spine-finder/download";
 
 const EASE = [0.2, 0, 0, 1] as const;
@@ -23,14 +22,14 @@ const titleStyle: CSSProperties = {
   margin: 0,
 };
 const ledeStyle: CSSProperties = {
-  fontSize: 14,
+  fontSize: 15,
   color: "var(--ink-light)",
   lineHeight: 1.7,
   margin: "10px 0 0",
   maxWidth: "60ch",
 };
 const bodyStyle: CSSProperties = {
-  fontSize: 14,
+  fontSize: 15,
   color: "var(--ink-light)",
   lineHeight: 1.7,
   margin: "0 0 12px",
@@ -127,21 +126,11 @@ const OUTCOMES: { label: string; text: string }[] = [
   },
 ];
 
-/** Subtle, system-scale entrance: opacity fade only (DESIGN.md: 0.2s fades). */
-function Reveal({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: CSSProperties }) {
-  const reduce = useReducedMotion();
-  if (reduce) return <div style={style}>{children}</div>;
-  return (
-    <motion.div
-      style={style}
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true, margin: "0px 0px -8% 0px" }}
-      transition={{ duration: 0.25, ease: EASE, delay }}
-    >
-      {children}
-    </motion.div>
-  );
+/** Static wrapper. The scroll-triggered opacity fade was removed: it added no
+ * value and left sections invisible (opacity 0) until they were scrolled into
+ * view. Kept as a thin layout wrapper so callers can still pass grid styles. */
+function Reveal({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return <div style={style}>{children}</div>;
 }
 
 /** Canonical section card: 36px mono index + content (DESIGN.md). */
@@ -282,7 +271,7 @@ export function SpineFinder() {
         <Card padding="lg" style={{ maxWidth: 720, display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <MetaLabel marginBottom={8}>Start here · the source essay</MetaLabel>
-            <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.65, margin: 0 }}>
+            <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 500 }}>You&apos;re Constantly in Motion—and Nothing Is Taking Form</strong>, by Lindsey Mackereth. The full Compression Framework, in her words. Read it first so the rest of this page has somewhere to stand.
             </p>
           </div>
@@ -338,17 +327,10 @@ export function SpineFinder() {
               <dt>
                 <MetaLabel color="var(--teal-deep)" marginBottom={0}>{outcome.label}</MetaLabel>
               </dt>
-              <dd style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{outcome.text}</dd>
+              <dd style={{ margin: 0, fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7 }}>{outcome.text}</dd>
             </div>
           ))}
         </dl>
-        <p style={{ maxWidth: 720, margin: "20px 0 0", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
-          Whichever you leave with, you&apos;re done here. For the rest of the method, go back to{" "}
-          <a className="sf-link" href={ESSAY_URL} target="_blank" rel="noopener">
-            Lindsey&apos;s essay
-          </a>
-          .
-        </p>
       </Section>
 
       {/* Context profile */}
@@ -359,7 +341,7 @@ export function SpineFinder() {
           </p>
           <p style={{ ...bodyStyle, margin: 0 }}>
             That&apos;s what the rest of <strong style={{ color: "var(--ink)", fontWeight: 500 }}>NeuroDiv OS</strong> is for. You can build a full <strong style={{ color: "var(--ink)", fontWeight: 500 }}>context profile</strong> (a reusable document about how you think) and feed it to this skill and any other agent or tool you use. Build it once; every session after starts already knowing you.{" "}
-            <a className="sf-link" href="/context-builder">
+            <a className="sf-link" href="https://neuros.gokart.studio/">
               Build your context profile →
             </a>
           </p>
@@ -375,7 +357,7 @@ export function SpineFinder() {
         <Card padding="lg" style={{ maxWidth: 720, display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <MetaLabel marginBottom={8}>The skill file</MetaLabel>
-            <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.65, margin: 0 }}>
+            <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 500 }}>SKILL.md</strong>. The complete Spine-Finder process, self-contained. Works in any agent that accepts a skill or system file. No setup, no account.
             </p>
           </div>
@@ -386,7 +368,7 @@ export function SpineFinder() {
 
         <Card padding="lg" style={{ maxWidth: 720 }}>
           <MetaLabel marginBottom={16}>How to use it</MetaLabel>
-          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
+          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, listStyle: "decimal" }}>
             <li style={{ marginBottom: 10 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 500 }}>Download</strong> the file above.
             </li>
@@ -395,7 +377,7 @@ export function SpineFinder() {
             </li>
             <li style={{ marginBottom: 10 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 500 }}>Load it into your agent.</strong>
-              <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+              <ul style={{ margin: "8px 0 0", paddingLeft: 18, listStyle: "disc" }}>
                 <li style={{ marginBottom: 6 }}>
                   <strong style={{ color: "var(--ink)", fontWeight: 500 }}>Claude Code / claude.ai:</strong> place the file in your skills directory (e.g. <code>~/.claude/skills/spine-finder/SKILL.md</code>), or paste its contents at the start of a chat.
                 </li>

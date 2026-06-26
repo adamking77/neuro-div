@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { Check, Copy, DownloadSimple } from "@phosphor-icons/react";
-import { MetaLabel, SectionNumber } from "../ui";
+import { ArrowRight, Check, Copy, DownloadSimple } from "@phosphor-icons/react";
+import { MetaLabel } from "../ui";
 import type { ProcessMove, ProcessPlan } from "../../types";
-import { OutputSection, LeadTakeaway } from "./OutputSection";
+import { OutputSection, LeadTakeaway, SectionHeading } from "./OutputSection";
 import { OutputActionBar } from "./OutputActionBar";
-import { CoverageRing } from "./OutputCharts";
+import { CoverageRing, CoverageBars } from "./OutputCharts";
+import { buildProcessBenefits } from "../../lib/process-designer";
 
 /** Parse the high end of an effort string like "45-90 minutes" → 90. */
 function effortMinutes(effort: string): number {
@@ -22,12 +23,23 @@ function effortBand(effort: string): "low" | "normal" | "high" {
   return "high";
 }
 
-function BoundaryRow({ label, items }: { label: string; items: string[] }) {
+/** A boundary as its own labelled block with marked rows, so multiple long
+ * items stay scannable instead of running together on one line. Optional accent
+ * colours the label and markers (teal = keep, terracotta = avoid). */
+function BoundaryGroup({ label, items, accent }: { label: string; items: string[]; accent?: string }) {
   if (items.length === 0) return null;
+  const dot = accent ?? "var(--ink-muted)";
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-      <MetaLabel style={{ whiteSpace: "nowrap", minWidth: 110, flexShrink: 0, margin: 0 }}>{label}</MetaLabel>
-      <span style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55 }}>{items.join(" · ")}</span>
+    <div>
+      <MetaLabel color={accent} style={{ marginBottom: 10 }}>{label}</MetaLabel>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+        {items.map((item) => (
+          <li key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 8, borderRadius: 999, background: dot }} />
+            <span style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.55 }}>{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -56,7 +68,7 @@ function MoveCard({ move }: { move: ProcessMove }) {
       {lines.map((line, i) => (
         <p
           key={line.label}
-          style={{ margin: i === lines.length - 1 ? 0 : "0 0 7px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}
+          style={{ margin: i === lines.length - 1 ? 0 : "0 0 10px", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7 }}
         >
           <span style={{ color: "var(--ink)", fontWeight: 500 }}>{line.label}:</span> {line.value}
         </p>
@@ -93,22 +105,39 @@ export function ProcessArtifactOutput({
   const totalMoves = allMoves.length + plan.rescueMoves.length;
   const lowDayMoves = coverage.low + plan.rescueMoves.length;
 
+  // Breakdown of every move by the size of working window it needs. Rescue moves
+  // are all short, so they sit in the low-energy band alongside lowDayMoves.
+  const coverageData = [
+    { label: "Tiny steps, under 15 minutes", value: coverage.low + plan.rescueMoves.length, tone: "teal" as const },
+    { label: "A normal sitting", value: coverage.normal, tone: "teal" as const },
+    { label: "A real stretch of time", value: coverage.high, tone: "muted" as const },
+  ];
+
   // Derived finding: easy-way-back guarantee + the bad-day check, plain.
   const coverageFinding =
     lowDayMoves > 0
       ? `On a low-energy day you still have ${lowDayMoves} thing${lowDayMoves === 1 ? "" : "s"} you can do. Getting back in is easy, so stopping never turns into starting over.`
-      : "Most of this needs a good chunk of time and energy. On a low day there's not much to reach for — add one small, easy step so a quiet day doesn't turn into a full stop.";
+      : "Most of this needs a good chunk of time and energy. On a low day there's not much to reach for. Add one small, easy step so a quiet day doesn't turn into a full stop.";
 
   const notDoing = plan.notDoing.length > 0 ? plan.notDoing : ["No explicit boundaries set yet."];
 
+  // The payoff: what the AI does once it's running this plan with you.
+  const benefits = buildProcessBenefits(plan);
+
   return (
-    <div style={{ display: "grid", gap: 80, minWidth: 0, maxWidth: 720 }}>
-      {/* LEAD — the bad-day guarantee + the ring, side by side. */}
-      <div style={{ display: "flex", gap: 32, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 280 }}>
-          <LeadTakeaway kind="Built for bad days too">{coverageFinding}</LeadTakeaway>
+    <div style={{ display: "grid", gap: 72, minWidth: 0, maxWidth: 720 }}>
+      {/* LEAD — the bad-day guarantee + the ring, then the per-energy breakdown. */}
+      <div style={{ display: "grid", gap: 32 }}>
+        <div style={{ display: "flex", gap: 32, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <LeadTakeaway kind="Built for bad days too">{coverageFinding}</LeadTakeaway>
+          </div>
+          <CoverageRing lowDayMoves={lowDayMoves} totalMoves={totalMoves} />
         </div>
-        <CoverageRing lowDayMoves={lowDayMoves} totalMoves={totalMoves} />
+        <div style={{ paddingTop: 4 }}>
+          <MetaLabel style={{ marginBottom: 12 }}>What you can reach, by energy level</MetaLabel>
+          <CoverageBars data={coverageData} />
+        </div>
       </div>
 
       {/* GOAL + boundaries — the artifact's anchor, stacked. */}
@@ -119,10 +148,10 @@ export function ProcessArtifactOutput({
         <p style={{ margin: "0 0 20px", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7, maxWidth: 680 }}>
           {plan.thesis}
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 18, borderTop: "1px solid var(--rule)" }}>
-          <BoundaryRow label="What you've got" items={plan.workingWith} />
-          <BoundaryRow label="Protect" items={plan.protectedConditions} />
-          <BoundaryRow label="Skip" items={notDoing} />
+        <div style={{ display: "grid", gap: 24, paddingTop: 20, borderTop: "1px solid var(--rule)" }}>
+          <BoundaryGroup label="What you've got" items={plan.workingWith} />
+          <BoundaryGroup label="Protect" items={plan.protectedConditions} accent="var(--teal-deep)" />
+          <BoundaryGroup label="Skip" items={notDoing} accent="var(--terracotta)" />
         </div>
       </div>
 
@@ -132,7 +161,7 @@ export function ProcessArtifactOutput({
           {plan.checkInModes.map((mode) => (
             <div key={mode.label} style={moveCardStyle}>
               <MetaLabel>{mode.label}</MetaLabel>
-              <p style={{ margin: 0, fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
+              <p style={{ margin: 0, fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7 }}>{mode.guidance}</p>
             </div>
           ))}
         </div>
@@ -146,15 +175,35 @@ export function ProcessArtifactOutput({
         <div style={{ display: "grid", gap: 48 }}>
           {plan.blocks.map((block, index) => (
             <div key={block.id}>
-              <div style={{ display: "grid", gridTemplateColumns: "32px 1fr", gap: 12, marginBottom: 12 }}>
-                <div style={{ paddingTop: 2 }}>
-                  <SectionNumber number={String(index + 1).padStart(2, "0")} />
-                </div>
-                <div>
-                  <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: "var(--ink)", letterSpacing: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "baseline",
+                  paddingBottom: 18,
+                  marginBottom: 28,
+                  borderBottom: "1px solid var(--rule)",
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{
+                    flexShrink: 0,
+                    minWidth: 26,
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: "var(--teal)",
+                    letterSpacing: "0.02em",
+                    lineHeight: 1,
+                  }}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 500, color: "var(--ink)", letterSpacing: 0, lineHeight: 1.3 }}>
                     {block.title}
                   </h4>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 }}>{block.summary}</p>
+                  <p style={{ margin: 0, fontSize: 15, color: "var(--ink-muted)", lineHeight: 1.6 }}>{block.summary}</p>
                 </div>
               </div>
               <div style={{ display: "grid", gap: 28 }}>
@@ -170,7 +219,7 @@ export function ProcessArtifactOutput({
       {/* Rescue */}
       <OutputSection
         label="If you've stalled"
-        subtitle="When you've stopped and can't find your way back in, start here. Not for when things go wrong — for when you've gone quiet."
+        subtitle="When you've stopped and can't find your way back in, start here. Not for when things go wrong, but for when you've just gone quiet."
       >
         <div style={{ display: "grid", gap: 28 }}>
           {plan.rescueMoves.map((move) => (
@@ -182,28 +231,45 @@ export function ProcessArtifactOutput({
       {/* Measurement */}
       <OutputSection label="How to tell if it's working" subtitle="A few honest questions to check in on, not metrics to hit.">
         <div style={moveCardStyle}>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
             {plan.measures.map((measure) => (
-              <li key={measure} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, marginBottom: 6 }}>
-                {measure}
+              <li key={measure} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 9, borderRadius: 999, background: "var(--teal)" }} />
+                <span style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7 }}>{measure}</span>
               </li>
             ))}
           </ul>
-          <p style={{ margin: "14px 0 0", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7 }}>
+          <p style={{ margin: "18px 0 0", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.7 }}>
             Once a week, ask: {plan.weeklyQuestion}
           </p>
         </div>
       </OutputSection>
 
-      {/* HANDOFF — the file you give to an AI. Not for reading; just download. */}
-      <div style={{ border: "1px solid rgba(91,138,138,0.25)", background: "rgba(91,138,138,0.06)", padding: "18px 20px" }}>
-        <MetaLabel color="var(--teal)" style={{ marginBottom: 8 }}>Hand this to your AI</MetaLabel>
-        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 620 }}>
-          So you don't have to decide what to do when you've got nothing left to decide with. Drop this into ChatGPT,
-          Claude, or any AI app, tell it how much energy you have today, and it picks the right step for you — no
-          staring at the whole plan, no figuring out where to start. Download keeps a file; copy drops it straight
-          into a conversation.
+      {/* CLOSE — what the AI does once it's running this plan, plus how to use
+          it. Mirrors the Context profile close: payoff, then the deliverable,
+          then plain instructions. */}
+      <div style={{ border: "1px solid rgba(91,138,138,0.25)", background: "rgba(91,138,138,0.06)", padding: "26px 28px" }}>
+        <SectionHeading color="var(--teal-deep)" marginBottom={8}>What happens when you hand it over</SectionHeading>
+        <p style={{ margin: "0 0 28px", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 600 }}>
+          This turns your plan into something an AI can run with you. Tell it how much energy you've got today, and
+          it picks the step. No staring at the whole thing, no deciding what to do when you've got nothing left to
+          decide with.
         </p>
+
+        {benefits.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <MetaLabel color="var(--teal)" style={{ marginBottom: 12 }}>What it'll do with this</MetaLabel>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
+              {benefits.map((b) => (
+                <li key={b} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <ArrowRight size={14} color="var(--teal-deep)" weight="bold" style={{ flexShrink: 0, marginTop: 4 }} />
+                  <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6 }}>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <OutputActionBar
           actions={[
             { key: "download", label: "Download process", icon: <DownloadSimple size={14} />, onClick: onDownload, primary: true },
@@ -216,6 +282,37 @@ export function ProcessArtifactOutput({
             },
           ]}
         />
+
+        <div style={{ marginTop: 24, paddingTop: 22, borderTop: "1px solid rgba(91,138,138,0.25)" }}>
+          <MetaLabel color="var(--teal)" style={{ marginBottom: 12 }}>How to use it</MetaLabel>
+          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
+            {[
+              "Copy the instructions above, or download the file.",
+              "Open ChatGPT, Claude, or any AI app you use.",
+              "When you sit down to work on this goal, paste it in and tell it your energy for the day. Or save it as a project for this goal, so it's ready every time you come back.",
+            ].map((stepText, i) => (
+              <li key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span
+                  aria-hidden
+                  style={{
+                    flexShrink: 0,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    color: "var(--teal-deep)",
+                    lineHeight: "24px",
+                    minWidth: 14,
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6 }}>{stepText}</span>
+              </li>
+            ))}
+          </ol>
+          <p style={{ margin: "14px 0 0", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 600 }}>
+            From then on it runs the plan with you, one fitting step at a time.
+          </p>
+        </div>
       </div>
 
       {/* Quiet footer — admin actions, out of the way. */}

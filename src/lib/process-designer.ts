@@ -240,8 +240,8 @@ export function buildProcessPlan(
       ? workingWith
       : [
           "Use one visible next step at a time.",
-          "Prefer bounded work over open loops.",
-          "Treat silence as neutral, not drift.",
+          "Prefer small, finishable work over open-ended loops.",
+          "Treat going quiet as neutral, not as falling behind.",
         ],
     protectedConditions: protectedConditions.length > 0
       ? protectedConditions
@@ -263,6 +263,28 @@ export function buildProcessPlan(
     rescueMoves,
     agentBrief,
   };
+}
+
+/**
+ * The payoff, phrased as what the agent does once it has this plan. Mirrors the
+ * Context profile's benefits list, but a process drives the daily decision
+ * rather than setting standing context, so these are about running the plan:
+ * asking what's available, surfacing one fitting step, honouring "not today".
+ * Derived from the plan's own structure so it can't promise what isn't there.
+ */
+export function buildProcessBenefits(plan: ProcessPlan): string[] {
+  const out: string[] = [];
+
+  out.push("Start by asking what you've actually got today, before suggesting anything.");
+  out.push("Offer you one step that fits today's energy, never the whole plan at once.");
+
+  if (plan.rescueMoves.length > 0) {
+    out.push("When you've stalled, reach for a rescue step instead of pushing you to catch up.");
+  }
+
+  out.push("Take \"not today\" as a complete answer, with no guilt and no catch-up.");
+
+  return out.slice(0, 4);
 }
 
 export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: ProcessPlan): string {
@@ -289,7 +311,7 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
 
   lines.push("", "## Session start", "", plan.checkInPrompt, "");
   for (const mode of plan.checkInModes) {
-    lines.push(`- **${mode.label}** — ${mode.guidance}`);
+    lines.push(`- **${mode.label}:** ${mode.guidance}`);
   }
 
   lines.push("", "## Step menu", "");
@@ -297,22 +319,22 @@ export function buildProcessMarkdown(inputs: ProcessDesignerInputs, plan: Proces
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
       lines.push(`#### ${move.title}`, "");
-      lines.push(`- **Trigger** — ${move.trigger}`);
-      lines.push(`- **Action** — ${move.action}`);
-      lines.push(`- **Done signal** — ${move.doneSignal}`);
-      lines.push(`- **Effort** — ${move.effort}`);
-      lines.push(`- **Why this fits you** — ${move.whyItFits}`, "");
+      lines.push(`- **Trigger:** ${move.trigger}`);
+      lines.push(`- **Action:** ${move.action}`);
+      lines.push(`- **Done signal:** ${move.doneSignal}`);
+      lines.push(`- **Effort:** ${move.effort}`);
+      lines.push(`- **Why this fits you:** ${move.whyItFits}`, "");
     }
   }
 
   lines.push("## Rescue steps", "");
   for (const move of plan.rescueMoves) {
     lines.push(`### ${move.title}`, "");
-    lines.push(`- **Trigger** — ${move.trigger}`);
-    lines.push(`- **Action** — ${move.action}`);
-    lines.push(`- **Done signal** — ${move.doneSignal}`);
-    lines.push(`- **Effort** — ${move.effort}`);
-    lines.push(`- **Why this fits you** — ${move.whyItFits}`, "");
+    lines.push(`- **Trigger:** ${move.trigger}`);
+    lines.push(`- **Action:** ${move.action}`);
+    lines.push(`- **Done signal:** ${move.doneSignal}`);
+    lines.push(`- **Effort:** ${move.effort}`);
+    lines.push(`- **Why this fits you:** ${move.whyItFits}`, "");
   }
 
   lines.push("## Measurement", "");
@@ -376,7 +398,7 @@ function buildMoveBlocks({
   const shutdownHint = shutdownTriggers[0]?.toLowerCase() || "open-ended work";
   const existingHint = existingAssets || "whatever notes, drafts, or scraps already exist";
   const successHint = successSignal || `one visible step forward on ${goal}`;
-  const frictionHint = frictionPoints || "the part that usually turns this into a demand spiral";
+  const frictionHint = frictionPoints || "the part that usually makes you want to avoid the whole thing";
 
   return [
     {
@@ -385,12 +407,12 @@ function buildMoveBlocks({
       summary: "For when you want motion without asking for a full performance.",
       moves: [
         {
-          title: "Reduce the edge",
-          trigger: `When you want to work on ${goal} but the starting energy is low`,
-          action: `Open the smallest live artifact connected to ${goal}. Work from ${existingHint}. Make one clarifying step only: rename a section, list the open questions, cut the scope, or mark the real next edge.`,
-          doneSignal: "The artifact is clearer than it was, and the next step is easier to see.",
+          title: "Make it smaller",
+          trigger: `When you want to work on ${goal} but you've got barely any energy to start`,
+          action: `Open the smallest thing you've already started on ${goal}. Work from ${existingHint}. Do just one tidying step: rename a section, list the open questions, cut the scope, or mark the real next step.`,
+          doneSignal: "It's clearer than it was, and the next step is easier to see.",
           effort: "10-15 minutes",
-          whyItFits: `This lowers blank-page pressure and uses ${lowStakesSupport} instead of demanding full activation.`,
+          whyItFits: `This takes the pressure off a blank page and leans on ${lowStakesSupport} instead of needing you at full power.`,
         },
         {
           title: "Capture without organizing",
@@ -408,20 +430,20 @@ function buildMoveBlocks({
       summary: "For the moments when there is real pull, real energy, or a proper stretch of time.",
       moves: [
         {
-          title: "Make one bounded unit",
-          trigger: `When ${activationHint} is present and you have a real working window`,
-          action: `Choose one bounded unit for ${goal}: one page, one section, one prototype slice, one decision, or one cleaned-up handoff. Keep the edge narrow enough that it can actually close.`,
+          title: "Finish one small piece",
+          trigger: `When ${activationHint} is here and you've got a real stretch of time`,
+          action: `Pick one small, finishable piece of ${goal}: one page, one section, one part of a prototype, one decision, or one tidied-up handover. Keep it narrow enough that you can actually finish it.`,
           doneSignal: successHint,
           effort: "45-90 minutes",
-          whyItFits: "This turns activation into a finished unit instead of scattering it across too many starts.",
+          whyItFits: "This turns a burst of energy into one finished thing instead of scattering it across too many half-starts.",
         },
         {
-          title: "Leave the runway visible",
+          title: "Leave yourself a way back in",
           trigger: "Right before you stop a good session",
-          action: `Leave a short re-entry note: what changed, what is rough, and the exact next thing to touch when you come back to ${goal}.`,
-          doneSignal: "Future-you can re-enter without reconstructing the whole context.",
+          action: `Leave a short note to yourself: what changed, what's still rough, and the exact next thing to pick up when you come back to ${goal}.`,
+          doneSignal: "Future-you can get back in without piecing it all together again.",
           effort: "5 minutes",
-          whyItFits: "It preserves the benefit of a good window and shortens the next start.",
+          whyItFits: "It locks in what you got from a good session and makes the next start much shorter.",
         },
       ],
     },
@@ -441,7 +463,7 @@ function buildMoveBlocks({
         {
           title: "Remove the dependency",
           trigger: "When you are waiting on someone else or on a perfect condition",
-          action: "Either make one async ask, create a temporary placeholder, or shrink the step so it no longer depends on that missing thing.",
+          action: "Either send one quick message to ask, put in a temporary placeholder, or shrink the step so it no longer depends on that missing thing.",
           doneSignal: "Progress no longer rests entirely on someone else responding.",
           effort: "10-20 minutes",
           whyItFits: `Waiting often turns into shutdown. This keeps the process moving without fighting ${shutdownHint}.`,
@@ -454,12 +476,12 @@ function buildMoveBlocks({
       summary: "For when you want something to keep helping later without staying socially or mentally 'on'.",
       moves: [
         {
-          title: "Package one reusable asset",
-          trigger: `When you do not want a heavy session but you want ${goal} to keep moving later`,
-          action: `Turn one piece of existing work into something easier to reuse: a cleaner outline, a template, a snippet bank, a checklist, or a handoff note.`,
-          doneSignal: "There is one asset future-you or an agent can use without rebuilding context.",
+          title: "Make one thing you can reuse",
+          trigger: `When you don't want a heavy session but you want ${goal} to keep moving later`,
+          action: `Turn one piece of work you've already done into something easier to reuse: a cleaner outline, a template, a saved set of snippets, a checklist, or a handover note.`,
+          doneSignal: "There's one thing future-you, or an AI, can pick up without rebuilding the whole picture.",
           effort: "20-30 minutes",
-          whyItFits: "Reusable assets create leverage without requiring repeated activation from scratch.",
+          whyItFits: "Something reusable keeps paying off later without needing you to fire up from scratch each time.",
         },
         {
           title: "Queue the next easy entry",
@@ -481,25 +503,25 @@ function buildRescueMoves(goal: string, shutdownTriggers: string[], successSigna
       title: "Not today",
       trigger: "When nothing about today makes this available",
       action: `Call it cleanly. Mark ${goal} as not available today, leave one sentence about why if that helps, and stop there.`,
-      doneSignal: "The loop is closed without creating catch-up debt.",
+      doneSignal: "It's closed off for the day without leaving things to catch up on.",
       effort: "2 minutes",
-      whyItFits: "A dignified no prevents avoidant drag from building on top of an already unavailable day.",
+      whyItFits: "A clean no stops avoidance from piling up on top of a day that already wasn't going to work.",
     },
     {
       title: "Restart after drift",
       trigger: "When you have been away from the process for a while",
-      action: `Re-read the goal, the success signal (${successHint}), and choose the smallest step from Low-friction re-entry. Do not attempt a full catch-up review.`,
-      doneSignal: "You are back inside the work without reconstructing everything.",
+      action: `Re-read the goal and what counts as progress (${successHint}), then pick the smallest step from Low-friction re-entry. Don't try to review everything you missed.`,
+      doneSignal: "You're back in the work without having to piece it all together first.",
       effort: "10 minutes",
-      whyItFits: "Re-entry fails when the first step becomes a backlog audit.",
+      whyItFits: "Getting back in falls apart when the first step turns into reviewing everything you've missed.",
     },
     {
-      title: "Demand check",
-      trigger: `When the process starts sounding like ${shutdownTriggers[0]?.toLowerCase() || "a demand"}`,
-      action: "Rewrite the step in invitation language. Reduce it to one option you could try, not a command you now have to obey.",
-      doneSignal: "The step feels optional enough to become available again.",
+      title: "Take the pressure off",
+      trigger: `When the work starts feeling like ${shutdownTriggers[0]?.toLowerCase() || "a demand you have to obey"}`,
+      action: "Rewrite the step as an invitation. Turn it into one thing you could try, not an order you now have to follow.",
+      doneSignal: "The step feels optional enough that you can pick it up again.",
       effort: "5 minutes",
-      whyItFits: "Framing changes whether a task stays workable or turns into a wall.",
+      whyItFits: "The wording is often what decides whether a task stays doable or turns into a wall.",
     },
   ];
 }
@@ -516,11 +538,11 @@ function buildCheckInModes(goal: string): ProcessCheckInMode[] {
     },
     {
       label: "Executing",
-      guidance: `Surface one bounded step from the menu below and nothing else until it is closed or declined.`,
+      guidance: `Surface one small, finishable step from the menu below and nothing else until it's done or turned down.`,
     },
     {
       label: "Not today",
-      guidance: `Respect that ${goal} is not available today. No catch-up framing, no replacement task, no guilt dressing.`,
+      guidance: `Respect that ${goal} is not available today. No catch-up talk, no replacement task, no guilt.`,
     },
   ];
 }
@@ -586,21 +608,21 @@ function buildAgentBrief({
 
   lines.push("", "## Check-in modes", "");
   for (const mode of checkInModes) {
-    lines.push(`- **${mode.label}** — ${mode.guidance}`);
+    lines.push(`- **${mode.label}:** ${mode.guidance}`);
   }
 
   lines.push("", "## Step menu", "");
   for (const block of blocks) {
     lines.push(`### ${block.title}`, "", block.summary, "");
     for (const move of block.moves) {
-      lines.push(`- **${move.title}** — Trigger: ${move.trigger} Action: ${move.action} Done signal: ${move.doneSignal}`);
+      lines.push(`- **${move.title}:** Trigger: ${move.trigger} Action: ${move.action} Done signal: ${move.doneSignal}`);
     }
     lines.push("");
   }
 
   lines.push("## Rescue steps", "");
   for (const move of rescueMoves) {
-    lines.push(`- **${move.title}** — ${move.action}`);
+    lines.push(`- **${move.title}:** ${move.action}`);
   }
 
   return lines.join("\n");

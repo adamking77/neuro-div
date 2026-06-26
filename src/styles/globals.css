@@ -656,9 +656,9 @@ pre {
 }
 .spine-finder .sf-acc-body {
   padding: 2px 20px 22px 70px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-light);
-  line-height: 1.65;
+  line-height: 1.7;
 }
 .spine-finder .sf-acc-body p {
   margin: 0 0 12px;
@@ -673,6 +673,7 @@ pre {
 .spine-finder .sf-acc-body ol {
   margin: 0 0 12px;
   padding-left: 20px;
+  list-style: decimal;
 }
 .spine-finder .sf-acc-body li {
   margin-bottom: 6px;

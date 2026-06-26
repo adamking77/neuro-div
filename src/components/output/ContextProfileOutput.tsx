@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { DownloadSimple, Copy, Check } from "@phosphor-icons/react";
+import { DownloadSimple, Copy, Check, ArrowRight } from "@phosphor-icons/react";
 import { MetaLabel } from "../ui";
 import type { NDProfile } from "../../types";
 import {
@@ -15,10 +15,11 @@ import {
   buildProfileInsights,
   buildOperatingWindow,
   buildProfileRadar,
+  buildAgentBenefits,
 } from "../../lib/nd-insights";
 import { LeadTakeaway, QuietRow, SectionHeading } from "./OutputSection";
 import { OutputActionBar } from "./OutputActionBar";
-import { ProfileBars } from "./OutputCharts";
+import { ProfileBars, BalanceMeter } from "./OutputCharts";
 
 function Pill({ label, tone = "default" }: { label: string; tone?: "default" | "teal" | "terracotta" }) {
   const styles: Record<string, React.CSSProperties> = {
@@ -62,22 +63,40 @@ function InsightRow({ kind, claim, action }: { kind: string; claim: string; acti
       <MetaLabel color="var(--teal)" style={{ marginBottom: 6 }}>{kind}</MetaLabel>
       <p style={{ margin: 0, fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6 }}>{claim}</p>
       <p style={{ margin: "10px 0 0", fontSize: 15, color: "var(--ink)", lineHeight: 1.6 }}>
-        <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>Do this — </span>
+        <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>Do this: </span>
         <span style={{ fontWeight: 500 }}>{action}</span>
       </p>
     </div>
   );
 }
 
-/** A labelled line list (e.g. "Pulls you in") with a colored marker. */
-function MarkedList({ label, color, items }: { label: string; color: string; items: string[] }) {
+/** One side of the operating window: a color-capped column with a readable
+ * header, a count, and roomy rows. The color coding (teal = energize,
+ * terracotta = drain) carries the contrast so the two sides never blur. */
+function WindowColumn({
+  label,
+  headerColor,
+  accent,
+  items,
+}: {
+  label: string;
+  headerColor: string;
+  accent: string;
+  items: string[];
+}) {
   if (items.length === 0) return null;
   return (
-    <div>
-      <MetaLabel color={color} style={{ marginBottom: 8 }}>{label}</MetaLabel>
-      <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ borderTop: `2px solid ${accent}`, paddingTop: 16, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 18 }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: headerColor, lineHeight: 1.3 }}>{label}</span>
+        <span className="mono" style={{ fontSize: 11, color: "var(--ink-muted)" }}>{items.length}</span>
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 16 }}>
         {items.map((p) => (
-          <li key={p} style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.55 }}>{p}</li>
+          <li key={p} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 8, borderRadius: 999, background: accent }} />
+            <span style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.55 }}>{p}</span>
+          </li>
         ))}
       </ul>
     </div>
@@ -127,18 +146,19 @@ export function ContextProfileOutput({
   const lead = window.sweetSpot
     ? { kind: "The takeaway", text: window.sweetSpot }
     : insights[0]
-      ? { kind: insights[0].kind, text: `${insights[0].claim} Do this — ${insights[0].action}` }
+      ? { kind: insights[0].kind, text: `${insights[0].claim} Do this: ${insights[0].action}` }
       : null;
   // Supporting insights = everything except whichever became the lead.
   const supporting = window.sweetSpot ? insights : insights.slice(1);
 
-  // Actionable summary — every concrete move from the page, gathered. Thorough
-  // (nothing dropped) and accurate (same source as the insights above, so it
-  // can't drift). The sweet-spot verdict leads if present.
-  const allActions = [
-    ...(window.sweetSpot ? [window.sweetSpot] : []),
-    ...insights.map((i) => i.action),
-  ];
+  // The closing recap: a short digest of the insights (essence only, not the
+  // full claim+action), so the page ends on a summary of what was found rather
+  // than a checklist of commands. Same source as the insights above, so it
+  // can't drift.
+  const recap = insights.map((i) => ({ kind: i.kind, summary: i.summary }));
+
+  // The payoff: concrete things the AI will do differently once it has this.
+  const benefits = buildAgentBenefits(profile);
 
   function handleDownload() {
     if (onDownload) {
@@ -160,7 +180,7 @@ export function ContextProfileOutput({
   }
 
   return (
-    <div style={{ display: "grid", gap: 80, minWidth: 0, maxWidth: 720 }}>
+    <div style={{ display: "grid", gap: 72, minWidth: 0, maxWidth: 720 }}>
       <OutputActionBar
         actions={[
           { key: "download", label: "Download profile", icon: <DownloadSimple size={14} />, onClick: handleDownload, primary: true },
@@ -180,8 +200,8 @@ export function ContextProfileOutput({
 
       {/* SHAPE — the radar of how they're wired. */}
       <div>
-        <SectionHeading marginBottom={6}>How you're wired</SectionHeading>
-        <p style={{ margin: "0 0 24px", fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.6 }}>
+        <SectionHeading marginBottom={8}>How you're wired</SectionHeading>
+        <p style={{ margin: "0 0 24px", fontSize: 15, color: "var(--ink-muted)", lineHeight: 1.6 }}>
           A quick picture of where your strengths and needs sit, built from what you chose.
         </p>
         <ProfileBars axes={radar} />
@@ -191,7 +211,7 @@ export function ContextProfileOutput({
       {supporting.length > 0 && (
         <div>
           <SectionHeading marginBottom={28}>What this says about how you work</SectionHeading>
-          <div style={{ display: "grid", gap: 40 }}>
+          <div style={{ display: "grid", gap: 32 }}>
             {supporting.map((insight) => (
               <InsightRow key={insight.kind} {...insight} />
             ))}
@@ -199,49 +219,39 @@ export function ContextProfileOutput({
         </div>
       )}
 
-      {/* WINDOW — what works / what to avoid, stacked. */}
+      {/* WINDOW — what works / what to avoid. Two color-coded columns so the
+          energize-vs-drain contrast reads at a glance, with the balance meter
+          as the at-a-glance topper. */}
       {(window.activators.length > 0 || window.shutdowns.length > 0) && (
         <div>
-          <SectionHeading marginBottom={28}>What works for you, what to avoid</SectionHeading>
-          <div style={{ display: "grid", gap: 32 }}>
-            <MarkedList label="What gets you going" color="var(--teal)" items={window.activators} />
-            <MarkedList label="What shuts you down" color="var(--terracotta)" items={window.shutdowns} />
+          <SectionHeading marginBottom={8}>What works for you, what to avoid</SectionHeading>
+          <p style={{ margin: "0 0 24px", fontSize: 15, color: "var(--ink-muted)", lineHeight: 1.6 }}>
+            The conditions that switch you on, and the ones that switch you off. Build the first into your day, and
+            keep the second out of it.
+          </p>
+          <BalanceMeter activators={window.activators.length} shutdowns={window.shutdowns.length} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 32,
+              marginTop: 36,
+            }}
+          >
+            <WindowColumn label="What gets you going" headerColor="var(--teal-deep)" accent="var(--teal)" items={window.activators} />
+            <WindowColumn label="What shuts you down" headerColor="var(--terracotta)" accent="var(--terracotta)" items={window.shutdowns} />
           </div>
         </div>
       )}
 
-      {/* HANDOFF — the file you give to an AI. Not for reading; just download. */}
-      {agentBrief && (
-        <div style={{ border: "1px solid rgba(91,138,138,0.25)", background: "rgba(91,138,138,0.06)", padding: "18px 20px" }}>
-          <MetaLabel color="var(--teal)" style={{ marginBottom: 8 }}>Hand this to your AI</MetaLabel>
-          <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 620 }}>
-            So you never have to explain how you work again. Drop this into ChatGPT, Claude, or any AI app and it
-            starts off already knowing your rhythm, what helps, and what to avoid — no preamble, no re-teaching it
-            every chat. Download keeps a file; copy drops it straight into a conversation.
-          </p>
-          <OutputActionBar
-            actions={[
-              { key: "dl", label: "Download profile", icon: <DownloadSimple size={14} />, onClick: handleDownload, primary: true },
-              {
-                key: "copy",
-                label: copied ? "Copied" : "Copy instructions",
-                icon: copied ? <Check size={12} /> : <Copy size={12} />,
-                onClick: () => void handleCopyBrief(),
-                color: copied ? "var(--teal-deep)" : undefined,
-              },
-            ]}
-          />
-        </div>
-      )}
-
       {/* REFERENCE — quiet, secondary, stacked. Set apart by space alone. */}
-      <div style={{ display: "grid", gap: 36 }}>
+      <div style={{ display: "grid", gap: 32 }}>
         <QuietRow label="Your neurotype">
           {traits.length > 0 ? <PillRow items={traits} tone="teal" /> : (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-muted)" }}>No neurotype selected.</p>
+            <p style={{ margin: 0, fontSize: 15, color: "var(--ink-muted)" }}>No neurotype selected.</p>
           )}
           {profile.traits.manifestations.length > 0 && (
-            <p style={{ fontSize: 12, color: "var(--ink-light)", lineHeight: 1.6, margin: "10px 0 0" }}>
+            <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: "10px 0 0" }}>
               {profile.traits.manifestations.length} detail
               {profile.traits.manifestations.length > 1 ? "s" : ""} about how these show up for you
             </p>
@@ -258,12 +268,12 @@ export function ContextProfileOutput({
               </div>
             )}
             {profile.timeEnergy.activationWindows.trim() && (
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: "0 0 6px" }}>
+              <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: "0 0 6px" }}>
                 <strong style={{ color: "var(--ink)" }}>When you work:</strong> {profile.timeEnergy.activationWindows.trim()}
               </p>
             )}
             {profile.timeEnergy.unavailablePeriods.trim() && (
-              <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
+              <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
                 <strong style={{ color: "var(--ink)" }}>Protected downtime:</strong> {profile.timeEnergy.unavailablePeriods.trim()}
               </p>
             )}
@@ -272,13 +282,13 @@ export function ContextProfileOutput({
 
         <QuietRow label="How you take in information">
           {profile.infoConditions.density && (
-            <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: "0 0 8px" }}>
+            <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: "0 0 8px" }}>
               <strong style={{ color: "var(--ink)" }}>Density:</strong> {INFO_DENSITY_LABELS[profile.infoConditions.density]}
             </p>
           )}
           <PillRow items={infoFormats} />
           {!profile.infoConditions.density && infoFormats.length === 0 && (
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>No information preferences set.</p>
+            <p style={{ fontSize: 15, color: "var(--ink-muted)", margin: 0 }}>No information preferences set.</p>
           )}
         </QuietRow>
 
@@ -286,7 +296,7 @@ export function ContextProfileOutput({
           {supportConditions.length > 0 ? (
             <PillRow items={supportConditions} />
           ) : (
-            <p style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>No support conditions selected.</p>
+            <p style={{ fontSize: 15, color: "var(--ink-muted)", margin: 0 }}>No support conditions selected.</p>
           )}
         </QuietRow>
 
@@ -294,17 +304,17 @@ export function ContextProfileOutput({
           <QuietRow label="What you've tried">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {profile.history.triedSystems.trim() && (
-                <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
+                <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
                   <strong style={{ color: "var(--ink)" }}>Tried:</strong> {profile.history.triedSystems.trim()}
                 </p>
               )}
               {profile.history.whatWorked.trim() && (
-                <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
+                <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
                   <strong style={{ color: "var(--ink)" }}>Worked:</strong> {profile.history.whatWorked.trim()}
                 </p>
               )}
               {profile.history.whatFailed.trim() && (
-                <p style={{ fontSize: 13, color: "var(--ink-light)", lineHeight: 1.55, margin: 0 }}>
+                <p style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, margin: 0 }}>
                   <strong style={{ color: "var(--ink)" }}>Fell apart:</strong> {profile.history.whatFailed.trim()}
                 </p>
               )}
@@ -313,47 +323,88 @@ export function ContextProfileOutput({
         )}
       </div>
 
-      {/* ACTIONABLE SUMMARY — every move from the page, in one checklist. */}
-      {allActions.length > 0 && (
+      {/* CLOSE — the short version of what the profile found, the handoff, and
+          plain instructions for using it with an AI. Not a checklist of moves;
+          a recap plus the deliverable. */}
+      {agentBrief && (
         <div style={{ border: "1px solid rgba(91,138,138,0.25)", background: "rgba(91,138,138,0.06)", padding: "26px 28px" }}>
-          <SectionHeading color="var(--teal-deep)" marginBottom={8}>Your action list</SectionHeading>
-          <p style={{ margin: "0 0 22px", fontSize: 14, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 600 }}>
-            Everything this profile points to, in one place. Change what you can yourself — and hand the rest to your
-            AI so it stops working against your wiring. Download or copy below, and you'll never have to explain how
-            you work again.
+          <SectionHeading color="var(--teal-deep)" marginBottom={8}>The short version</SectionHeading>
+          <p style={{ margin: "0 0 28px", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 600 }}>
+            Hand this to your AI once, and it starts working the way you do. No more explaining yourself at the start
+            of every chat.
           </p>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 16 }}>
-            {allActions.map((action) => (
-              <li key={action} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <span
-                  aria-hidden
-                  style={{
-                    flexShrink: 0,
-                    width: 16,
-                    height: 16,
-                    marginTop: 3,
-                    border: "1.5px solid var(--teal)",
-                    borderRadius: 4,
-                  }}
-                />
-                <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6 }}>{action}</span>
-              </li>
-            ))}
-          </ul>
-          <div style={{ marginTop: 24 }}>
-            <OutputActionBar
-              actions={[
-                { key: "dl", label: "Download profile", icon: <DownloadSimple size={14} />, onClick: handleDownload, primary: true },
-                {
-                  key: "copy",
-                  label: copied ? "Copied" : "Copy AI instructions",
-                  icon: copied ? <Check size={12} /> : <Copy size={12} />,
-                  onClick: () => void handleCopyBrief(),
-                  color: copied ? "var(--teal-deep)" : undefined,
-                  disabled: !agentBrief,
-                },
-              ]}
-            />
+
+          {recap.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <MetaLabel color="var(--teal)" style={{ marginBottom: 12 }}>What it now understands about you</MetaLabel>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
+                {recap.map((item) => (
+                  <li key={item.kind} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 8, borderRadius: 999, background: "var(--teal)" }} />
+                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6 }}>{item.summary}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {benefits.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <MetaLabel color="var(--teal)" style={{ marginBottom: 12 }}>What it'll do differently for you</MetaLabel>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
+                {benefits.map((b) => (
+                  <li key={b} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <ArrowRight size={14} color="var(--teal-deep)" weight="bold" style={{ flexShrink: 0, marginTop: 4 }} />
+                    <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6 }}>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <OutputActionBar
+            actions={[
+              { key: "dl", label: "Download profile", icon: <DownloadSimple size={14} />, onClick: handleDownload, primary: true },
+              {
+                key: "copy",
+                label: copied ? "Copied" : "Copy AI instructions",
+                icon: copied ? <Check size={12} /> : <Copy size={12} />,
+                onClick: () => void handleCopyBrief(),
+                color: copied ? "var(--teal-deep)" : undefined,
+                disabled: !agentBrief,
+              },
+            ]}
+          />
+
+          <div style={{ marginTop: 24, paddingTop: 22, borderTop: "1px solid rgba(91,138,138,0.25)" }}>
+            <MetaLabel color="var(--teal)" style={{ marginBottom: 12 }}>How to use it</MetaLabel>
+            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
+              {[
+                "Copy the instructions above, or download the file.",
+                "Open ChatGPT, Claude, or any AI app you use.",
+                "Paste it at the start of a chat. Better still, save it as that app's custom instructions or project memory so it sticks to every conversation, not just one.",
+              ].map((stepText, i) => (
+                <li key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span
+                    aria-hidden
+                    style={{
+                      flexShrink: 0,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12,
+                      color: "var(--teal-deep)",
+                      lineHeight: "24px",
+                      minWidth: 14,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span style={{ fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6 }}>{stepText}</span>
+                </li>
+              ))}
+            </ol>
+            <p style={{ margin: "14px 0 0", fontSize: 15, color: "var(--ink-light)", lineHeight: 1.6, maxWidth: 600 }}>
+              From then on it responds to how you actually work, with no re-explaining.
+            </p>
           </div>
         </div>
       )}

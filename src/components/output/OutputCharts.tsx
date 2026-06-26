@@ -25,7 +25,7 @@ export function ProfileBars({ axes }: { axes: ProfileAxis[] }) {
       {axes.map((a) => (
         <div key={a.key}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-            <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.35 }}>{a.label}</span>
+            <span style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.35 }}>{a.label}</span>
             <span className="mono" style={{ fontSize: 11, color: "var(--ink-muted)" }}>
               {Math.round(a.value)}%
             </span>
@@ -42,6 +42,40 @@ export function ProfileBars({ axes }: { axes: ProfileAxis[] }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Balance meter: a single split bar showing how many things lift this person up
+ * versus pull them down. Not a score and not a verdict — just a picture of where
+ * the weight sits, so an even split or a lopsided one is visible at a glance.
+ */
+export function BalanceMeter({
+  activators,
+  shutdowns,
+}: {
+  activators: number;
+  shutdowns: number;
+}) {
+  const total = activators + shutdowns;
+  if (total === 0) return null;
+  const upPct = Math.round((activators / total) * 100);
+
+  return (
+    <div>
+      <div style={{ display: "flex", height: 12, overflow: "hidden", borderRadius: 2 }}>
+        <div style={{ width: `${upPct}%`, background: "var(--teal)" }} />
+        <div style={{ width: `${100 - upPct}%`, background: "var(--terracotta)" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+        <span style={{ fontSize: 15, color: "var(--teal-deep)", lineHeight: 1.35 }}>
+          {activators} lift you up
+        </span>
+        <span style={{ fontSize: 15, color: "var(--terracotta)", lineHeight: 1.35 }}>
+          {shutdowns} pull you down
+        </span>
+      </div>
     </div>
   );
 }
@@ -102,7 +136,7 @@ export function CoverageBars({ data }: { data: CoverageDatum[] }) {
         return (
           <div key={d.label}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 5 }}>
-              <span style={{ fontSize: 13, color: empty ? "var(--ink-muted)" : "var(--ink)", lineHeight: 1.35 }}>
+              <span style={{ fontSize: 15, color: empty ? "var(--ink-muted)" : "var(--ink)", lineHeight: 1.35 }}>
                 {d.label}
               </span>
               <span className="mono" style={{ fontSize: 10, color: "var(--ink-muted)" }}>

@@ -65,13 +65,13 @@ export const TRAIT_LABELS: Record<NDTrait, string> = {
 
 export const MANIFESTATION_LABELS: Record<NDTraitManifestation, string> = {
   "adhd-hard-to-start": "Hard to start tasks even when I want to do them",
-  "adhd-time-blindness": "Time blindness — hours pass without me noticing",
-  "adhd-hyperfocus": "Hyperfocus — when I'm interested I can lose hours",
+  "adhd-time-blindness": "Time blindness: hours pass without me noticing",
+  "adhd-hyperfocus": "Hyperfocus: when I'm interested I can lose hours",
   "adhd-transition-hard": "Switching between tasks takes real effort",
   "adhd-needs-movement": "I think better when I'm moving or have background stimulation",
   "adhd-deadline-engine": "Deadlines are my main motivation engine",
   "adhd-fast-thoughts": "Thoughts come faster than I can capture them",
-  "autism-clear-expectations": "I need clear expectations — vague is genuinely stressful",
+  "autism-clear-expectations": "I need clear expectations: vague is genuinely stressful",
   "autism-sensory": "Sensory sensitivities affect where and how I can work",
   "autism-processing-time": "I need time to process before responding",
   "autism-deep-interests": "Deep interest areas that give me unusual energy",
@@ -87,7 +87,7 @@ export const MANIFESTATION_LABELS: Record<NDTraitManifestation, string> = {
   "dyslexia-visual-spatial": "I think more visually and spatially than linearly",
   "dyscalculia-numbers": "Numbers and calculations are genuinely hard",
   "dyscalculia-time-estimation": "Estimating how long things take is unreliable for me",
-  "sensory-sound": "Sound sensitivity — certain environments are unusable",
+  "sensory-sound": "Sound sensitivity: certain environments are unusable",
   "sensory-light": "Light sensitivity affects my ability to focus",
   "sensory-environment": "I'm particular about my environment in ways others find hard to understand",
 };
@@ -104,8 +104,8 @@ export const MANIFESTATIONS_BY_TRAIT: Record<NDTrait, NDTraitManifestation[]> = 
 export const ACTIVATION_LABELS: Record<ActivationPattern, string> = {
   novelty: "Novel problems or ideas I haven't seen before",
   deadline: "A real deadline with actual consequences",
-  urgency: "High stakes or urgency — something that actually matters now",
-  "deep-interest": "Deep interest or passion — I care about the topic",
+  urgency: "High stakes or urgency: something that actually matters now",
+  "deep-interest": "Deep interest or passion: I care about the topic",
   challenge: "A genuine challenge or puzzle",
   collaboration: "Someone else is counting on me, or we're doing it together",
   "creative-freedom": "Room to approach it my own way",
@@ -114,7 +114,7 @@ export const ACTIVATION_LABELS: Record<ActivationPattern, string> = {
 };
 
 export const SHUTDOWN_LABELS: Record<ShutdownTrigger, string> = {
-  "cold-outreach": "Cold outreach — contacting strangers to pitch or ask for something",
+  "cold-outreach": "Cold outreach: contacting strangers to pitch or ask for something",
   "live-calls": "Live calls or meetings, especially unscheduled ones",
   "open-ended": "Open-ended tasks with no clear finish or success signal",
   "admin-repetitive": "Admin or repetitive tasks",
@@ -126,20 +126,20 @@ export const SHUTDOWN_LABELS: Record<ShutdownTrigger, string> = {
 };
 
 export const TIME_PATTERN_LABELS: Record<TimePattern, string> = {
-  "time-blindness": "I lose track of time easily — hours pass without me noticing",
-  "deadline-engine": "Deadlines are my main engine — I come alive near the wire",
+  "time-blindness": "I lose track of time easily: hours pass without me noticing",
+  "deadline-engine": "Deadlines are my main engine: I come alive near the wire",
   "burst-worker": "I work in bursts, not sustained daily blocks",
   "needs-external-structure": "Without external structure I tend to drift",
   "no-time-pressure": "I do better without time pressure",
   "peak-windows": "I have one or two peak working windows; everything else is harder",
-  "recovery-non-negotiable": "Recovery time is non-negotiable — I can't just push through",
+  "recovery-non-negotiable": "Recovery time is non-negotiable: I can't just push through",
   other: "Something else",
 };
 
 export const INFO_DENSITY_LABELS: Record<InfoDensity, string> = {
-  brief: "Brief — give me the core point only",
-  medium: "Medium — enough context to understand the why",
-  deep: "Deep — give me everything, I'll sort what matters",
+  brief: "Brief, just the core point",
+  medium: "Medium, enough context to understand the why",
+  deep: "Deep, give me everything and I'll sort what matters",
   varies: "Depends on the topic",
 };
 
@@ -156,8 +156,8 @@ export const SUPPORT_CONDITION_LABELS: Record<SupportCondition, string> = {
   "background-sound": "Background music or ambient sound",
   silence: "Silence",
   "body-doubling": "Someone else present, even just on a call (body doubling)",
-  timers: "Timers — Pomodoro, countdowns, time limits",
-  movement: "Movement — walking, pacing, fidgeting",
+  timers: "Timers (Pomodoro, countdowns, time limits)",
+  movement: "Movement (walking, pacing, fidgeting)",
   routine: "A consistent starting ritual or routine",
   "low-stakes-start": "Starting with something easy or low-stakes to build momentum",
   other: "Something else",
@@ -364,7 +364,7 @@ function buildAgentInstructions(profile: NDProfile): string {
   lines.push("");
 
   if (hasADHD || profile.timeEnergy.patterns.includes("burst-worker")) {
-    lines.push("**Bursts over schedules.** This person works in focused bursts, not sustained daily blocks. Don't build plans around daily consistency. Build around conditions — when interest is high, when energy is available, when urgency is real.");
+    lines.push("**Bursts over schedules.** This person works in focused bursts, not sustained daily blocks. Don't build plans around daily consistency. Build around conditions: when interest is high, when energy is available, when urgency is real.");
     lines.push("");
   }
 

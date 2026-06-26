@@ -29,9 +29,20 @@ export default function App({
       </div>
 
       {!embedded ? (
-        <div style={{ maxWidth: 640, margin: "0 0 36px" }}>
+        <div style={{ maxWidth: 640, margin: "0 0 56px" }}>
           <p style={{ fontSize: 14, color: "var(--ink-light)", lineHeight: 1.7, margin: 0 }}>
             AI is the most adaptive partner neurodivergent people have ever had access to. The problem is context: it doesn't know your activation patterns, what causes shutdown, when you have real capacity, or what produces action versus paralysis. That context is hard to articulate, so it almost never gets in. NeuroDiv OS helps you build that full context and hand it to your AI, so every tool and every session responds to how you actually work.
+          </p>
+          <p style={{ fontSize: 14, color: "var(--ink-muted)", lineHeight: 1.7, margin: "12px 0 0" }}>
+            A tool for neurodivs by the neurodivs at{" "}
+            <a
+              href="https://gokart.studio"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--teal-deep)" }}
+            >
+              GoKart Studio
+            </a>
           </p>
         </div>
       ) : null}
@@ -105,6 +116,20 @@ export default function App({
           <SkillsLibrary />
         </ToolSection>
       )}
+
+      <footer className="site-footer" style={{ marginTop: 48 }}>
+        <span>
+          © {new Date().getFullYear()}{" "}
+          <a
+            href="https://gokart.studio"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--teal-deep)" }}
+          >
+            GoKart Studio
+          </a>
+        </span>
+      </footer>
     </div>
   );
 }

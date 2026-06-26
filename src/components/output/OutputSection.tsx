@@ -113,7 +113,7 @@ export function OutputSection({
           justifyContent: "space-between",
           gap: 16,
           flexWrap: "wrap",
-          marginBottom: subtitle ? 6 : 16,
+          marginBottom: subtitle ? 8 : 16,
         }}
       >
         <h2
@@ -133,8 +133,8 @@ export function OutputSection({
       {subtitle ? (
         <p
           style={{
-            margin: "0 0 18px",
-            fontSize: 14,
+            margin: "0 0 24px",
+            fontSize: 15,
             color: "var(--ink-muted)",
             lineHeight: 1.6,
           }}

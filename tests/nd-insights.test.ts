@@ -69,7 +69,7 @@ describe("buildOperatingWindow", () => {
       p.shutdown.triggers = ["being-evaluated"];
     });
     const w = buildOperatingWindow(p);
-    expect(w.sweetSpot).toContain("no audience");
+    expect(w.sweetSpot).toContain("nobody looking over your shoulder");
     expect(w.activators.length).toBe(1);
     expect(w.shutdowns.length).toBe(1);
   });
